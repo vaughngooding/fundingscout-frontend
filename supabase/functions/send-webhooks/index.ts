@@ -40,10 +40,12 @@ interface PendingAlert {
     full_name: string | null
     plan: string
   }
-  user_preference: {
-    slack_webhook_url: string | null
-    teams_webhook_url: string | null
-  }
+}
+
+interface UserPreference {
+  user_id: string
+  slack_webhook_url: string | null
+  teams_webhook_url: string | null
 }
 
 // ---------------------------------------------------------------------------
@@ -269,6 +271,7 @@ Deno.serve(async (req: Request) => {
     // our rate-limit mechanism.
     // -----------------------------------------------------------------------
 
+    // Step 1: Fetch pending alerts with funding round and profile data
     const { data: alerts, error: alertsError } = await supabase
       .from('user_alerts')
       .select(`
@@ -300,14 +303,10 @@ Deno.serve(async (req: Request) => {
           email,
           full_name,
           plan
-        ),
-        user_preference:user_preferences!inner (
-          slack_webhook_url,
-          teams_webhook_url
         )
       `)
       .eq('status', 'pending')
-      .eq('profiles.plan', 'pro')
+      .eq('profile.plan', 'pro')
 
     if (alertsError) {
       throw new Error(`Failed to fetch pending alerts: ${alertsError.message}`)
@@ -320,6 +319,23 @@ Deno.serve(async (req: Request) => {
       )
     }
 
+    // Step 2: Collect unique user IDs and fetch their preferences
+    const userIds = [...new Set((alerts as unknown as PendingAlert[]).map(a => a.user_id))]
+    const { data: prefs, error: prefsError } = await supabase
+      .from('user_preferences')
+      .select('user_id, slack_webhook_url, teams_webhook_url')
+      .in('user_id', userIds)
+
+    if (prefsError) {
+      throw new Error(`Failed to fetch user preferences: ${prefsError.message}`)
+    }
+
+    // Build a lookup map: user_id -> preferences
+    const prefsMap = new Map<string, UserPreference>()
+    for (const p of (prefs || []) as UserPreference[]) {
+      prefsMap.set(p.user_id, p)
+    }
+
     // -----------------------------------------------------------------------
     // 3. Filter to alerts where user has at least one webhook URL, then send
     // -----------------------------------------------------------------------
@@ -329,10 +345,11 @@ Deno.serve(async (req: Request) => {
     const errors: Array<{ alert_id: string; platform: string; error: string }> = []
 
     for (const alert of alerts as unknown as PendingAlert[]) {
-      const { funding_round: round, user_preference: prefs } = alert
+      const { funding_round: round } = alert
+      const userPrefs = prefsMap.get(alert.user_id)
 
       // Skip if no webhook URLs configured
-      if (!prefs?.slack_webhook_url && !prefs?.teams_webhook_url) {
+      if (!userPrefs?.slack_webhook_url && !userPrefs?.teams_webhook_url) {
         continue
       }
 
@@ -342,9 +359,9 @@ Deno.serve(async (req: Request) => {
       }
 
       // ----- Slack -----
-      if (prefs.slack_webhook_url) {
+      if (userPrefs.slack_webhook_url) {
         const slackPayload = buildSlackPayload(round)
-        const result = await sendWebhook(prefs.slack_webhook_url, slackPayload)
+        const result = await sendWebhook(userPrefs.slack_webhook_url, slackPayload)
 
         if (result.ok) {
           slackSent++
@@ -361,9 +378,9 @@ Deno.serve(async (req: Request) => {
       }
 
       // ----- Teams -----
-      if (prefs.teams_webhook_url) {
+      if (userPrefs.teams_webhook_url) {
         const teamsPayload = buildTeamsPayload(round)
-        const result = await sendWebhook(prefs.teams_webhook_url, teamsPayload)
+        const result = await sendWebhook(userPrefs.teams_webhook_url, teamsPayload)
 
         if (result.ok) {
           teamsSent++
@@ -381,9 +398,25 @@ Deno.serve(async (req: Request) => {
     }
 
     // -----------------------------------------------------------------------
-    // 4. We do NOT update alert status here – that is the email function's
-    //    responsibility. Webhooks are a supplemental notification channel.
+    // 4. Mark delivered alerts as "sent" so they aren't re-sent next run
     // -----------------------------------------------------------------------
+    const sentAlertIds = (alerts as unknown as PendingAlert[])
+      .filter(a => {
+        const prefs = prefsMap.get(a.user_id)
+        return prefs?.slack_webhook_url || prefs?.teams_webhook_url
+      })
+      .map(a => a.id)
+
+    if (sentAlertIds.length > 0) {
+      const { error: updateError } = await supabase
+        .from('user_alerts')
+        .update({ status: 'sent' })
+        .in('id', sentAlertIds)
+
+      if (updateError) {
+        console.error(`Failed to update alert statuses: ${updateError.message}`)
+      }
+    }
 
     // -----------------------------------------------------------------------
     // 5. Return summary
