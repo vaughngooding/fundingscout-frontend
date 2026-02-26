@@ -111,9 +111,9 @@ export default function Home() {
               </div>
               <h3 className="text-lg font-semibold">AI Reads Every Article</h3>
               <p className="mt-3 text-sm leading-relaxed text-slate-400">
-                Perplexity AI extracts the company name, funding amount, round
+                AI extracts the company name, funding amount, round
                 stage, lead investors, and headquarters location from every
-                article.
+                article &mdash; no manual work required.
               </p>
             </div>
 
@@ -200,10 +200,11 @@ export default function Home() {
                   Pro
                 </span>
               </div>
-              <h3 className="font-semibold">Slack &amp; Teams Integration</h3>
+              <h3 className="font-semibold">Instant Alerts</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-400">
-                Push matched funding alerts straight to your team&apos;s Slack or
-                Microsoft Teams channel in real time.
+                Get funding alerts the moment they break &mdash; pushed
+                instantly to Slack, Telegram, or webhooks. No waiting for
+                a daily digest.
               </p>
             </div>
 
@@ -300,7 +301,7 @@ export default function Home() {
                   <svg className="mt-0.5 h-4 w-4 shrink-0 text-slate-700" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
-                  <span className="text-slate-600">No Slack / Teams</span>
+                  <span className="text-slate-600">No instant alerts</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <svg className="mt-0.5 h-4 w-4 shrink-0 text-slate-700" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -335,7 +336,7 @@ export default function Home() {
               <div>
                 <h3 className="text-lg font-semibold">Pro</h3>
                 <div className="mt-4 flex items-baseline gap-1">
-                  <span className="text-4xl font-extrabold">$29</span>
+                  <span className="text-4xl font-extrabold">$49</span>
                   <span className="text-slate-500">/mo</span>
                 </div>
                 <p className="mt-3 text-sm text-slate-400">
@@ -370,7 +371,9 @@ export default function Home() {
                   <svg className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                   </svg>
-                  <span className="text-slate-300">Slack &amp; Teams integration</span>
+                  <span className="text-slate-300">
+                    <strong className="text-white">Instant</strong> Slack, Telegram &amp; webhook alerts
+                  </span>
                 </li>
                 <li className="flex items-start gap-3">
                   <svg className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
