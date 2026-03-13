@@ -54,4 +54,49 @@ export interface UserPreferences {
   digest_hour: number
   slack_webhook_url: string | null
   teams_webhook_url: string | null
+  // Phase 1: Telegram
+  telegram_chat_id: number | null
+  telegram_link_token: string | null
+  // Phase 2: Web Push
+  push_subscription: PushSubscriptionJSON | null
+  // Phase 3: SMS
+  phone_number: string | null
+  phone_verified: boolean
+  // Phase 4: Slack App
+  slack_team_id: string | null
+  slack_channel_id: string | null
+  slack_bot_token: string | null
+  slack_app_installed: boolean
+}
+
+export interface PushSubscriptionJSON {
+  endpoint: string
+  keys: {
+    p256dh: string
+    auth: string
+  }
+}
+
+export interface CompanySummary {
+  slug: string
+  display_name: string
+  round_count: number
+  total_raised: number
+  largest_round: number
+  first_seen: string
+  last_seen: string
+  best_confidence: number
+  location: string | null
+  location_country: string | null
+  website: string | null
+  all_investors: string[] | null
+  all_industry_tags: string[] | null
+}
+
+export interface ExploreStats {
+  total_rounds: number
+  total_capital: number
+  avg_round_size: number
+  unique_companies: number
+  top_industries: { tag: string; cnt: number }[]
 }

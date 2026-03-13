@@ -34,7 +34,8 @@ export default function Navbar() {
   }
 
   const navLinks = [
-    { href: '/dashboard', label: 'Dashboard' },
+    { href: '/explore', label: 'Explore' },
+    { href: '/dashboard', label: 'My Alerts' },
     { href: '/bookmarks', label: 'Bookmarks' },
     { href: '/settings', label: 'Settings' },
   ]

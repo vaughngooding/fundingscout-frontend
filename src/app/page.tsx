@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import FundingPreview from "@/components/FundingPreview";
 
 export default function Home() {
   return (
@@ -132,6 +134,18 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* ─────────────────── Live Preview ─────────────────── */}
+      <Suspense fallback={
+        <section className="border-t border-slate-800 px-6 py-24">
+          <div className="mx-auto max-w-6xl text-center">
+            <div className="h-8 w-48 mx-auto rounded bg-slate-800 animate-pulse" />
+            <div className="mt-10 h-64 rounded-xl bg-slate-800/50 animate-pulse" />
+          </div>
+        </section>
+      }>
+        <FundingPreview />
+      </Suspense>
 
       {/* ─────────────────── Features ─────────────────── */}
       <section id="features" className="border-t border-slate-800 px-6 py-24">
