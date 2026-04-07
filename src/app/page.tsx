@@ -136,7 +136,7 @@ export default function Home() {
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">
               {c.dashboardPreview.eyebrow}
             </p>
-            <h2 className="mt-4 text-balance text-4xl font-extrabold tracking-[-0.02em] text-white sm:text-5xl">
+            <h2 className="mt-4 text-balance text-4xl font-extrabold tracking-[-0.02em] text-white sm:text-5xl md:text-6xl">
               {c.dashboardPreview.headline}
             </h2>
             <p className="mt-6 text-lg leading-relaxed text-slate-400">
@@ -196,7 +196,7 @@ export default function Home() {
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">
               {c.comparison.eyebrow}
             </p>
-            <h2 className="mt-4 text-balance text-4xl font-extrabold tracking-[-0.02em] text-white sm:text-5xl">
+            <h2 className="mt-4 text-balance text-4xl font-extrabold tracking-[-0.02em] text-white sm:text-5xl md:text-6xl">
               {c.comparison.headline}
             </h2>
           </div>
@@ -280,7 +280,7 @@ export default function Home() {
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">
               {c.faq.eyebrow}
             </p>
-            <h2 className="mt-4 text-balance text-4xl font-extrabold tracking-[-0.02em] text-white sm:text-5xl">
+            <h2 className="mt-4 text-balance text-4xl font-extrabold tracking-[-0.02em] text-white sm:text-5xl md:text-6xl">
               {c.faq.headline}
             </h2>
           </div>
