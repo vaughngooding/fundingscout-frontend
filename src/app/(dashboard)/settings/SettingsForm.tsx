@@ -72,7 +72,6 @@ export default function SettingsForm({
   const [profile, setProfile] = useState({
     full_name: initialProfile.full_name || '',
     company: initialProfile.company || '',
-    role: initialProfile.role || '',
   })
   const [prefs, setPrefs] = useState({
     min_amount: initialPreferences.min_amount,
@@ -372,7 +371,6 @@ export default function SettingsForm({
       .update({
         full_name: profile.full_name || null,
         company: profile.company || null,
-        role: profile.role || null,
       })
       .eq('id', initialProfile.id)
 
@@ -473,26 +471,6 @@ export default function SettingsForm({
               placeholder="Acme Corp"
               className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">
-              Role
-            </label>
-            <select
-              value={profile.role}
-              onChange={(e) =>
-                setProfile({ ...profile, role: e.target.value })
-              }
-              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
-            >
-              <option value="">Select your role</option>
-              <option value="SDR">SDR</option>
-              <option value="AE">Account Executive</option>
-              <option value="Sales Manager">Sales Manager</option>
-              <option value="VP Sales">VP Sales</option>
-              <option value="Founder">Founder</option>
-              <option value="Other">Other</option>
-            </select>
           </div>
         </div>
       </section>
@@ -615,9 +593,9 @@ export default function SettingsForm({
         </div>
       </section>
 
-      {/* Delivery Section */}
+      {/* Email alerts Section */}
       <section className="bg-slate-900 border border-slate-700/50 rounded-xl p-6">
-        <h2 className="text-lg font-semibold text-white mb-4">Delivery</h2>
+        <h2 className="text-lg font-semibold text-white mb-4">Email alerts</h2>
         <div className="space-y-6">
           {/* Digest Frequency */}
           <div>
@@ -664,8 +642,16 @@ export default function SettingsForm({
             </select>
           </div>
 
-          {/* ---- Slack Section ---- */}
+          {/* ---- Real-time alerts header ---- */}
           <div className="border-t border-slate-700/50 pt-6">
+            <h2 className="text-lg font-semibold text-white mb-1">Real-time alerts</h2>
+            <p className="text-xs text-slate-500 mb-4">
+              Get funding alerts the moment they break — pushed to your favorite tools.
+            </p>
+          </div>
+
+          {/* ---- Slack Section ---- */}
+          <div>
             <h3 className="text-sm font-semibold text-white mb-3">Slack</h3>
             <ProGate>
               {slackAppInstalled ? (
@@ -822,9 +808,15 @@ export default function SettingsForm({
                   </span>
                   <span className="text-sm text-slate-400">{phoneNumber}</span>
                 </div>
-                <p className="text-xs text-slate-400">
-                  You&apos;ll receive SMS alerts at this number for matching funding rounds.
-                </p>
+                {isPro ? (
+                  <p className="text-xs text-slate-400">
+                    You&apos;ll receive SMS alerts at this number for matching funding rounds.
+                  </p>
+                ) : (
+                  <p className="text-xs text-amber-300">
+                    SMS alerts require Pro. Your number is verified — upgrade to start receiving real-time texts.
+                  </p>
+                )}
                 <label className="flex items-center gap-2 opacity-50 cursor-not-allowed">
                   <input
                     type="checkbox"

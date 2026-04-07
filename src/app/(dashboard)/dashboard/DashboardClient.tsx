@@ -4,11 +4,31 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import AlertCard from '@/components/AlertCard'
 import FilterSidebar, { type FilterState } from '@/components/FilterSidebar'
-import type { UserAlert } from '@/lib/types'
+import type { UserAlert, FundingRound } from '@/lib/types'
+
+type ViewMode = 'matches' | 'all'
 
 interface DashboardClientProps {
   alerts: UserAlert[]
+  allRounds: FundingRound[]
   plan: 'free' | 'pro'
+}
+
+// Wrap a raw FundingRound as a synthetic UserAlert so the rest of the
+// rendering pipeline (filters, AlertCard) can stay uniform between modes.
+function roundToSyntheticAlert(round: FundingRound): UserAlert {
+  return {
+    id: `synthetic-${round.id}`,
+    user_id: '',
+    funding_round_id: round.id,
+    funding_round: round,
+    status: 'sent',
+    is_bookmarked: false,
+    notes: null,
+    email_sent_at: null,
+    read_at: null,
+    created_at: round.created_at,
+  }
 }
 
 function isWithinDateRange(
@@ -45,9 +65,13 @@ function isWithinDateRange(
 
 export default function DashboardClient({
   alerts,
+  allRounds,
   plan,
 }: DashboardClientProps) {
   const [search, setSearch] = useState('')
+  // 'matches' = user_alerts (default, pre-filtered by saved preferences)
+  // 'all'     = every recent funding round (firehose, replaces /explore)
+  const [viewMode, setViewMode] = useState<ViewMode>('matches')
   const [filters, setFilters] = useState<FilterState>({
     dateRange: 'all',
     amountMin: 0,
@@ -57,8 +81,15 @@ export default function DashboardClient({
     countries: [],
   })
 
+  // The active dataset depends on the view mode. Rounds in 'all' mode are
+  // wrapped as synthetic alerts so the same filter + render pipeline works.
+  const activeAlerts = useMemo(
+    () => (viewMode === 'matches' ? alerts : allRounds.map(roundToSyntheticAlert)),
+    [viewMode, alerts, allRounds],
+  )
+
   const filteredAlerts = useMemo(() => {
-    return alerts.filter((alert) => {
+    return activeAlerts.filter((alert) => {
       const round = alert.funding_round
       if (!round) return false
 
@@ -109,7 +140,7 @@ export default function DashboardClient({
 
       return true
     })
-  }, [alerts, search, filters])
+  }, [activeAlerts, search, filters])
 
   const showUpgradeBanner = plan === 'free' && alerts.length > 3
 
@@ -123,10 +154,37 @@ export default function DashboardClient({
         {/* Header row */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-white">Your Alerts</h1>
+            <h1 className="text-2xl font-bold text-white">Dashboard</h1>
             <p className="text-sm text-slate-400 mt-1">
-              {filteredAlerts.length} funding round{filteredAlerts.length !== 1 ? 's' : ''} found
+              {filteredAlerts.length} funding round{filteredAlerts.length !== 1 ? 's' : ''}
+              {viewMode === 'matches' ? ' matching your alert settings' : ' in the database'}
             </p>
+          </div>
+
+          {/* Matches / All toggle */}
+          <div className="inline-flex items-center gap-1 rounded-full bg-slate-900 p-1 ring-1 ring-slate-700">
+            <button
+              type="button"
+              onClick={() => setViewMode('matches')}
+              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
+                viewMode === 'matches'
+                  ? 'bg-emerald-600 text-white shadow-[0_4px_12px_-4px_rgba(16,185,129,0.5)]'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              My matches
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('all')}
+              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
+                viewMode === 'all'
+                  ? 'bg-emerald-600 text-white shadow-[0_4px_12px_-4px_rgba(16,185,129,0.5)]'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              All rounds
+            </button>
           </div>
 
           {/* Search bar */}
