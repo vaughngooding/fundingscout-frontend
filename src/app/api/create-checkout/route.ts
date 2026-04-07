@@ -28,6 +28,8 @@ export async function POST(request: NextRequest) {
     params.append('cancel_url', `${origin}/settings`)
     params.append('customer_email', user.email!)
     params.append('metadata[user_id]', user.id)
+    // Allow Stripe-managed promotion codes (created in Stripe Dashboard → Coupons / Promotion codes)
+    params.append('allow_promotion_codes', 'true')
 
     // ---- Create the Stripe Checkout session via REST API ----
     const stripeResponse = await fetch('https://api.stripe.com/v1/checkout/sessions', {

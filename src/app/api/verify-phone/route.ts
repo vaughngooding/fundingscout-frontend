@@ -2,11 +2,46 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
 // POST /api/verify-phone
-// Body: { action: "send", phone: "+1..." } or { action: "confirm", code: "123456" }
+// Body: { action: "send", phone: "555-123-4567" } or { action: "confirm", code: "123456" }
 //
 // Uses Twilio Verify API (NOT raw Messages API) to bypass A2P 10DLC.
 // Twilio generates and validates the code server-side; we just persist
 // the phone number and flip phone_verified=true on success.
+
+/**
+ * Normalize a user-entered phone number to E.164 format (e.g., "+15551234567").
+ * Twilio Verify rejects anything that isn't already E.164. This handles the common
+ * cases: "(555) 123-4567", "555-123-4567", "5551234567", "+1 555 123 4567" etc.
+ *
+ * Defaults to US (+1) if no country code is provided. Returns null if the input
+ * doesn't look like a valid phone number.
+ */
+function normalizePhone(input: string): string | null {
+  const trimmed = input.trim()
+  if (!trimmed) return null
+
+  // Strip everything except digits and a leading + sign
+  const hasPlus = trimmed.startsWith('+')
+  const digits = trimmed.replace(/[^\d]/g, '')
+
+  if (hasPlus) {
+    // User typed an international number with + prefix; trust it (must be 8-15 digits per E.164)
+    if (digits.length < 8 || digits.length > 15) return null
+    return `+${digits}`
+  }
+
+  // No + prefix — assume US/Canada
+  if (digits.length === 10) {
+    // Bare 10-digit US number → prepend +1
+    return `+1${digits}`
+  }
+  if (digits.length === 11 && digits.startsWith('1')) {
+    // 11-digit US number starting with 1 → just add +
+    return `+${digits}`
+  }
+
+  return null
+}
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -23,8 +58,13 @@ export async function POST(req: NextRequest) {
   const verifySid = process.env.TWILIO_VERIFY_SERVICE_SID
 
   if (!accountSid || !authToken || !verifySid) {
+    console.error('verify-phone: missing Twilio env vars', {
+      hasAccountSid: !!accountSid,
+      hasAuthToken: !!authToken,
+      hasVerifySid: !!verifySid,
+    })
     return NextResponse.json(
-      { error: 'Phone verification not configured. Set TWILIO_VERIFY_SERVICE_SID.' },
+      { error: 'Phone verification not configured on the server.' },
       { status: 500 },
     )
   }
@@ -40,19 +80,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Phone number required' }, { status: 400 })
     }
 
-    // Persist the phone number on the user_preferences row (not yet verified)
+    // Normalize to E.164 — Twilio Verify will reject anything else
+    const normalized = normalizePhone(phone)
+    if (!normalized) {
+      return NextResponse.json(
+        { error: 'Please enter a valid phone number (e.g., 555-123-4567 for US numbers).' },
+        { status: 400 },
+      )
+    }
+
+    // Persist the normalized phone number on the user_preferences row (not yet verified)
     const { error: upsertError } = await supabase
       .from('user_preferences')
       .upsert(
         {
           user_id: user.id,
-          phone_number: phone,
+          phone_number: normalized,
           phone_verified: false,
         },
         { onConflict: 'user_id' },
       )
 
     if (upsertError) {
+      console.error('verify-phone: upsert error', upsertError)
       return NextResponse.json({ error: upsertError.message }, { status: 500 })
     }
 
@@ -65,14 +115,22 @@ export async function POST(req: NextRequest) {
           Authorization: `Basic ${basicAuth}`,
           'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: new URLSearchParams({ To: phone, Channel: 'sms' }).toString(),
+        body: new URLSearchParams({ To: normalized, Channel: 'sms' }).toString(),
       },
     )
 
     if (!twilioRes.ok) {
       const errText = await twilioRes.text()
-      console.error(`Twilio Verify send error: ${errText}`)
-      return NextResponse.json({ error: 'Failed to send verification code' }, { status: 502 })
+      console.error(`verify-phone: Twilio Verify send error (${twilioRes.status})`, errText)
+      // Try to extract Twilio's user-friendly message
+      let userMessage = 'Failed to send verification code'
+      try {
+        const errJson = JSON.parse(errText)
+        if (errJson.message) userMessage = errJson.message
+      } catch {
+        // errText wasn't JSON, leave default
+      }
+      return NextResponse.json({ error: userMessage, twilio_status: twilioRes.status }, { status: 502 })
     }
 
     return NextResponse.json({ sent: true })
@@ -84,7 +142,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Verification code required' }, { status: 400 })
     }
 
-    // Read the persisted phone_number
+    // Read the persisted phone_number (already normalized when we saved it)
     const { data: prefs, error: fetchError } = await supabase
       .from('user_preferences')
       .select('phone_number')
@@ -111,6 +169,7 @@ export async function POST(req: NextRequest) {
     const result = await twilioRes.json()
 
     if (!twilioRes.ok || result.status !== 'approved') {
+      console.error('verify-phone: Twilio Verify check failed', { status: twilioRes.status, result })
       return NextResponse.json({ error: 'Invalid or expired code' }, { status: 400 })
     }
 

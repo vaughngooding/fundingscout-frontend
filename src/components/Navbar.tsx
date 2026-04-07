@@ -8,25 +8,52 @@ import type { User } from '@supabase/supabase-js'
 
 export default function Navbar() {
   const [user, setUser] = useState<User | null>(null)
+  const [plan, setPlan] = useState<'free' | 'pro' | null>(null)
+  const [upgrading, setUpgrading] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
   const supabase = createClient()
 
   useEffect(() => {
-    async function getUser() {
+    async function loadUserAndPlan() {
       const {
         data: { user },
       } = await supabase.auth.getUser()
       setUser(user)
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('plan')
+          .eq('id', user.id)
+          .single()
+        setPlan((profile?.plan as 'free' | 'pro') || 'free')
+      }
     }
-    getUser()
-  }, [supabase.auth])
+    loadUserAndPlan()
+  }, [supabase])
 
   async function handleLogout() {
     await supabase.auth.signOut()
     router.push('/login')
     router.refresh()
+  }
+
+  async function handleUpgrade() {
+    setUpgrading(true)
+    try {
+      const res = await fetch('/api/create-checkout', { method: 'POST' })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        alert(data.error || 'Failed to start checkout')
+        setUpgrading(false)
+      }
+    } catch {
+      alert('Network error. Please try again.')
+      setUpgrading(false)
+    }
   }
 
   function isActive(path: string) {
@@ -48,7 +75,7 @@ export default function Navbar() {
           <div className="flex items-center gap-8">
             <Link href="/dashboard" className="flex items-center gap-1">
               <span className="text-xl font-bold text-white tracking-tight">
-                Funding<span className="text-emerald-400">Pulse</span>
+                Funding<span className="text-emerald-400">Scout</span>
               </span>
             </Link>
 
@@ -70,8 +97,17 @@ export default function Navbar() {
             </div>
           </div>
 
-          {/* Right: User info + logout */}
+          {/* Right: Upgrade CTA + User info + logout */}
           <div className="hidden md:flex items-center gap-4">
+            {plan === 'free' && (
+              <button
+                onClick={handleUpgrade}
+                disabled={upgrading}
+                className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-blue-500 hover:from-emerald-400 hover:to-blue-400 text-white text-sm font-semibold shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50"
+              >
+                {upgrading ? 'Loading…' : '⚡ Upgrade to Pro'}
+              </button>
+            )}
             {user && (
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-blue-500 flex items-center justify-center">
@@ -125,6 +161,18 @@ export default function Navbar() {
         {/* Mobile menu */}
         {menuOpen && (
           <div className="md:hidden border-t border-slate-700/50 py-3 space-y-1">
+            {plan === 'free' && (
+              <button
+                onClick={() => {
+                  setMenuOpen(false)
+                  handleUpgrade()
+                }}
+                disabled={upgrading}
+                className="w-full px-3 py-2.5 rounded-lg bg-gradient-to-r from-emerald-500 to-blue-500 text-white text-sm font-semibold mb-2 shadow-lg shadow-emerald-500/20 disabled:opacity-50"
+              >
+                {upgrading ? 'Loading…' : '⚡ Upgrade to Pro'}
+              </button>
+            )}
             {navLinks.map((link) => (
               <Link
                 key={link.href}

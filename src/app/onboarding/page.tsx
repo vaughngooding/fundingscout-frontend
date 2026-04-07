@@ -8,20 +8,24 @@ const ROLES = [
   { value: 'SDR', label: 'SDR', desc: 'Sales Development Representative' },
   { value: 'AE', label: 'AE', desc: 'Account Executive' },
   { value: 'Sales Manager', label: 'Sales Manager', desc: 'Team lead or manager' },
-  { value: 'Other', label: 'Other', desc: 'Founder, investor, or other role' },
+  { value: 'Founder', label: 'Founder', desc: 'Founder or co-founder' },
+  { value: 'Investor', label: 'Investor', desc: 'VC, angel, or LP' },
+  { value: 'Other', label: 'Other', desc: 'Any other role' },
 ]
 
-const INDUSTRIES = [
-  'AI/ML',
-  'SaaS',
-  'FinTech',
-  'HealthTech',
-  'Climate',
-  'B2B',
-  'B2C',
-  'EdTech',
-  'Security',
-  'Data',
+const COUNTRIES = [
+  { value: 'US', label: 'United States' },
+  { value: 'CA', label: 'Canada' },
+  { value: 'GB', label: 'United Kingdom' },
+  { value: 'DE', label: 'Germany' },
+  { value: 'FR', label: 'France' },
+  { value: 'NL', label: 'Netherlands' },
+  { value: 'IL', label: 'Israel' },
+  { value: 'IN', label: 'India' },
+  { value: 'SG', label: 'Singapore' },
+  { value: 'AU', label: 'Australia' },
+  { value: 'BR', label: 'Brazil' },
+  { value: 'WW', label: 'Worldwide' },
 ]
 
 const FUNDING_TYPES = [
@@ -50,37 +54,32 @@ export default function OnboardingPage() {
   const router = useRouter()
   const [step, setStep] = useState(1)
   const [saving, setSaving] = useState(false)
+  const [upgrading, setUpgrading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Step 1
+  // Step 1: Role
   const [role, setRole] = useState('')
 
-  // Step 2
-  const [industries, setIndustries] = useState<string[]>([])
+  // Step 2: Geographies
+  const [countries, setCountries] = useState<string[]>([])
 
-  // Step 3
+  // Step 3: Funding range + types
   const [minAmount, setMinAmount] = useState(0)
   const [maxAmount, setMaxAmount] = useState(100_000_000)
   const [fundingTypes, setFundingTypes] = useState<string[]>([])
 
-  // Step 4
-  const [digestFrequency, setDigestFrequency] = useState<'daily' | 'weekly'>('daily')
-  const [slackWebhook, setSlackWebhook] = useState('')
-  const [teamsWebhook, setTeamsWebhook] = useState('')
+  // Step 4: Plan choice — defaults to free
+  const [chosenPlan, setChosenPlan] = useState<'free' | 'pro'>('free')
 
-  function toggleIndustry(industry: string) {
-    setIndustries((prev) =>
-      prev.includes(industry)
-        ? prev.filter((i) => i !== industry)
-        : [...prev, industry]
+  function toggleCountry(country: string) {
+    setCountries((prev) =>
+      prev.includes(country) ? prev.filter((c) => c !== country) : [...prev, country],
     )
   }
 
   function toggleFundingType(type: string) {
     setFundingTypes((prev) =>
-      prev.includes(type)
-        ? prev.filter((t) => t !== type)
-        : [...prev, type]
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
     )
   }
 
@@ -89,7 +88,7 @@ export default function OnboardingPage() {
       case 1:
         return role !== ''
       case 2:
-        return industries.length > 0
+        return countries.length > 0
       case 3:
         return fundingTypes.length > 0
       case 4:
@@ -99,10 +98,9 @@ export default function OnboardingPage() {
     }
   }
 
-  async function handleComplete() {
-    setSaving(true)
+  // Persist preferences. If `goPro` is true, also redirect to Stripe Checkout.
+  async function savePrefs(): Promise<boolean> {
     setError(null)
-
     const supabase = createClient()
     const {
       data: { user },
@@ -110,11 +108,9 @@ export default function OnboardingPage() {
 
     if (!user) {
       setError('Not authenticated. Please log in again.')
-      setSaving(false)
-      return
+      return false
     }
 
-    // Update profile with role
     const { error: profileError } = await supabase
       .from('profiles')
       .update({ role })
@@ -122,11 +118,9 @@ export default function OnboardingPage() {
 
     if (profileError) {
       setError(`Failed to save profile: ${profileError.message}`)
-      setSaving(false)
-      return
+      return false
     }
 
-    // Upsert preferences
     const { error: prefsError } = await supabase
       .from('user_preferences')
       .upsert(
@@ -135,24 +129,54 @@ export default function OnboardingPage() {
           min_amount: minAmount,
           max_amount: maxAmount,
           funding_types: fundingTypes,
-          countries: [],
-          industries,
-          digest_frequency: digestFrequency,
+          countries,
+          industries: [],
+          digest_frequency: 'daily',
           digest_hour: 9,
-          slack_webhook_url: slackWebhook || null,
-          teams_webhook_url: teamsWebhook || null,
+          slack_webhook_url: null,
+          teams_webhook_url: null,
         },
-        { onConflict: 'user_id' }
+        { onConflict: 'user_id' },
       )
 
     if (prefsError) {
       setError(`Failed to save preferences: ${prefsError.message}`)
-      setSaving(false)
-      return
+      return false
     }
 
-    router.push('/dashboard')
-    router.refresh()
+    return true
+  }
+
+  async function handleFreeContinue() {
+    setSaving(true)
+    const ok = await savePrefs()
+    setSaving(false)
+    if (ok) {
+      router.push('/dashboard')
+      router.refresh()
+    }
+  }
+
+  async function handleGoPro() {
+    setUpgrading(true)
+    const ok = await savePrefs()
+    if (!ok) {
+      setUpgrading(false)
+      return
+    }
+    try {
+      const res = await fetch('/api/create-checkout', { method: 'POST' })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        setError(data.error || 'Failed to start checkout')
+        setUpgrading(false)
+      }
+    } catch {
+      setError('Network error. Please try again.')
+      setUpgrading(false)
+    }
   }
 
   return (
@@ -160,7 +184,7 @@ export default function OnboardingPage() {
       {/* Logo */}
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-white tracking-tight">
-          Funding<span className="text-emerald-400">Pulse</span>
+          Funding<span className="text-emerald-400">Scout</span>
         </h1>
         <p className="mt-2 text-slate-400 text-sm">
           Let&apos;s set up your alert preferences
@@ -226,33 +250,33 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 2: Industries */}
+        {/* Step 2: Geographies */}
         {step === 2 && (
           <div>
             <h2 className="text-xl font-semibold text-white mb-1">
-              What industries are you targeting?
+              Which geographies do you care about?
             </h2>
             <p className="text-sm text-slate-400 mb-6">
-              Select all that apply. You can change these later in settings.
+              We&apos;ll only alert you about funding rounds in these regions. Pick &ldquo;Worldwide&rdquo; to see everything.
             </p>
             <div className="flex flex-wrap gap-2">
-              {INDUSTRIES.map((industry) => (
+              {COUNTRIES.map((c) => (
                 <button
-                  key={industry}
-                  onClick={() => toggleIndustry(industry)}
+                  key={c.value}
+                  onClick={() => toggleCountry(c.value)}
                   className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
-                    industries.includes(industry)
+                    countries.includes(c.value)
                       ? 'bg-blue-500/20 text-blue-300 border-blue-500/40'
                       : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-600'
                   }`}
                 >
-                  {industry}
+                  {c.label}
                 </button>
               ))}
             </div>
-            {industries.length > 0 && (
+            {countries.length > 0 && (
               <p className="text-xs text-slate-500 mt-3">
-                {industries.length} selected
+                {countries.length} selected
               </p>
             )}
           </div>
@@ -330,74 +354,102 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 4: Delivery preferences */}
+        {/* Step 4: Choose Free vs Pro */}
         {step === 4 && (
           <div>
             <h2 className="text-xl font-semibold text-white mb-1">
-              How do you want alerts?
+              Choose how you want alerts
             </h2>
             <p className="text-sm text-slate-400 mb-6">
-              Choose your email digest frequency and optional integrations.
+              You can change this anytime in Settings.
             </p>
 
-            <div className="space-y-5">
-              {/* Digest frequency */}
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Email Digest
-                </label>
-                <div className="flex gap-3">
-                  {(['daily', 'weekly'] as const).map((freq) => (
-                    <button
-                      key={freq}
-                      onClick={() => setDigestFrequency(freq)}
-                      className={`flex-1 px-4 py-3 rounded-lg text-sm font-medium border text-center transition-all ${
-                        digestFrequency === freq
-                          ? 'bg-blue-500/10 text-blue-300 border-blue-500/40 ring-1 ring-blue-500/30'
-                          : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-600'
-                      }`}
-                    >
-                      {freq === 'daily' ? 'Daily' : 'Weekly'}
-                      <span className="block text-xs text-slate-500 mt-0.5">
-                        {freq === 'daily'
-                          ? 'Every morning at 9am'
-                          : 'Every Monday at 9am'}
-                      </span>
-                    </button>
-                  ))}
+            <div className="grid gap-4">
+              {/* Free plan card */}
+              <button
+                type="button"
+                onClick={() => setChosenPlan('free')}
+                className={`text-left p-5 rounded-xl border-2 transition-all ${
+                  chosenPlan === 'free'
+                    ? 'bg-slate-800 border-slate-500 ring-1 ring-slate-400/30'
+                    : 'bg-slate-800/40 border-slate-700 hover:border-slate-600'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-base font-bold text-white">Free</span>
+                  <span className="text-sm font-semibold text-slate-300">$0/mo</span>
                 </div>
-              </div>
+                <p className="text-xs text-slate-400 mb-3">
+                  Get a daily or weekly funding digest delivered to your email inbox.
+                </p>
+                <ul className="space-y-1.5">
+                  <li className="flex items-start gap-2 text-xs text-slate-300">
+                    <span className="text-emerald-400">✓</span>
+                    Daily or weekly email digest
+                  </li>
+                  <li className="flex items-start gap-2 text-xs text-slate-300">
+                    <span className="text-emerald-400">✓</span>
+                    Web dashboard access
+                  </li>
+                  <li className="flex items-start gap-2 text-xs text-slate-500">
+                    <span className="text-slate-600">✗</span>
+                    Real-time alerts
+                  </li>
+                  <li className="flex items-start gap-2 text-xs text-slate-500">
+                    <span className="text-slate-600">✗</span>
+                    SMS / Slack / Telegram delivery
+                  </li>
+                </ul>
+              </button>
 
-              {/* Slack */}
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                  Slack Webhook URL{' '}
-                  <span className="text-slate-500 font-normal">(optional)</span>
-                </label>
-                <input
-                  type="url"
-                  value={slackWebhook}
-                  onChange={(e) => setSlackWebhook(e.target.value)}
-                  placeholder="https://hooks.slack.com/services/..."
-                  className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors text-sm"
-                />
-              </div>
-
-              {/* Teams */}
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                  Teams Webhook URL{' '}
-                  <span className="text-slate-500 font-normal">(optional)</span>
-                </label>
-                <input
-                  type="url"
-                  value={teamsWebhook}
-                  onChange={(e) => setTeamsWebhook(e.target.value)}
-                  placeholder="https://outlook.office.com/webhook/..."
-                  className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors text-sm"
-                />
-              </div>
+              {/* Pro plan card */}
+              <button
+                type="button"
+                onClick={() => setChosenPlan('pro')}
+                className={`text-left p-5 rounded-xl border-2 transition-all relative ${
+                  chosenPlan === 'pro'
+                    ? 'bg-gradient-to-br from-emerald-500/10 to-blue-500/10 border-emerald-400 ring-2 ring-emerald-400/30'
+                    : 'bg-slate-800/40 border-slate-700 hover:border-emerald-500/40'
+                }`}
+              >
+                <div className="absolute -top-2.5 right-4 px-2 py-0.5 rounded-full bg-emerald-500 text-xs font-bold text-slate-900">
+                  RECOMMENDED
+                </div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-base font-bold text-white">Pro</span>
+                  <span className="text-sm font-semibold text-emerald-300">$49/mo</span>
+                </div>
+                <p className="text-xs text-slate-400 mb-3">
+                  Real-time funding alerts pushed to your phone, Slack, Teams, Telegram, or WhatsApp the moment a round is announced.
+                </p>
+                <ul className="space-y-1.5">
+                  <li className="flex items-start gap-2 text-xs text-slate-200">
+                    <span className="text-emerald-400">✓</span>
+                    <strong className="text-white">Real-time</strong> alerts (within 1 min of news breaking)
+                  </li>
+                  <li className="flex items-start gap-2 text-xs text-slate-200">
+                    <span className="text-emerald-400">✓</span>
+                    <strong className="text-white">SMS</strong> to your phone
+                  </li>
+                  <li className="flex items-start gap-2 text-xs text-slate-200">
+                    <span className="text-emerald-400">✓</span>
+                    <strong className="text-white">Slack</strong>, <strong className="text-white">Telegram</strong>, Teams
+                  </li>
+                  <li className="flex items-start gap-2 text-xs text-slate-200">
+                    <span className="text-emerald-400">✓</span>
+                    <strong className="text-white">WhatsApp</strong> <span className="text-slate-500">(coming soon)</span>
+                  </li>
+                  <li className="flex items-start gap-2 text-xs text-slate-200">
+                    <span className="text-emerald-400">✓</span>
+                    Email digest, dashboard, bookmarks, CSV export
+                  </li>
+                </ul>
+              </button>
             </div>
+
+            <p className="text-xs text-slate-500 mt-4 text-center">
+              Want to add an integration like Slack or Telegram later? Find them in <strong className="text-slate-400">Settings → Integrations</strong>.
+            </p>
           </div>
         )}
 
@@ -422,13 +474,21 @@ export default function OnboardingPage() {
             >
               Continue
             </button>
+          ) : chosenPlan === 'pro' ? (
+            <button
+              onClick={handleGoPro}
+              disabled={upgrading}
+              className="px-6 py-2.5 rounded-lg bg-gradient-to-r from-emerald-500 to-blue-500 hover:from-emerald-400 hover:to-blue-400 text-white text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/30"
+            >
+              {upgrading ? 'Loading checkout…' : 'Continue to Pro Checkout →'}
+            </button>
           ) : (
             <button
-              onClick={handleComplete}
+              onClick={handleFreeContinue}
               disabled={saving}
-              className="px-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {saving ? 'Setting up...' : 'Complete Setup'}
+              {saving ? 'Setting up...' : 'Start with Free →'}
             </button>
           )}
         </div>

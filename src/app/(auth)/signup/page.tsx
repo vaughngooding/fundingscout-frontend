@@ -45,7 +45,7 @@ export default function SignupPage() {
         {/* Logo / Brand */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white tracking-tight">
-            Funding<span className="text-emerald-400">Pulse</span>
+            Funding<span className="text-emerald-400">Scout</span>
           </h1>
           <p className="mt-2 text-gray-400 text-sm">
             Create your account
