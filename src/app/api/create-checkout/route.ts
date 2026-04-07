@@ -17,12 +17,37 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // ---- Pick the price (monthly default, annual via ?plan=annual or {plan:'annual'} body) ----
+    // Accept either a query string param OR a JSON body field for flexibility.
+    const url = new URL(request.url)
+    let plan = url.searchParams.get('plan') || ''
+    if (!plan) {
+      try {
+        const body = await request.json()
+        plan = body?.plan || ''
+      } catch {
+        // body is empty or not JSON — fall through to default
+      }
+    }
+
+    const priceId =
+      plan === 'annual'
+        ? process.env.STRIPE_PRO_ANNUAL_PRICE_ID
+        : process.env.STRIPE_PRO_PRICE_ID
+
+    if (!priceId) {
+      return NextResponse.json(
+        { error: 'Pricing not configured on the server.' },
+        { status: 500 },
+      )
+    }
+
     // ---- Build the Checkout session parameters ----
     const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 
     const params = new URLSearchParams()
     params.append('mode', 'subscription')
-    params.append('line_items[0][price]', process.env.STRIPE_PRO_PRICE_ID!)
+    params.append('line_items[0][price]', priceId)
     params.append('line_items[0][quantity]', '1')
     params.append('success_url', `${origin}/dashboard?upgraded=true`)
     params.append('cancel_url', `${origin}/settings`)

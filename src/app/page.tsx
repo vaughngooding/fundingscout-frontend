@@ -271,7 +271,7 @@ export default function Home() {
 
       {/* ─────────────────── Pricing ─────────────────── */}
       <section id="pricing" className="scroll-mt-24 bg-slate-900/40 px-6 py-14 sm:py-20">
-        <div className="mx-auto max-w-5xl">
+        <div className="mx-auto max-w-6xl">
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">
               {c.pricing.eyebrow}
@@ -282,7 +282,7 @@ export default function Home() {
             <p className="mt-5 text-lg text-slate-400">{c.pricing.subheadline}</p>
           </div>
 
-          <div className="mt-20 grid gap-6 md:grid-cols-2">
+          <div className="mt-20 grid gap-6 md:grid-cols-3">
             {c.pricing.plans.map((plan) => (
               <div
                 key={plan.name}
