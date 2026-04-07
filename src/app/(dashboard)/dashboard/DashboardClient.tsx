@@ -69,9 +69,13 @@ export default function DashboardClient({
   plan,
 }: DashboardClientProps) {
   const [search, setSearch] = useState('')
-  // 'matches' = user_alerts (default, pre-filtered by saved preferences)
+  // 'matches' = user_alerts (pre-filtered by saved preferences)
   // 'all'     = every recent funding round (firehose, replaces /explore)
-  const [viewMode, setViewMode] = useState<ViewMode>('matches')
+  // Default to 'all' for users with no matches yet (e.g., brand-new accounts)
+  // so they always see content. Existing users with matches start in 'matches'.
+  const [viewMode, setViewMode] = useState<ViewMode>(
+    alerts.length > 0 ? 'matches' : 'all',
+  )
   const [filters, setFilters] = useState<FilterState>({
     dateRange: 'all',
     amountMin: 0,
@@ -258,21 +262,32 @@ export default function DashboardClient({
               </svg>
             </div>
             <h3 className="text-lg font-semibold text-white mb-1">
-              No alerts found
+              No funding events found
             </h3>
             <p className="text-sm text-slate-400 max-w-sm mx-auto">
-              {search || filters.dateRange !== 'all' || filters.fundingTypes.length > 0
+              {search || filters.dateRange !== 'all' || filters.fundingTypes.length > 0 || filters.countries.length > 0
                 ? 'Try adjusting your search or filters to see more results.'
-                : 'New funding alerts will appear here as they match your preferences. Check your settings to configure what you want to track.'}
+                : viewMode === 'matches'
+                  ? "You don't have any matched alerts yet. Switch to All rounds to browse the database, or update your alert settings."
+                  : 'No funding events in the database. The pipeline scrapes new rounds every minute — check back soon.'}
             </p>
-            {!search && filters.fundingTypes.length === 0 && (
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+              {viewMode === 'matches' && (
+                <button
+                  type="button"
+                  onClick={() => setViewMode('all')}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium transition-colors"
+                >
+                  Switch to All rounds
+                </button>
+              )}
               <Link
                 href="/settings"
-                className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-sm font-medium transition-colors"
               >
-                Configure Preferences
+                Update alert settings
               </Link>
-            )}
+            </div>
           </div>
         )}
       </div>
