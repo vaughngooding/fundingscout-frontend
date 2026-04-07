@@ -81,11 +81,11 @@ export default function Home() {
             {c.hero.headline}
           </h1>
 
-          <p className="mx-auto mt-6 max-w-3xl text-base leading-relaxed text-slate-400 sm:text-lg md:whitespace-nowrap">
+          <p className="mx-auto mt-10 max-w-3xl text-base leading-relaxed text-slate-400 sm:text-lg md:whitespace-nowrap">
             {c.hero.subheadline}
           </p>
 
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <div className="mt-12 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
               href={c.hero.primaryCtaHref}
               className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-emerald-600 px-7 py-4 text-base font-semibold text-white shadow-[0_8px_24px_-8px_rgba(16,185,129,0.5)] transition-all hover:bg-emerald-500 hover:shadow-[0_12px_32px_-8px_rgba(16,185,129,0.6)] sm:w-auto"
