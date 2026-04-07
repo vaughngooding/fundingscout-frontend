@@ -21,7 +21,7 @@ export const landingContent = {
   // ─── Hero section ───
   hero: {
     eyebrow: 'AI-powered funding intelligence',
-    headline: 'Know who just raised\nbefore your competitors do.',
+    headline: 'Real-time funding alerts',
     subheadline:
       'FundingScout monitors every funding announcement across the web 24/7 and pushes the rounds that match your filters straight to your phone. Real-time. Filtered. Actionable.',
     primaryCta: 'Start free',
