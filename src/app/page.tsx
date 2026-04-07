@@ -61,12 +61,12 @@ export default function Home() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
               </svg>
             </Link>
-            <Link
+            <a
               href={c.hero.secondaryCtaHref}
               className="inline-flex w-full items-center justify-center rounded-full border border-slate-700 bg-slate-900 px-7 py-4 text-base font-semibold text-slate-200 transition-all hover:border-slate-600 hover:bg-slate-900/60 sm:w-auto"
             >
               {c.hero.secondaryCta}
-            </Link>
+            </a>
           </div>
         </div>
 
