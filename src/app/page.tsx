@@ -129,17 +129,17 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Slack desktop — middle, the wide one */}
-            <div className="relative mx-auto w-full max-w-[600px] lg:mx-0 lg:w-auto">
+            {/* Slack phone — middle */}
+            <div className="relative mx-auto w-full max-w-[260px] lg:mx-0 lg:w-auto">
               <p className="mb-5 text-center text-base font-bold uppercase tracking-[0.2em] text-emerald-400 sm:text-lg">
                 Slack
               </p>
               <div className="relative rotate-[-0.5deg] transition-transform duration-500 hover:rotate-0">
-                <div aria-hidden className="absolute -inset-3 rounded-[2rem] bg-emerald-500/15 blur-2xl" />
+                <div aria-hidden className="absolute -inset-2 rounded-[2.5rem] bg-emerald-500/20 blur-2xl" />
                 <img
                   src={c.channels.items[2].src}
                   alt={c.channels.items[2].alt}
-                  className="relative w-full rounded-2xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)] ring-1 ring-slate-800 lg:h-[400px] lg:w-auto"
+                  className="relative w-full rounded-[2rem] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)] ring-1 ring-slate-800 lg:h-[480px] lg:w-auto"
                 />
               </div>
             </div>
