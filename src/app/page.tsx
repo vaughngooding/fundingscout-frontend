@@ -116,6 +116,9 @@ export default function Home() {
           <div className="flex flex-col items-center justify-center gap-10 lg:flex-row lg:items-end lg:gap-8">
             {/* SMS phone — left */}
             <div className="relative mx-auto w-full max-w-[260px] lg:mx-0 lg:w-auto">
+              <p className="mb-4 text-center text-xs font-bold uppercase tracking-[0.2em] text-emerald-400">
+                SMS
+              </p>
               <div className="relative rotate-[-2deg] transition-transform duration-500 hover:rotate-0">
                 <div aria-hidden className="absolute -inset-2 rounded-[2.5rem] bg-emerald-500/20 blur-2xl" />
                 <img
@@ -128,6 +131,9 @@ export default function Home() {
 
             {/* Slack desktop — middle, the wide one */}
             <div className="relative mx-auto w-full max-w-[600px] lg:mx-0 lg:w-auto">
+              <p className="mb-4 text-center text-xs font-bold uppercase tracking-[0.2em] text-emerald-400">
+                Slack
+              </p>
               <div className="relative rotate-[-0.5deg] transition-transform duration-500 hover:rotate-0">
                 <div aria-hidden className="absolute -inset-3 rounded-[2rem] bg-emerald-500/15 blur-2xl" />
                 <img
@@ -140,6 +146,9 @@ export default function Home() {
 
             {/* Teams phone — right */}
             <div className="relative mx-auto w-full max-w-[260px] lg:mx-0 lg:w-auto">
+              <p className="mb-4 text-center text-xs font-bold uppercase tracking-[0.2em] text-emerald-400">
+                Teams
+              </p>
               <div className="relative rotate-[2deg] transition-transform duration-500 hover:rotate-0">
                 <div aria-hidden className="absolute -inset-2 rounded-[2.5rem] bg-emerald-500/20 blur-2xl" />
                 <img
