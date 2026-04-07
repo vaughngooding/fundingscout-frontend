@@ -71,7 +71,7 @@ export const landingContent = {
   // ─── Competitor comparison ───
   comparison: {
     eyebrow: 'How we compare',
-    headline: 'Why FundingScout vs the alternatives',
+    headline: 'FundingScout alternatives',
     columns: ['Tool', 'Real-time alerts', 'SMS / Slack delivery', 'Noise / false alerts', 'Filters', 'Price / mo'],
     rows: [
       {
@@ -89,7 +89,7 @@ export const landingContent = {
         tool: 'Google Alerts',
         highlight: false,
         cells: [
-          { label: 'Yes', tone: 'good' as const },
+          { label: 'Delayed', tone: 'medium' as const },
           { label: 'No', tone: 'bad' as const },
           { label: 'Very high', tone: 'bad' as const },
           { label: 'No', tone: 'bad' as const },
