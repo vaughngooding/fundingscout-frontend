@@ -116,7 +116,7 @@ export default function Home() {
           <div className="flex flex-col items-center justify-center gap-10 lg:flex-row lg:items-end lg:gap-8">
             {/* SMS phone — left */}
             <div className="relative mx-auto w-full max-w-[260px] lg:mx-0 lg:w-auto">
-              <p className="mb-5 text-center text-base font-bold uppercase tracking-[0.2em] text-emerald-400 sm:text-lg">
+              <p className="mb-5 text-center text-xl font-bold uppercase tracking-[0.2em] text-emerald-400 sm:text-2xl">
                 SMS
               </p>
               <div className="relative rotate-[-2deg] transition-transform duration-500 hover:rotate-0">
@@ -131,7 +131,7 @@ export default function Home() {
 
             {/* Slack phone — middle */}
             <div className="relative mx-auto w-full max-w-[260px] lg:mx-0 lg:w-auto">
-              <p className="mb-5 text-center text-base font-bold uppercase tracking-[0.2em] text-emerald-400 sm:text-lg">
+              <p className="mb-5 text-center text-xl font-bold uppercase tracking-[0.2em] text-emerald-400 sm:text-2xl">
                 Slack
               </p>
               <div className="relative rotate-[-0.5deg] transition-transform duration-500 hover:rotate-0">
@@ -146,7 +146,7 @@ export default function Home() {
 
             {/* Teams phone — right */}
             <div className="relative mx-auto w-full max-w-[260px] lg:mx-0 lg:w-auto">
-              <p className="mb-5 text-center text-base font-bold uppercase tracking-[0.2em] text-emerald-400 sm:text-lg">
+              <p className="mb-5 text-center text-xl font-bold uppercase tracking-[0.2em] text-emerald-400 sm:text-2xl">
                 Teams
               </p>
               <div className="relative rotate-[2deg] transition-transform duration-500 hover:rotate-0">
