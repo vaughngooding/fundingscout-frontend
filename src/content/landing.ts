@@ -135,7 +135,7 @@ export const landingContent = {
   // ─── Pricing ───
   pricing: {
     eyebrow: 'Pricing',
-    headline: 'Simple, transparent pricing',
+    headline: 'Win 1 deal, subscription covered for a year',
     subheadline: 'Start free. Upgrade when you need real-time alerts.',
     plans: [
       {
