@@ -31,7 +31,7 @@ export default function ContactPage() {
           </div>
           <h2 className="text-lg font-bold text-white">Text me</h2>
           <p className="mt-1 text-sm text-slate-400">
-            Fastest way to reach me. Available most of the day.
+            Yes, this is my real number. Text me with feature requests, bugs, questions, or to say hi. I&apos;m listening 😊
           </p>
           <div className="mt-5 flex items-center justify-between">
             <span className="font-mono text-sm font-semibold text-emerald-400">
@@ -62,7 +62,7 @@ export default function ContactPage() {
           </div>
           <h2 className="text-lg font-bold text-white">Email me</h2>
           <p className="mt-1 text-sm text-slate-400">
-            Best for longer questions, feedback, or feature requests.
+            Better for collaboration, longer questions, or anything else.
           </p>
           <div className="mt-5 flex items-center justify-between">
             <span className="text-sm font-semibold text-emerald-400 truncate">
