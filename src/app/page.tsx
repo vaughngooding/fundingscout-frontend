@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { landingContent as c } from '@/content/landing'
+import PricingSection from '@/components/PricingSection'
 
 // Sample funding rounds for the dashboard mockup (illustrative, not real data)
 const MOCK_ROUNDS = [
@@ -270,83 +271,7 @@ export default function Home() {
       </section>
 
       {/* ─────────────────── Pricing ─────────────────── */}
-      <section id="pricing" className="scroll-mt-24 bg-slate-900/40 px-6 py-14 sm:py-20">
-        <div className="mx-auto max-w-6xl">
-          <div className="mx-auto max-w-2xl text-center">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">
-              {c.pricing.eyebrow}
-            </p>
-            <h2 className="mt-4 text-balance text-4xl font-extrabold tracking-[-0.02em] text-white sm:text-5xl md:text-6xl">
-              {c.pricing.headline}
-            </h2>
-            <p className="mt-5 text-lg text-slate-400">{c.pricing.subheadline}</p>
-          </div>
-
-          <div className="mt-20 grid gap-6 md:grid-cols-3">
-            {c.pricing.plans.map((plan) => (
-              <div
-                key={plan.name}
-                className={`relative flex flex-col rounded-3xl p-9 ${
-                  plan.recommended
-                    ? 'bg-gradient-to-br from-emerald-600 to-emerald-700 text-white shadow-2xl shadow-emerald-500/20'
-                    : 'bg-slate-900 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.06)]'
-                }`}
-              >
-                {plan.recommended && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-emerald-500 px-3.5 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-white shadow-lg">
-                    Most Popular
-                  </div>
-                )}
-
-                <div>
-                  <h3 className={`text-base font-bold ${plan.recommended ? 'text-white' : 'text-white'}`}>{plan.name}</h3>
-                  <div className="mt-5 flex items-baseline gap-1">
-                    <span className={`text-6xl font-extrabold tracking-tight ${plan.recommended ? 'text-white' : 'text-white'}`}>{plan.price}</span>
-                    <span className={plan.recommended ? 'text-slate-500' : 'text-slate-500'}>{plan.period}</span>
-                  </div>
-                  <p className={`mt-4 text-sm ${plan.recommended ? 'text-slate-600' : 'text-slate-400'}`}>{plan.description}</p>
-                </div>
-
-                <ul className="mt-8 flex flex-col gap-3.5 text-sm">
-                  {plan.features.map((feature) => (
-                    <li key={feature.text} className="flex items-start gap-3">
-                      {feature.included ? (
-                        <svg className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                        </svg>
-                      ) : (
-                        <svg className={`mt-0.5 h-4 w-4 shrink-0 ${plan.recommended ? 'text-slate-300' : 'text-slate-600'}`} fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      )}
-                      <span className={
-                        feature.included
-                          ? plan.recommended ? 'text-slate-100' : 'text-slate-300'
-                          : plan.recommended ? 'text-slate-500' : 'text-slate-500'
-                      }>
-                        {feature.text}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-
-                <div className="mt-auto pt-10">
-                  <Link
-                    href={plan.ctaHref}
-                    className={`block w-full rounded-full py-4 text-center text-sm font-semibold transition-all ${
-                      plan.ctaStyle === 'primary'
-                        ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 hover:bg-emerald-400 hover:shadow-xl hover:shadow-emerald-500/40'
-                        : 'bg-slate-800 text-white hover:bg-slate-700'
-                    }`}
-                  >
-                    {plan.cta}
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <PricingSection />
 
       {/* ─────────────────── FAQ ─────────────────── */}
       <section className="px-6 py-14 sm:py-20">
