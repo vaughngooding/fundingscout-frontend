@@ -72,20 +72,20 @@ export default function Home() {
       </nav>
 
       {/* ─────────────────── Hero ─────────────────── */}
-      <section className="relative overflow-hidden px-6 pt-24 pb-12 sm:pt-32 sm:pb-16">
+      <section className="relative overflow-hidden px-6 pt-12 pb-10 sm:pt-16 sm:pb-12">
         {/* Single soft glow */}
         <div aria-hidden className="pointer-events-none absolute -top-32 left-1/2 -z-10 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-emerald-500/15 blur-[140px]" />
 
-        <div className="mx-auto max-w-3xl text-center">
+        <div className="mx-auto max-w-4xl text-center">
           <h1 className="text-balance text-5xl font-extrabold leading-[1.02] tracking-[-0.03em] text-white sm:text-6xl md:text-7xl lg:text-[5.5rem]">
             {c.hero.headline}
           </h1>
 
-          <p className="mx-auto mt-7 max-w-xl text-balance text-lg leading-relaxed text-slate-400 sm:text-xl">
+          <p className="mx-auto mt-6 max-w-3xl text-base leading-relaxed text-slate-400 sm:text-lg md:whitespace-nowrap">
             {c.hero.subheadline}
           </p>
 
-          <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
               href={c.hero.primaryCtaHref}
               className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-emerald-600 px-7 py-4 text-base font-semibold text-white shadow-[0_8px_24px_-8px_rgba(16,185,129,0.5)] transition-all hover:bg-emerald-500 hover:shadow-[0_12px_32px_-8px_rgba(16,185,129,0.6)] sm:w-auto"
