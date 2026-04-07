@@ -98,6 +98,7 @@ $$;
 
 -- 4. RLS policy: allow anonymous read on funding_rounds (for landing page preview)
 -- Only SELECT, and the query itself limits to 10 rows
+DROP POLICY IF EXISTS "Allow anonymous read on funding_rounds" ON funding_rounds;
 CREATE POLICY "Allow anonymous read on funding_rounds"
   ON funding_rounds
   FOR SELECT

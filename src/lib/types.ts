@@ -59,9 +59,10 @@ export interface UserPreferences {
   telegram_link_token: string | null
   // Phase 2: Web Push
   push_subscription: PushSubscriptionJSON | null
-  // Phase 3: SMS
+  // Phase 3: SMS / iMessage (phone is shared between channels)
   phone_number: string | null
   phone_verified: boolean
+  imessage_enabled: boolean
   // Phase 4: Slack App
   slack_team_id: string | null
   slack_channel_id: string | null

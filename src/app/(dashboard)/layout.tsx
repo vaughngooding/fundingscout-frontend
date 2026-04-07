@@ -39,6 +39,19 @@ export default async function DashboardLayout({
           __html: JSON.stringify(profile),
         }}
       />
+      {/* Register service worker for Web Push notifications */}
+      <script
+        suppressHydrationWarning
+        dangerouslySetInnerHTML={{
+          __html: `
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.register('/sw.js').catch(function(err) {
+                console.warn('SW registration failed:', err);
+              });
+            }
+          `,
+        }}
+      />
     </div>
   )
 }

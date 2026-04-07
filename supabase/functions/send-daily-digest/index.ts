@@ -108,7 +108,7 @@ function buildEmailHtml(
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Your FundingPulse Digest</title>
+  <title>Your FundingScout Digest</title>
 </head>
 <body style="margin:0;padding:0;background-color:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#f9fafb;">
@@ -119,7 +119,7 @@ function buildEmailHtml(
           <!-- Header -->
           <tr>
             <td style="background:linear-gradient(135deg,#2563eb,#7c3aed);padding:24px 32px;">
-              <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;letter-spacing:-0.5px;">FundingPulse</h1>
+              <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;letter-spacing:-0.5px;">FundingScout</h1>
               <p style="margin:4px 0 0 0;color:#dbeafe;font-size:14px;">Your daily funding digest</p>
             </td>
           </tr>
@@ -161,7 +161,7 @@ function buildEmailHtml(
                 <a href="${appBaseUrl}/unsubscribe" style="color:#6b7280;text-decoration:underline;">Unsubscribe</a>
               </p>
               <p style="margin:8px 0 0 0;font-size:11px;color:#d1d5db;text-align:center;">
-                FundingPulse &mdash; Startup funding intelligence, delivered.
+                FundingScout &mdash; Startup funding intelligence, delivered.
               </p>
             </td>
           </tr>
@@ -184,7 +184,7 @@ Deno.serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const resendApiKey = Deno.env.get('RESEND_API_KEY')!
-    const appBaseUrl = Deno.env.get('APP_BASE_URL') ?? 'https://fundingpulse.com'
+    const appBaseUrl = Deno.env.get('APP_BASE_URL') ?? 'https://fundingscout.io'
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
@@ -293,7 +293,7 @@ Deno.serve(async (req: Request) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from: 'FundingPulse <alerts@fundingpulse.com>',
+            from: 'FundingScout <alerts@fundingscout.io>',
             to: [user.profiles.email],
             subject,
             html,

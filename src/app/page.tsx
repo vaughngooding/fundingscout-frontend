@@ -9,7 +9,7 @@ export default function Home() {
       <nav className="fixed top-0 z-50 w-full border-b border-slate-800 bg-slate-950/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link href="/" className="text-xl font-bold tracking-tight">
-            <span className="text-blue-500">Funding</span>Pulse
+            <span className="text-blue-500">Funding</span>Scout
           </Link>
           <div className="flex items-center gap-4">
             <Link
@@ -87,7 +87,7 @@ export default function Home() {
               From signal to pipeline in three steps
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-slate-400">
-              FundingPulse scans the web 24/7 so you can focus on selling, not
+              FundingScout scans the web 24/7 so you can focus on selling, not
               searching.
             </p>
           </div>
@@ -432,7 +432,7 @@ export default function Home() {
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-slate-400">
             Join hundreds of sales reps who start their morning with
-            FundingPulse. Set up takes less than 2 minutes.
+            FundingScout. Set up takes less than 2 minutes.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
@@ -449,7 +449,7 @@ export default function Home() {
       <footer className="border-t border-slate-800 bg-slate-950 px-6 py-10">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 text-sm text-slate-500 sm:flex-row">
           <p>
-            &copy; {new Date().getFullYear()} FundingPulse. All rights
+            &copy; {new Date().getFullYear()} FundingScout. All rights
             reserved.
           </p>
           <div className="flex items-center gap-6">

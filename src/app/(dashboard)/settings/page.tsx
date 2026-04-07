@@ -41,6 +41,16 @@ export default async function SettingsPage() {
     digest_hour: 9,
     slack_webhook_url: null,
     teams_webhook_url: null,
+    telegram_chat_id: null,
+    telegram_link_token: null,
+    push_subscription: null,
+    phone_number: null,
+    phone_verified: false,
+    imessage_enabled: false,
+    slack_team_id: null,
+    slack_channel_id: null,
+    slack_bot_token: null,
+    slack_app_installed: false,
   }
 
   const defaultProfile: Profile = {
