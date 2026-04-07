@@ -61,7 +61,7 @@ export const landingContent = {
   // ─── Dashboard preview ───
   dashboardPreview: {
     eyebrow: 'The dashboard',
-    headline: 'Filter + browse funding alerts',
+    headline: 'Filter + browse funding events',
     description:
       'Every funding round in one place. Filter by anything. Bookmark the ones that matter. Export to CSV. Built for sales teams that need to move fast.',
     cta: 'Try the dashboard',
