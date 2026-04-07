@@ -107,7 +107,7 @@ export default function Home() {
       </section>
 
       {/* ─────────────────── Channel Screenshots (single row) ─────────────────── */}
-      <section className="relative overflow-hidden px-6 pb-24 pt-2 sm:pb-32">
+      <section className="relative overflow-hidden px-6 pb-10 pt-2 sm:pb-14">
         <div className="mx-auto max-w-7xl">
           {/* Background glow */}
           <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[500px] w-[900px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-500/10 blur-3xl" />
@@ -163,7 +163,7 @@ export default function Home() {
       </section>
 
       {/* ─────────────────── How it works ─────────────────── */}
-      <section className="px-6 py-28 sm:py-36">
+      <section className="px-6 pt-12 pb-28 sm:pt-16 sm:pb-36">
         <div className="mx-auto max-w-6xl">
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">
