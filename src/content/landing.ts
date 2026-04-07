@@ -58,78 +58,78 @@ export const landingContent = {
     items: ['SDR Reps', 'Series A Founders', 'B2B Sales Leaders', 'VC Associates', 'Growth Marketers'],
   },
 
-  // ─── How it works ───
-  howItWorks: {
-    eyebrow: 'How it works',
-    headline: 'From announcement to alert in 3 steps',
-    steps: [
-      {
-        number: '01',
-        title: 'We monitor every funding announcement',
-        description:
-          'Our AI watches TechCrunch, Crunchbase, FinSMEs, EU-Startups, Pulse2 VC, and 8+ other sources every minute. No round slips through.',
-      },
-      {
-        number: '02',
-        title: 'AI removes the noise and extracts funding details',
-        description:
-          'Company name, amount raised, round stage, lead investors, location, and industry — pulled cleanly from every article. Zero manual work.',
-      },
-      {
-        number: '03',
-        title: 'You get only the alerts you care about',
-        description:
-          'Set your filters once (geography, round size, stage). Get a text the moment a matching round breaks — or a clean daily digest in your inbox.',
-      },
-    ],
-  },
-
-  // ─── Feature grid ───
-  features: {
-    eyebrow: 'Features',
-    headline: 'Everything you need to act on funding signals',
-    items: [
-      {
-        title: 'Real-time SMS alerts',
-        description: 'A text on your phone within 60 seconds of a matching round breaking. No app to install.',
-        icon: 'phone',
-      },
-      {
-        title: 'Slack, Teams, Telegram',
-        description: 'Pipe alerts into your team channel. Multiple integrations supported, one-click setup.',
-        icon: 'chat',
-      },
-      {
-        title: 'Custom filters',
-        description: 'Filter by geography, funding stage, raise amount, industry. See only what matters to you.',
-        icon: 'filter',
-      },
-      {
-        title: 'Daily email digest',
-        description: 'A clean curated summary delivered to your inbox every morning at your local 9am.',
-        icon: 'email',
-      },
-      {
-        title: 'Web dashboard',
-        description: 'Browse, search, bookmark, and export every funding round in a fast prospecting dashboard.',
-        icon: 'dashboard',
-      },
-      {
-        title: 'CSV export',
-        description: 'Pull filtered lists straight into your CRM. Built for outreach workflows.',
-        icon: 'download',
-      },
-    ],
-  },
-
   // ─── Dashboard preview ───
   dashboardPreview: {
     eyebrow: 'The dashboard',
-    headline: 'Built for prospecting, not browsing',
+    headline: 'Filter + browse funding alerts',
     description:
       'Every funding round in one place. Filter by anything. Bookmark the ones that matter. Export to CSV. Built for sales teams that need to move fast.',
     cta: 'Try the dashboard',
     ctaHref: '/signup',
+  },
+
+  // ─── Competitor comparison ───
+  comparison: {
+    eyebrow: 'How we compare',
+    headline: 'Why FundingScout vs the alternatives',
+    columns: ['Tool', 'Real-time alerts', 'SMS / Slack delivery', 'Noise / false alerts', 'Filters', 'Price / mo'],
+    rows: [
+      {
+        tool: 'FundingScout',
+        highlight: true,
+        cells: [
+          { label: 'Yes', tone: 'good' as const },
+          { label: 'Yes', tone: 'good' as const },
+          { label: 'Low', tone: 'good' as const },
+          { label: 'Yes', tone: 'good' as const },
+          { label: '$89', tone: 'price-highlight' as const },
+        ],
+      },
+      {
+        tool: 'Google Alerts',
+        highlight: false,
+        cells: [
+          { label: 'Yes', tone: 'good' as const },
+          { label: 'No', tone: 'bad' as const },
+          { label: 'Very high', tone: 'bad' as const },
+          { label: 'No', tone: 'bad' as const },
+          { label: 'Free', tone: 'price-free' as const },
+        ],
+      },
+      {
+        tool: 'Crunchbase Pro',
+        highlight: false,
+        cells: [
+          { label: 'No', tone: 'bad' as const },
+          { label: 'No', tone: 'bad' as const },
+          { label: 'Low', tone: 'good' as const },
+          { label: 'Yes', tone: 'good' as const },
+          { label: '$99', tone: 'price' as const },
+        ],
+      },
+      {
+        tool: 'PitchBook',
+        highlight: false,
+        cells: [
+          { label: 'No', tone: 'bad' as const },
+          { label: 'No', tone: 'bad' as const },
+          { label: 'Low', tone: 'good' as const },
+          { label: 'Yes', tone: 'good' as const },
+          { label: '$1,667+', tone: 'price' as const },
+        ],
+      },
+      {
+        tool: 'TechCrunch / PR Newswire',
+        highlight: false,
+        cells: [
+          { label: 'Manual', tone: 'medium' as const },
+          { label: 'No', tone: 'bad' as const },
+          { label: 'Very high', tone: 'bad' as const },
+          { label: 'No', tone: 'bad' as const },
+          { label: 'Free', tone: 'price-free' as const },
+        ],
+      },
+    ],
   },
 
   // ─── Pricing ───

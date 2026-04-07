@@ -1,40 +1,6 @@
 import Link from 'next/link'
 import { landingContent as c } from '@/content/landing'
 
-// Tiny inline SVG icon set for the feature grid (no extra deps)
-const ICONS: Record<string, React.ReactNode> = {
-  phone: (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
-    </svg>
-  ),
-  chat: (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 01.778-.332 48.294 48.294 0 005.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
-    </svg>
-  ),
-  filter: (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
-    </svg>
-  ),
-  email: (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-    </svg>
-  ),
-  dashboard: (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.75-9l3-3 2.148 2.148A12.061 12.061 0 0116.5 7.605" />
-    </svg>
-  ),
-  download: (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-    </svg>
-  ),
-}
-
 // Sample funding rounds for the dashboard mockup (illustrative, not real data)
 const MOCK_ROUNDS = [
   { company: 'Skylark AI', amount: '$24M', stage: 'Series A', location: 'San Francisco, CA', when: '2 min ago', industry: 'AI/ML', highlight: true },
@@ -162,62 +128,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ─────────────────── How it works ─────────────────── */}
-      <section className="px-6 pt-10 pb-14 sm:pt-14 sm:pb-20">
-        <div className="mx-auto max-w-6xl">
-          <div className="mx-auto max-w-2xl text-center">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">
-              {c.howItWorks.eyebrow}
-            </p>
-            <h2 className="mt-4 text-balance text-4xl font-extrabold tracking-[-0.02em] text-white sm:text-5xl md:text-6xl">
-              {c.howItWorks.headline}
-            </h2>
-          </div>
-
-          <div className="mt-20 grid gap-6 md:grid-cols-3">
-            {c.howItWorks.steps.map((step) => (
-              <div
-                key={step.number}
-                className="rounded-3xl bg-slate-900/40 p-8 transition-all hover:bg-slate-900/60"
-              >
-                <div className="text-5xl font-extrabold tracking-tight text-slate-600">{step.number}</div>
-                <h3 className="mt-5 text-xl font-bold tracking-tight text-white">{step.title}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-slate-400">{step.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ─────────────────── Features grid ─────────────────── */}
-      <section id="features" className="scroll-mt-24 bg-slate-900/40 px-6 py-14 sm:py-20">
-        <div className="mx-auto max-w-6xl">
-          <div className="mx-auto max-w-2xl text-center">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">
-              {c.features.eyebrow}
-            </p>
-            <h2 className="mt-4 text-balance text-4xl font-extrabold tracking-[-0.02em] text-white sm:text-5xl md:text-6xl">
-              {c.features.headline}
-            </h2>
-          </div>
-
-          <div className="mt-12 grid grid-cols-2 gap-3 sm:mt-20 sm:gap-5 lg:grid-cols-3">
-            {c.features.items.map((feature) => (
-              <div
-                key={feature.title}
-                className="group rounded-3xl bg-slate-900 p-7 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/40"
-              >
-                <div className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-800 text-slate-300 transition-all group-hover:bg-emerald-500/10 group-hover:text-emerald-400">
-                  {ICONS[feature.icon] || ICONS.dashboard}
-                </div>
-                <h3 className="text-lg font-bold tracking-tight text-white">{feature.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-400">{feature.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ─────────────────── Dashboard preview callout ─────────────────── */}
       <section className="px-6 py-14 sm:py-20">
         <div className="mx-auto grid max-w-6xl items-center gap-16 lg:grid-cols-2">
@@ -274,6 +184,87 @@ export default function Home() {
                 ))}
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─────────────────── Competitor comparison ─────────────────── */}
+      <section className="px-6 py-14 sm:py-20">
+        <div className="mx-auto max-w-6xl">
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">
+              {c.comparison.eyebrow}
+            </p>
+            <h2 className="mt-4 text-balance text-4xl font-extrabold tracking-[-0.02em] text-white sm:text-5xl">
+              {c.comparison.headline}
+            </h2>
+          </div>
+
+          <div className="mt-12 overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/60 sm:mt-16">
+            <table className="w-full min-w-[640px] text-sm">
+              <thead>
+                <tr className="border-b border-slate-800">
+                  {c.comparison.columns.map((col, i) => (
+                    <th
+                      key={col}
+                      className={`px-4 py-4 text-xs font-bold uppercase tracking-[0.1em] text-slate-500 ${
+                        i === 0 ? 'text-left' : 'text-center'
+                      }`}
+                    >
+                      {col}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {c.comparison.rows.map((row) => (
+                  <tr
+                    key={row.tool}
+                    className={`border-b border-slate-800/60 last:border-b-0 transition-colors ${
+                      row.highlight
+                        ? 'bg-emerald-500/10 hover:bg-emerald-500/15'
+                        : 'hover:bg-slate-900'
+                    }`}
+                  >
+                    <td
+                      className={`px-4 py-4 font-semibold ${
+                        row.highlight ? 'text-emerald-300' : 'text-white'
+                      }`}
+                    >
+                      {row.tool}
+                    </td>
+                    {row.cells.map((cell, idx) => (
+                      <td key={idx} className="px-4 py-4 text-center">
+                        {cell.tone === 'good' && (
+                          <span className="inline-block rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-300 ring-1 ring-emerald-500/30">
+                            {cell.label}
+                          </span>
+                        )}
+                        {cell.tone === 'bad' && (
+                          <span className="inline-block rounded-full bg-red-500/15 px-3 py-1 text-xs font-semibold text-red-300 ring-1 ring-red-500/30">
+                            {cell.label}
+                          </span>
+                        )}
+                        {cell.tone === 'medium' && (
+                          <span className="inline-block rounded-full bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-300 ring-1 ring-amber-500/30">
+                            {cell.label}
+                          </span>
+                        )}
+                        {cell.tone === 'price-highlight' && (
+                          <span className="text-base font-extrabold text-emerald-300">{cell.label}</span>
+                        )}
+                        {cell.tone === 'price' && (
+                          <span className="text-sm font-semibold text-white">{cell.label}</span>
+                        )}
+                        {cell.tone === 'price-free' && (
+                          <span className="text-sm font-medium text-slate-400">{cell.label}</span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
