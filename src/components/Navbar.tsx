@@ -68,6 +68,7 @@ export default function Navbar() {
     { href: '/dashboard', label: 'My Alerts' },
     { href: '/bookmarks', label: 'Bookmarks' },
     { href: '/settings', label: 'Alert Settings' },
+    { href: '/contact', label: 'Contact' },
   ]
 
   return (
