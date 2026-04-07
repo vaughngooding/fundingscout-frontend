@@ -229,9 +229,26 @@ export default function SettingsForm({
       return
     }
 
+    // If the user (or their browser) already blocked notifications previously,
+    // requestPermission() returns 'denied' immediately without showing a prompt.
+    // Tell them how to manually unblock since the browser won't ask again.
+    if (Notification.permission === 'denied') {
+      setToast({
+        type: 'error',
+        message:
+          'Notifications blocked by your browser. Click the lock icon next to the URL, allow notifications, then reload this page.',
+      })
+      setPushLoading(false)
+      return
+    }
+
     const permission = await Notification.requestPermission()
     if (permission !== 'granted') {
-      setToast({ type: 'error', message: 'Notification permission denied.' })
+      setToast({
+        type: 'error',
+        message:
+          'Notifications blocked by your browser. Click the lock icon next to the URL, allow notifications, then reload this page.',
+      })
       setPushLoading(false)
       return
     }
