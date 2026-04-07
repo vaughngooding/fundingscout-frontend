@@ -80,7 +80,16 @@ export default function ContactPage() {
 
       {/* Footer note */}
       <p className="mt-10 text-center text-xs text-slate-500">
-        Built by <Link href="https://vaughngooding.com" className="text-slate-400 hover:text-white transition-colors">Vaughn Gooding</Link>.
+        Built by{' '}
+        <a
+          href="https://linkedin.com/in/VaughnGooding"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-slate-400 hover:text-white transition-colors"
+        >
+          Vaughn Gooding
+        </a>
+        .
       </p>
     </div>
   )
