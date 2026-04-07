@@ -46,24 +46,24 @@ const MOCK_ROUNDS = [
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-white text-neutral-900 antialiased selection:bg-emerald-100">
+    <div className="min-h-screen bg-slate-900 text-white antialiased selection:bg-emerald-500/15">
       {/* ─────────────────── Nav ─────────────────── */}
-      <nav className="sticky top-0 z-50 w-full border-b border-neutral-100 bg-white/85 backdrop-blur-xl">
+      <nav className="sticky top-0 z-50 w-full border-b border-slate-800 bg-slate-900/85 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
           <Link href="/" className="text-xl font-extrabold tracking-tight">
-            <span className="text-emerald-600">{c.nav.brandFunding}</span>
-            <span className="text-neutral-900">{c.nav.brandScout}</span>
+            <span className="text-emerald-400">{c.nav.brandFunding}</span>
+            <span className="text-white">{c.nav.brandScout}</span>
           </Link>
           <div className="flex items-center gap-1 sm:gap-3">
             <Link
               href="/login"
-              className="rounded-full px-4 py-2 text-sm font-semibold text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
+              className="rounded-full px-4 py-2 text-sm font-semibold text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
             >
               {c.nav.loginLabel}
             </Link>
             <Link
               href="/signup"
-              className="rounded-full bg-neutral-900 px-5 py-2 text-sm font-semibold text-white transition-all hover:bg-neutral-800"
+              className="rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white transition-all hover:bg-emerald-500"
             >
               {c.nav.signupLabel}
             </Link>
@@ -74,21 +74,21 @@ export default function Home() {
       {/* ─────────────────── Hero ─────────────────── */}
       <section className="relative overflow-hidden px-6 pt-24 pb-20 sm:pt-32 sm:pb-28">
         {/* Single soft glow — no rainbow */}
-        <div aria-hidden className="pointer-events-none absolute -top-32 left-1/2 -z-10 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-emerald-100/60 blur-[140px]" />
+        <div aria-hidden className="pointer-events-none absolute -top-32 left-1/2 -z-10 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-emerald-500/15 blur-[140px]" />
 
         <div className="mx-auto max-w-4xl text-center">
-          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white/90 px-4 py-1.5 text-xs font-semibold text-neutral-700 shadow-sm backdrop-blur">
+          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900/90 px-4 py-1.5 text-xs font-semibold text-slate-300 shadow-sm backdrop-blur">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
             {c.hero.eyebrow}
           </div>
 
-          <h1 className="text-balance text-5xl font-extrabold leading-[1.02] tracking-[-0.03em] text-neutral-950 sm:text-6xl md:text-7xl lg:text-[5.5rem]">
+          <h1 className="text-balance text-5xl font-extrabold leading-[1.02] tracking-[-0.03em] text-white sm:text-6xl md:text-7xl lg:text-[5.5rem]">
             {c.hero.headline.split('\n').map((line, i) => (
               <span key={i} className="block">{line}</span>
             ))}
           </h1>
 
-          <p className="mx-auto mt-8 max-w-2xl text-balance text-lg leading-relaxed text-neutral-600 sm:text-xl">
+          <p className="mx-auto mt-8 max-w-2xl text-balance text-lg leading-relaxed text-slate-400 sm:text-xl">
             {c.hero.subheadline}
           </p>
 
@@ -104,27 +104,27 @@ export default function Home() {
             </Link>
             <Link
               href={c.hero.secondaryCtaHref}
-              className="inline-flex w-full items-center justify-center rounded-full border border-neutral-200 bg-white px-7 py-4 text-base font-semibold text-neutral-800 transition-all hover:border-neutral-300 hover:bg-neutral-50 sm:w-auto"
+              className="inline-flex w-full items-center justify-center rounded-full border border-slate-700 bg-slate-900 px-7 py-4 text-base font-semibold text-slate-200 transition-all hover:border-slate-600 hover:bg-slate-900/60 sm:w-auto"
             >
               {c.hero.secondaryCta}
             </Link>
           </div>
 
-          <p className="mt-8 text-xs font-medium text-neutral-500">{c.hero.socialProof}</p>
+          <p className="mt-8 text-xs font-medium text-slate-500">{c.hero.socialProof}</p>
         </div>
 
         {/* Dashboard preview mockup */}
         <div className="relative mx-auto mt-20 max-w-5xl px-2 sm:mt-24">
-          <div className="absolute -inset-x-8 -inset-y-4 rounded-[2.5rem] bg-emerald-100/40 blur-3xl" aria-hidden />
-          <div className="relative overflow-hidden rounded-3xl border border-neutral-200/80 bg-white shadow-[0_30px_80px_-20px_rgba(0,0,0,0.15)]">
+          <div className="absolute -inset-x-8 -inset-y-4 rounded-[2.5rem] bg-emerald-500/10 blur-3xl" aria-hidden />
+          <div className="relative overflow-hidden rounded-3xl border border-slate-700/50 bg-slate-900 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.15)]">
             {/* Mockup top bar (browser chrome) */}
-            <div className="flex items-center gap-2 border-b border-neutral-100 bg-neutral-50/70 px-5 py-3.5">
+            <div className="flex items-center gap-2 border-b border-slate-800 bg-slate-900/60 px-5 py-3.5">
               <div className="flex gap-1.5">
-                <div className="h-3 w-3 rounded-full bg-neutral-200" />
-                <div className="h-3 w-3 rounded-full bg-neutral-200" />
-                <div className="h-3 w-3 rounded-full bg-neutral-200" />
+                <div className="h-3 w-3 rounded-full bg-slate-700" />
+                <div className="h-3 w-3 rounded-full bg-slate-700" />
+                <div className="h-3 w-3 rounded-full bg-slate-700" />
               </div>
-              <div className="ml-3 flex-1 rounded-md bg-white px-3 py-1 text-xs text-neutral-400 shadow-inner">
+              <div className="ml-3 flex-1 rounded-md bg-slate-900 px-3 py-1 text-xs text-slate-500 shadow-inner">
                 fundingscout.io/dashboard
               </div>
             </div>
@@ -132,20 +132,20 @@ export default function Home() {
             {/* Mockup body — fake dashboard content */}
             <div className="grid grid-cols-1 gap-0 md:grid-cols-[200px_1fr]">
               {/* Sidebar */}
-              <aside className="hidden border-r border-neutral-100 bg-neutral-50/40 p-5 md:block">
-                <div className="mb-4 text-[10px] font-bold uppercase tracking-wider text-neutral-400">Filters</div>
+              <aside className="hidden border-r border-slate-800 bg-slate-900/40 p-5 md:block">
+                <div className="mb-4 text-[10px] font-bold uppercase tracking-wider text-slate-500">Filters</div>
                 <div className="space-y-1.5 text-xs">
-                  <div className="rounded-lg bg-white px-3 py-2 font-semibold text-neutral-800 shadow-sm">All rounds</div>
-                  <div className="px-3 py-2 text-neutral-500">Series A+</div>
-                  <div className="px-3 py-2 text-neutral-500">$10M+</div>
-                  <div className="px-3 py-2 text-neutral-500">AI/ML</div>
-                  <div className="px-3 py-2 text-neutral-500">Bookmarked</div>
+                  <div className="rounded-lg bg-slate-900 px-3 py-2 font-semibold text-slate-200 shadow-sm">All rounds</div>
+                  <div className="px-3 py-2 text-slate-500">Series A+</div>
+                  <div className="px-3 py-2 text-slate-500">$10M+</div>
+                  <div className="px-3 py-2 text-slate-500">AI/ML</div>
+                  <div className="px-3 py-2 text-slate-500">Bookmarked</div>
                 </div>
-                <div className="mt-6 mb-3 text-[10px] font-bold uppercase tracking-wider text-neutral-400">Geography</div>
+                <div className="mt-6 mb-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Geography</div>
                 <div className="space-y-1 text-xs">
-                  <div className="px-3 py-1.5 text-neutral-500">United States</div>
-                  <div className="px-3 py-1.5 text-neutral-500">Europe</div>
-                  <div className="px-3 py-1.5 text-neutral-500">Asia</div>
+                  <div className="px-3 py-1.5 text-slate-500">United States</div>
+                  <div className="px-3 py-1.5 text-slate-500">Europe</div>
+                  <div className="px-3 py-1.5 text-slate-500">Asia</div>
                 </div>
               </aside>
 
@@ -153,12 +153,12 @@ export default function Home() {
               <div className="p-5 sm:p-7">
                 <div className="mb-5 flex items-center justify-between">
                   <div>
-                    <div className="text-sm font-bold text-neutral-900">Today&apos;s funding rounds</div>
-                    <div className="text-xs text-neutral-500">{MOCK_ROUNDS.length} new since 9:00 AM</div>
+                    <div className="text-sm font-bold text-white">Today&apos;s funding rounds</div>
+                    <div className="text-xs text-slate-500">{MOCK_ROUNDS.length} new since 9:00 AM</div>
                   </div>
                   <div className="hidden gap-2 sm:flex">
-                    <div className="rounded-full border border-neutral-200 px-3 py-1 text-xs text-neutral-600">Sort: Newest</div>
-                    <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                    <div className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-400">Sort: Newest</div>
+                    <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
                       <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
                       Live
                     </div>
@@ -169,26 +169,26 @@ export default function Home() {
                     <div
                       key={r.company}
                       className={`flex items-center justify-between rounded-xl px-4 py-3.5 transition-colors ${
-                        r.highlight ? 'bg-emerald-50/70 ring-1 ring-emerald-100' : 'bg-neutral-50/50 hover:bg-neutral-100/60'
+                        r.highlight ? 'bg-emerald-500/10 ring-1 ring-emerald-500/30' : 'bg-slate-900/40 hover:bg-slate-800/60'
                       }`}
                     >
                       <div className="flex items-center gap-3">
                         <div className={`flex h-9 w-9 items-center justify-center rounded-xl text-xs font-bold ${
-                          r.highlight ? 'bg-emerald-500 text-white' : 'bg-white text-neutral-700 ring-1 ring-neutral-200'
+                          r.highlight ? 'bg-emerald-500 text-white' : 'bg-slate-900 text-slate-300 ring-1 ring-slate-700'
                         }`}>
                           {r.company[0]}
                         </div>
                         <div>
-                          <div className="text-sm font-bold text-neutral-900">{r.company}</div>
-                          <div className="text-[11px] text-neutral-500">{r.location} • {r.industry}</div>
+                          <div className="text-sm font-bold text-white">{r.company}</div>
+                          <div className="text-[11px] text-slate-500">{r.location} • {r.industry}</div>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="text-right">
-                          <div className="text-sm font-bold text-neutral-900">{r.amount}</div>
-                          <div className="text-[11px] text-neutral-500">{r.stage}</div>
+                          <div className="text-sm font-bold text-white">{r.amount}</div>
+                          <div className="text-[11px] text-slate-500">{r.stage}</div>
                         </div>
-                        <div className="hidden text-[11px] text-neutral-400 sm:block">{r.when}</div>
+                        <div className="hidden text-[11px] text-slate-500 sm:block">{r.when}</div>
                       </div>
                     </div>
                   ))}
@@ -200,14 +200,14 @@ export default function Home() {
       </section>
 
       {/* ─────────────────── Logo bar ─────────────────── */}
-      <section className="border-y border-neutral-100 bg-neutral-50/40 px-6 py-14">
+      <section className="border-y border-slate-800 bg-slate-900/40 px-6 py-14">
         <div className="mx-auto max-w-6xl">
-          <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500">
+          <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
             {c.logos.label}
           </p>
           <div className="mt-7 flex flex-wrap items-center justify-center gap-x-10 gap-y-4 sm:gap-x-16">
             {c.logos.items.map((item) => (
-              <span key={item} className="text-sm font-semibold text-neutral-400">
+              <span key={item} className="text-sm font-semibold text-slate-500">
                 {item}
               </span>
             ))}
@@ -219,10 +219,10 @@ export default function Home() {
       <section className="px-6 py-28 sm:py-36">
         <div className="mx-auto max-w-6xl">
           <div className="mx-auto max-w-2xl text-center">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-600">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">
               {c.howItWorks.eyebrow}
             </p>
-            <h2 className="mt-4 text-balance text-4xl font-extrabold tracking-[-0.02em] text-neutral-950 sm:text-5xl md:text-6xl">
+            <h2 className="mt-4 text-balance text-4xl font-extrabold tracking-[-0.02em] text-white sm:text-5xl md:text-6xl">
               {c.howItWorks.headline}
             </h2>
           </div>
@@ -231,11 +231,11 @@ export default function Home() {
             {c.howItWorks.steps.map((step) => (
               <div
                 key={step.number}
-                className="rounded-3xl bg-neutral-50/60 p-8 transition-all hover:bg-neutral-50"
+                className="rounded-3xl bg-slate-900/40 p-8 transition-all hover:bg-slate-900/60"
               >
-                <div className="text-5xl font-extrabold tracking-tight text-neutral-300">{step.number}</div>
-                <h3 className="mt-5 text-xl font-bold tracking-tight text-neutral-950">{step.title}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-neutral-600">{step.description}</p>
+                <div className="text-5xl font-extrabold tracking-tight text-slate-600">{step.number}</div>
+                <h3 className="mt-5 text-xl font-bold tracking-tight text-white">{step.title}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-slate-400">{step.description}</p>
               </div>
             ))}
           </div>
@@ -243,13 +243,13 @@ export default function Home() {
       </section>
 
       {/* ─────────────────── Features grid ─────────────────── */}
-      <section id="features" className="bg-neutral-50/60 px-6 py-28 sm:py-36">
+      <section id="features" className="bg-slate-900/40 px-6 py-28 sm:py-36">
         <div className="mx-auto max-w-6xl">
           <div className="mx-auto max-w-2xl text-center">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-600">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">
               {c.features.eyebrow}
             </p>
-            <h2 className="mt-4 text-balance text-4xl font-extrabold tracking-[-0.02em] text-neutral-950 sm:text-5xl md:text-6xl">
+            <h2 className="mt-4 text-balance text-4xl font-extrabold tracking-[-0.02em] text-white sm:text-5xl md:text-6xl">
               {c.features.headline}
             </h2>
           </div>
@@ -258,13 +258,13 @@ export default function Home() {
             {c.features.items.map((feature) => (
               <div
                 key={feature.title}
-                className="group rounded-3xl bg-white p-7 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-neutral-900/[0.04]"
+                className="group rounded-3xl bg-slate-900 p-7 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/40"
               >
-                <div className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-neutral-100 text-neutral-700 transition-all group-hover:bg-emerald-50 group-hover:text-emerald-600">
+                <div className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-800 text-slate-300 transition-all group-hover:bg-emerald-500/10 group-hover:text-emerald-400">
                   {ICONS[feature.icon] || ICONS.dashboard}
                 </div>
-                <h3 className="text-lg font-bold tracking-tight text-neutral-950">{feature.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-neutral-600">{feature.description}</p>
+                <h3 className="text-lg font-bold tracking-tight text-white">{feature.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-400">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -275,18 +275,18 @@ export default function Home() {
       <section className="px-6 py-28 sm:py-36">
         <div className="mx-auto grid max-w-6xl items-center gap-16 lg:grid-cols-2">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-600">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">
               {c.dashboardPreview.eyebrow}
             </p>
-            <h2 className="mt-4 text-balance text-4xl font-extrabold tracking-[-0.02em] text-neutral-950 sm:text-5xl">
+            <h2 className="mt-4 text-balance text-4xl font-extrabold tracking-[-0.02em] text-white sm:text-5xl">
               {c.dashboardPreview.headline}
             </h2>
-            <p className="mt-6 text-lg leading-relaxed text-neutral-600">
+            <p className="mt-6 text-lg leading-relaxed text-slate-400">
               {c.dashboardPreview.description}
             </p>
             <Link
               href={c.dashboardPreview.ctaHref}
-              className="mt-10 inline-flex items-center gap-2 rounded-full bg-neutral-900 px-6 py-3.5 text-sm font-semibold text-white transition-all hover:bg-neutral-800"
+              className="mt-10 inline-flex items-center gap-2 rounded-full bg-emerald-600 px-6 py-3.5 text-sm font-semibold text-white transition-all hover:bg-emerald-500"
             >
               {c.dashboardPreview.cta}
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
@@ -295,29 +295,29 @@ export default function Home() {
             </Link>
           </div>
           <div className="relative">
-            <div className="absolute -inset-x-6 -inset-y-4 rounded-[2.5rem] bg-emerald-100/30 blur-3xl" aria-hidden />
-            <div className="relative overflow-hidden rounded-3xl border border-neutral-200/80 bg-white shadow-[0_20px_60px_-15px_rgba(0,0,0,0.12)]">
+            <div className="absolute -inset-x-6 -inset-y-4 rounded-[2.5rem] bg-emerald-500/15/30 blur-3xl" aria-hidden />
+            <div className="relative overflow-hidden rounded-3xl border border-slate-700/50 bg-slate-900 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.12)]">
               {/* Compact mockup — just the alert list */}
-              <div className="flex items-center justify-between border-b border-neutral-100 bg-neutral-50/70 px-5 py-3.5">
-                <div className="text-xs font-bold uppercase tracking-wider text-neutral-500">Live alerts</div>
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+              <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900/60 px-5 py-3.5">
+                <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Live alerts</div>
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
                   <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
                   Live
                 </div>
               </div>
-              <div className="divide-y divide-neutral-100">
+              <div className="divide-y divide-slate-800">
                 {MOCK_ROUNDS.slice(0, 4).map((r) => (
                   <div key={r.company} className="flex items-center justify-between px-5 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-neutral-100 text-xs font-bold text-neutral-700">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-800 text-xs font-bold text-slate-300">
                         {r.company[0]}
                       </div>
                       <div>
-                        <div className="text-sm font-bold text-neutral-900">{r.company}</div>
-                        <div className="text-xs text-neutral-500">{r.stage} • {r.location}</div>
+                        <div className="text-sm font-bold text-white">{r.company}</div>
+                        <div className="text-xs text-slate-500">{r.stage} • {r.location}</div>
                       </div>
                     </div>
-                    <div className="text-sm font-bold text-neutral-900">{r.amount}</div>
+                    <div className="text-sm font-bold text-white">{r.amount}</div>
                   </div>
                 ))}
               </div>
@@ -327,16 +327,16 @@ export default function Home() {
       </section>
 
       {/* ─────────────────── Pricing ─────────────────── */}
-      <section id="pricing" className="bg-neutral-50/60 px-6 py-28 sm:py-36">
+      <section id="pricing" className="bg-slate-900/40 px-6 py-28 sm:py-36">
         <div className="mx-auto max-w-5xl">
           <div className="mx-auto max-w-2xl text-center">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-600">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">
               {c.pricing.eyebrow}
             </p>
-            <h2 className="mt-4 text-balance text-4xl font-extrabold tracking-[-0.02em] text-neutral-950 sm:text-5xl md:text-6xl">
+            <h2 className="mt-4 text-balance text-4xl font-extrabold tracking-[-0.02em] text-white sm:text-5xl md:text-6xl">
               {c.pricing.headline}
             </h2>
-            <p className="mt-5 text-lg text-neutral-600">{c.pricing.subheadline}</p>
+            <p className="mt-5 text-lg text-slate-400">{c.pricing.subheadline}</p>
           </div>
 
           <div className="mt-20 grid gap-6 md:grid-cols-2">
@@ -345,8 +345,8 @@ export default function Home() {
                 key={plan.name}
                 className={`relative flex flex-col rounded-3xl p-9 ${
                   plan.recommended
-                    ? 'bg-neutral-950 text-white shadow-2xl shadow-neutral-900/20'
-                    : 'bg-white shadow-[0_8px_30px_-12px_rgba(0,0,0,0.06)]'
+                    ? 'bg-gradient-to-br from-emerald-600 to-emerald-700 text-white shadow-2xl shadow-emerald-500/20'
+                    : 'bg-slate-900 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.06)]'
                 }`}
               >
                 {plan.recommended && (
@@ -356,12 +356,12 @@ export default function Home() {
                 )}
 
                 <div>
-                  <h3 className={`text-base font-bold ${plan.recommended ? 'text-white' : 'text-neutral-950'}`}>{plan.name}</h3>
+                  <h3 className={`text-base font-bold ${plan.recommended ? 'text-white' : 'text-white'}`}>{plan.name}</h3>
                   <div className="mt-5 flex items-baseline gap-1">
-                    <span className={`text-6xl font-extrabold tracking-tight ${plan.recommended ? 'text-white' : 'text-neutral-950'}`}>{plan.price}</span>
-                    <span className={plan.recommended ? 'text-neutral-400' : 'text-neutral-500'}>{plan.period}</span>
+                    <span className={`text-6xl font-extrabold tracking-tight ${plan.recommended ? 'text-white' : 'text-white'}`}>{plan.price}</span>
+                    <span className={plan.recommended ? 'text-slate-500' : 'text-slate-500'}>{plan.period}</span>
                   </div>
-                  <p className={`mt-4 text-sm ${plan.recommended ? 'text-neutral-300' : 'text-neutral-600'}`}>{plan.description}</p>
+                  <p className={`mt-4 text-sm ${plan.recommended ? 'text-slate-600' : 'text-slate-400'}`}>{plan.description}</p>
                 </div>
 
                 <ul className="mt-8 flex flex-col gap-3.5 text-sm">
@@ -372,14 +372,14 @@ export default function Home() {
                           <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                         </svg>
                       ) : (
-                        <svg className={`mt-0.5 h-4 w-4 shrink-0 ${plan.recommended ? 'text-neutral-700' : 'text-neutral-300'}`} fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                        <svg className={`mt-0.5 h-4 w-4 shrink-0 ${plan.recommended ? 'text-slate-300' : 'text-slate-600'}`} fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                       )}
                       <span className={
                         feature.included
-                          ? plan.recommended ? 'text-neutral-100' : 'text-neutral-700'
-                          : plan.recommended ? 'text-neutral-500' : 'text-neutral-400'
+                          ? plan.recommended ? 'text-slate-100' : 'text-slate-300'
+                          : plan.recommended ? 'text-slate-500' : 'text-slate-500'
                       }>
                         {feature.text}
                       </span>
@@ -393,7 +393,7 @@ export default function Home() {
                     className={`block w-full rounded-full py-4 text-center text-sm font-semibold transition-all ${
                       plan.ctaStyle === 'primary'
                         ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 hover:bg-emerald-400 hover:shadow-xl hover:shadow-emerald-500/40'
-                        : 'bg-neutral-100 text-neutral-900 hover:bg-neutral-200'
+                        : 'bg-slate-800 text-white hover:bg-slate-700'
                     }`}
                   >
                     {plan.cta}
@@ -409,10 +409,10 @@ export default function Home() {
       <section className="px-6 py-28 sm:py-36">
         <div className="mx-auto max-w-3xl">
           <div className="text-center">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-600">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">
               {c.faq.eyebrow}
             </p>
-            <h2 className="mt-4 text-balance text-4xl font-extrabold tracking-[-0.02em] text-neutral-950 sm:text-5xl">
+            <h2 className="mt-4 text-balance text-4xl font-extrabold tracking-[-0.02em] text-white sm:text-5xl">
               {c.faq.headline}
             </h2>
           </div>
@@ -421,15 +421,15 @@ export default function Home() {
             {c.faq.items.map((item) => (
               <details
                 key={item.question}
-                className="group rounded-2xl bg-neutral-50/60 px-6 py-5 transition-colors hover:bg-neutral-50"
+                className="group rounded-2xl bg-slate-900/40 px-6 py-5 transition-colors hover:bg-slate-900/60"
               >
-                <summary className="flex cursor-pointer items-center justify-between text-base font-bold text-neutral-950 marker:hidden [&::-webkit-details-marker]:hidden">
+                <summary className="flex cursor-pointer items-center justify-between text-base font-bold text-white marker:hidden [&::-webkit-details-marker]:hidden">
                   {item.question}
-                  <svg className="h-5 w-5 shrink-0 text-neutral-400 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <svg className="h-5 w-5 shrink-0 text-slate-500 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                   </svg>
                 </summary>
-                <p className="mt-4 text-sm leading-relaxed text-neutral-600">{item.answer}</p>
+                <p className="mt-4 text-sm leading-relaxed text-slate-400">{item.answer}</p>
               </details>
             ))}
           </div>
@@ -439,12 +439,12 @@ export default function Home() {
       {/* ─────────────────── Final CTA ─────────────────── */}
       <section className="px-6 pb-28 sm:pb-36">
         <div className="mx-auto max-w-5xl">
-          <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-neutral-50 to-emerald-50/60 px-8 py-20 text-center sm:px-16 sm:py-24">
-            <div aria-hidden className="pointer-events-none absolute -top-20 left-1/2 -z-10 h-[300px] w-[500px] -translate-x-1/2 rounded-full bg-emerald-200/40 blur-3xl" />
-            <h2 className="text-balance text-4xl font-extrabold tracking-[-0.02em] text-neutral-950 sm:text-5xl md:text-6xl">
+          <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950 px-8 py-20 text-center ring-1 ring-slate-800 sm:px-16 sm:py-24">
+            <div aria-hidden className="pointer-events-none absolute -top-20 left-1/2 -z-10 h-[300px] w-[500px] -translate-x-1/2 rounded-full bg-emerald-500/15 blur-3xl" />
+            <h2 className="text-balance text-4xl font-extrabold tracking-[-0.02em] text-white sm:text-5xl md:text-6xl">
               {c.finalCta.headline}
             </h2>
-            <p className="mx-auto mt-5 max-w-xl text-balance text-lg text-neutral-600">
+            <p className="mx-auto mt-5 max-w-xl text-balance text-lg text-slate-400">
               {c.finalCta.subheadline}
             </p>
             <div className="mt-10">
@@ -463,25 +463,25 @@ export default function Home() {
       </section>
 
       {/* ─────────────────── Footer ─────────────────── */}
-      <footer className="border-t border-neutral-100 bg-white px-6 py-16">
+      <footer className="border-t border-slate-800 bg-slate-900 px-6 py-16">
         <div className="mx-auto max-w-6xl">
           <div className="grid gap-10 md:grid-cols-4">
             <div className="md:col-span-2">
               <Link href="/" className="text-2xl font-extrabold tracking-tight">
-                <span className="text-emerald-600">{c.nav.brandFunding}</span>
-                <span className="text-neutral-950">{c.nav.brandScout}</span>
+                <span className="text-emerald-400">{c.nav.brandFunding}</span>
+                <span className="text-white">{c.nav.brandScout}</span>
               </Link>
-              <p className="mt-4 max-w-sm text-sm text-neutral-600">{c.footer.tagline}</p>
+              <p className="mt-4 max-w-sm text-sm text-slate-400">{c.footer.tagline}</p>
             </div>
             {c.footer.columns.map((col) => (
               <div key={col.title}>
-                <h4 className="text-xs font-bold uppercase tracking-[0.15em] text-neutral-500">{col.title}</h4>
+                <h4 className="text-xs font-bold uppercase tracking-[0.15em] text-slate-500">{col.title}</h4>
                 <ul className="mt-5 space-y-3">
                   {col.links.map((link) => (
                     <li key={link.href}>
                       <Link
                         href={link.href}
-                        className="text-sm text-neutral-600 transition-colors hover:text-neutral-950"
+                        className="text-sm text-slate-400 transition-colors hover:text-white"
                       >
                         {link.label}
                       </Link>
@@ -492,8 +492,8 @@ export default function Home() {
             ))}
           </div>
 
-          <div className="mt-14 flex flex-col items-center justify-between gap-3 border-t border-neutral-100 pt-8 sm:flex-row">
-            <p className="text-xs text-neutral-500">
+          <div className="mt-14 flex flex-col items-center justify-between gap-3 border-t border-slate-800 pt-8 sm:flex-row">
+            <p className="text-xs text-slate-500">
               &copy; {new Date().getFullYear()} {c.footer.copyright}
             </p>
           </div>

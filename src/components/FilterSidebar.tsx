@@ -105,13 +105,13 @@ export default function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-neutral-500">
+        <h2 className="text-sm font-semibold text-white uppercase tracking-wider">
           Filters
         </h2>
         {hasActiveFilters && (
           <button
             onClick={clearAll}
-            className="text-xs font-semibold text-emerald-600 transition-colors hover:text-emerald-700"
+            className="text-xs text-blue-400 hover:text-blue-300 font-medium transition-colors"
           >
             Clear all
           </button>
@@ -120,7 +120,7 @@ export default function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
 
       {/* Date Range */}
       <div>
-        <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">
+        <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
           Date Range
         </h3>
         <div className="flex flex-wrap gap-2">
@@ -128,10 +128,10 @@ export default function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
             <button
               key={opt.value}
               onClick={() => updateFilters({ dateRange: opt.value })}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                 filters.dateRange === opt.value
-                  ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
-                  : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                  ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
+                  : 'bg-slate-800 text-slate-400 border border-slate-700 hover:border-slate-600'
               }`}
             >
               {opt.label}
@@ -142,12 +142,12 @@ export default function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
 
       {/* Amount Range */}
       <div>
-        <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">
+        <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
           Amount Range
         </h3>
         <div className="space-y-3">
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-neutral-500">
+            <label className="text-xs text-slate-500 mb-1 block">
               Min: {formatAmountLabel(filters.amountMin)}
             </label>
             <input
@@ -159,11 +159,11 @@ export default function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
               onChange={(e) =>
                 updateFilters({ amountMin: Number(e.target.value) })
               }
-              className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-neutral-200 accent-emerald-600"
+              className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-neutral-500">
+            <label className="text-xs text-slate-500 mb-1 block">
               Max: {formatAmountLabel(filters.amountMax)}
             </label>
             <input
@@ -175,7 +175,7 @@ export default function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
               onChange={(e) =>
                 updateFilters({ amountMax: Number(e.target.value) })
               }
-              className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-neutral-200 accent-emerald-600"
+              className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
             />
           </div>
         </div>
@@ -183,7 +183,7 @@ export default function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
 
       {/* Funding Type */}
       <div>
-        <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">
+        <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
           Funding Type
         </h3>
         <div className="space-y-1.5">
@@ -196,9 +196,9 @@ export default function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
                 type="checkbox"
                 checked={filters.fundingTypes.includes(type)}
                 onChange={() => toggleArrayItem('fundingTypes', type)}
-                className="h-4 w-4 cursor-pointer rounded border-neutral-300 bg-white text-emerald-600 focus:ring-emerald-500 focus:ring-offset-0"
+                className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
               />
-              <span className="text-sm text-neutral-700 transition-colors group-hover/check:text-neutral-950">
+              <span className="text-sm text-slate-300 group-hover/check:text-white transition-colors">
                 {formatFundingType(type)}
               </span>
             </label>
@@ -208,7 +208,7 @@ export default function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
 
       {/* Industry */}
       <div>
-        <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">
+        <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
           Industry
         </h3>
         <div className="space-y-1.5">
@@ -221,9 +221,9 @@ export default function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
                 type="checkbox"
                 checked={filters.industries.includes(industry)}
                 onChange={() => toggleArrayItem('industries', industry)}
-                className="h-4 w-4 cursor-pointer rounded border-neutral-300 bg-white text-emerald-600 focus:ring-emerald-500 focus:ring-offset-0"
+                className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
               />
-              <span className="text-sm text-neutral-700 transition-colors group-hover/check:text-neutral-950">
+              <span className="text-sm text-slate-300 group-hover/check:text-white transition-colors">
                 {industry}
               </span>
             </label>
@@ -233,13 +233,13 @@ export default function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
 
       {/* Country */}
       <div>
-        <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">
+        <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
           Country
         </h3>
         <select
           value={filters.country}
           onChange={(e) => updateFilters({ country: e.target.value })}
-          className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-800 outline-none transition-colors focus:border-neutral-400 focus:ring-2 focus:ring-neutral-100"
+          className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
         >
           <option value="all">All Countries</option>
           <option value="US">United States</option>
@@ -261,7 +261,7 @@ export default function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
       {/* Mobile toggle button */}
       <button
         onClick={() => setOpen(!open)}
-        className="fixed bottom-6 right-6 z-40 rounded-full bg-emerald-600 p-3 text-white shadow-lg shadow-emerald-600/30 transition-colors hover:bg-emerald-500 lg:hidden"
+        className="lg:hidden fixed bottom-6 right-6 z-40 bg-blue-600 hover:bg-blue-500 text-white p-3 rounded-full shadow-lg shadow-blue-600/30 transition-colors"
       >
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -284,18 +284,18 @@ export default function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
       {/* Sidebar */}
       <aside
         className={`
-          fixed right-0 top-0 z-50 h-full w-80 flex-shrink-0 overflow-y-auto
-          border-l border-neutral-200 bg-white p-6
-          transition-transform duration-300
-          lg:sticky lg:right-auto lg:top-0 lg:z-auto lg:h-auto lg:w-64
-          lg:border-l-0 lg:bg-transparent lg:transition-none
+          fixed lg:sticky top-0 lg:top-0 right-0 lg:right-auto z-50 lg:z-auto
+          h-full lg:h-auto w-80 lg:w-64 flex-shrink-0
+          bg-slate-900 lg:bg-transparent border-l lg:border-l-0 border-slate-700/50
+          p-6 overflow-y-auto
+          transition-transform duration-300 lg:transition-none
           ${open ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
         `}
       >
         {/* Mobile close button */}
         <button
           onClick={() => setOpen(false)}
-          className="absolute right-4 top-4 text-neutral-400 transition-colors hover:text-neutral-700 lg:hidden"
+          className="lg:hidden absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

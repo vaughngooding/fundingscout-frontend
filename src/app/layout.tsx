@@ -21,12 +21,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#ffffff" />
+        <meta name="theme-color" content="#020617" />
       </head>
-      <body className={`${jakarta.variable} font-sans antialiased`} style={{ fontFamily: 'var(--font-jakarta), -apple-system, BlinkMacSystemFont, sans-serif' }}>
+      <body
+        className={`${jakarta.variable} font-sans antialiased bg-slate-950 text-white`}
+        style={{ fontFamily: 'var(--font-jakarta), -apple-system, BlinkMacSystemFont, sans-serif' }}
+      >
         {children}
       </body>
     </html>

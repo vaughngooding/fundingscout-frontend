@@ -68,15 +68,14 @@ export default function Navbar() {
   ]
 
   return (
-    <nav className="sticky top-0 z-30 border-b border-neutral-100 bg-white/90 backdrop-blur-xl">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="flex h-16 items-center justify-between">
+    <nav className="bg-slate-900 border-b border-slate-700/50 sticky top-0 z-30">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="flex items-center justify-between h-16">
           {/* Left: Logo + Nav links */}
           <div className="flex items-center gap-8">
-            <Link href="/dashboard" className="flex items-center">
-              <span className="text-xl font-extrabold tracking-tight">
-                <span className="text-emerald-600">Funding</span>
-                <span className="text-neutral-950">Scout</span>
+            <Link href="/dashboard" className="flex items-center gap-1">
+              <span className="text-xl font-bold text-white tracking-tight">
+                Funding<span className="text-emerald-400">Scout</span>
               </span>
             </Link>
 
@@ -86,10 +85,10 @@ export default function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     isActive(link.href)
-                      ? 'bg-neutral-100 text-neutral-950'
-                      : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-950'
+                      ? 'bg-slate-800 text-white'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                   }`}
                 >
                   {link.label}
@@ -99,37 +98,31 @@ export default function Navbar() {
           </div>
 
           {/* Right: Upgrade CTA + User info + logout */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-4">
             {plan === 'free' && (
               <button
                 onClick={handleUpgrade}
                 disabled={upgrading}
-                className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-[0_4px_12px_-4px_rgba(16,185,129,0.5)] transition-all hover:bg-emerald-500 hover:shadow-[0_8px_20px_-6px_rgba(16,185,129,0.6)] disabled:opacity-50"
+                className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-blue-500 hover:from-emerald-400 hover:to-blue-400 text-white text-sm font-semibold shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50"
               >
-                {upgrading ? 'Loading…' : 'Upgrade to Pro'}
+                {upgrading ? 'Loading…' : '⚡ Upgrade to Pro'}
               </button>
             )}
-            {plan === 'pro' && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
-                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                Pro
-              </span>
-            )}
             {user && (
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-900">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-blue-500 flex items-center justify-center">
                   <span className="text-xs font-bold text-white">
                     {(user.email?.[0] || 'U').toUpperCase()}
                   </span>
                 </div>
-                <span className="text-sm font-medium text-neutral-700 max-w-[180px] truncate hidden lg:inline">
+                <span className="text-sm text-slate-300 max-w-[180px] truncate">
                   {user.email}
                 </span>
               </div>
             )}
             <button
               onClick={handleLogout}
-              className="rounded-full px-3 py-2 text-sm font-medium text-neutral-500 transition-colors hover:bg-neutral-50 hover:text-neutral-900"
+              className="text-sm text-slate-400 hover:text-white px-3 py-2 rounded-lg hover:bg-slate-800/50 transition-colors"
             >
               Log out
             </button>
@@ -138,7 +131,7 @@ export default function Navbar() {
           {/* Mobile hamburger */}
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="md:hidden rounded-full p-2 text-neutral-600 hover:bg-neutral-100"
+            className="md:hidden text-slate-400 hover:text-white p-2"
           >
             <svg
               className="w-6 h-6"
@@ -167,7 +160,7 @@ export default function Navbar() {
 
         {/* Mobile menu */}
         {menuOpen && (
-          <div className="md:hidden border-t border-neutral-100 py-3 space-y-1">
+          <div className="md:hidden border-t border-slate-700/50 py-3 space-y-1">
             {plan === 'free' && (
               <button
                 onClick={() => {
@@ -175,9 +168,9 @@ export default function Navbar() {
                   handleUpgrade()
                 }}
                 disabled={upgrading}
-                className="mb-2 w-full rounded-full bg-emerald-600 px-3 py-3 text-sm font-semibold text-white shadow-[0_4px_12px_-4px_rgba(16,185,129,0.5)] disabled:opacity-50"
+                className="w-full px-3 py-2.5 rounded-lg bg-gradient-to-r from-emerald-500 to-blue-500 text-white text-sm font-semibold mb-2 shadow-lg shadow-emerald-500/20 disabled:opacity-50"
               >
-                {upgrading ? 'Loading…' : 'Upgrade to Pro'}
+                {upgrading ? 'Loading…' : '⚡ Upgrade to Pro'}
               </button>
             )}
             {navLinks.map((link) => (
@@ -185,10 +178,10 @@ export default function Navbar() {
                 key={link.href}
                 href={link.href}
                 onClick={() => setMenuOpen(false)}
-                className={`block rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${
+                className={`block px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   isActive(link.href)
-                    ? 'bg-neutral-100 text-neutral-950'
-                    : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-950'
+                    ? 'bg-slate-800 text-white'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                 }`}
               >
                 {link.label}
@@ -198,18 +191,18 @@ export default function Navbar() {
             {user && (
               <div className="pt-3 mt-3 border-t border-slate-700/50">
                 <div className="flex items-center gap-3 px-3 py-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-900">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-blue-500 flex items-center justify-center">
                     <span className="text-xs font-bold text-white">
                       {(user.email?.[0] || 'U').toUpperCase()}
                     </span>
                   </div>
-                  <span className="truncate text-sm font-medium text-neutral-700">
+                  <span className="text-sm text-slate-300 truncate">
                     {user.email}
                   </span>
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="w-full rounded-xl px-3 py-2.5 text-left text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-50 hover:text-neutral-900"
+                  className="w-full text-left px-3 py-2 text-sm text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors"
                 >
                   Log out
                 </button>

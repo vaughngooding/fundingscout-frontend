@@ -47,8 +47,7 @@ export default async function CompanyPage({
   const allTags = [...new Set(allRounds.flatMap((r) => r.industry_tags || []).filter(Boolean))]
 
   return (
-    // Dark wrapper — Company detail UI still uses dark theme, will be migrated in v1.1.
-    <div className="-mx-4 sm:-mx-6 -my-8 min-h-[calc(100vh-4rem)] bg-slate-950 px-4 sm:px-6 py-8 text-white">
+    <div>
       {/* Back link */}
       <Link
         href="/explore"

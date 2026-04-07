@@ -31,9 +31,9 @@ export default async function DashboardLayout({
     .single()
 
   return (
-    <div className="min-h-screen bg-white text-neutral-900 antialiased">
+    <div className="min-h-screen bg-slate-950">
       <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 text-neutral-900">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         {children}
       </main>
       {/* Inject profile data for client components via data attribute */}

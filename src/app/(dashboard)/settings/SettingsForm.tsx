@@ -402,7 +402,7 @@ export default function SettingsForm({
       <div className="relative">
         <div className="opacity-50 pointer-events-none">{children}</div>
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-2.5 text-sm text-neutral-700">
+          <div className="bg-slate-800/90 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-300">
             Upgrade to Pro to enable this channel
           </div>
         </div>
@@ -426,11 +426,11 @@ export default function SettingsForm({
       )}
 
       {/* Profile Section */}
-      <section className="bg-white rounded-2xl p-7 ring-1 ring-neutral-100 shadow-[0_4px_20px_-8px_rgba(0,0,0,0.04)]">
-        <h2 className="text-lg font-semibold text-neutral-950 mb-4">Profile</h2>
+      <section className="bg-slate-900 border border-slate-700/50 rounded-xl p-6">
+        <h2 className="text-lg font-semibold text-white mb-4">Profile</h2>
         <div className="grid gap-4">
           <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+            <label className="block text-sm font-medium text-slate-300 mb-1.5">
               Full Name
             </label>
             <input
@@ -440,11 +440,11 @@ export default function SettingsForm({
                 setProfile({ ...profile, full_name: e.target.value })
               }
               placeholder="John Smith"
-              className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-2.5 text-neutral-950 placeholder-neutral-400 focus:border-neutral-400 focus:ring-2 focus:ring-neutral-100 outline-none transition-colors"
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+            <label className="block text-sm font-medium text-slate-300 mb-1.5">
               Company
             </label>
             <input
@@ -454,11 +454,11 @@ export default function SettingsForm({
                 setProfile({ ...profile, company: e.target.value })
               }
               placeholder="Acme Corp"
-              className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-2.5 text-neutral-950 placeholder-neutral-400 focus:border-neutral-400 focus:ring-2 focus:ring-neutral-100 outline-none transition-colors"
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+            <label className="block text-sm font-medium text-slate-300 mb-1.5">
               Role
             </label>
             <select
@@ -466,7 +466,7 @@ export default function SettingsForm({
               onChange={(e) =>
                 setProfile({ ...profile, role: e.target.value })
               }
-              className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-2.5 text-neutral-950 focus:border-neutral-400 focus:ring-2 focus:ring-neutral-100 outline-none transition-colors"
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
             >
               <option value="">Select your role</option>
               <option value="SDR">SDR</option>
@@ -481,19 +481,19 @@ export default function SettingsForm({
       </section>
 
       {/* Preferences Section */}
-      <section className="bg-white rounded-2xl p-7 ring-1 ring-neutral-100 shadow-[0_4px_20px_-8px_rgba(0,0,0,0.04)]">
-        <h2 className="text-lg font-semibold text-neutral-950 mb-4">
+      <section className="bg-slate-900 border border-slate-700/50 rounded-xl p-6">
+        <h2 className="text-lg font-semibold text-white mb-4">
           Alert Preferences
         </h2>
         <div className="space-y-6">
           {/* Amount Range */}
           <div>
-            <h3 className="text-sm font-medium text-neutral-700 mb-3">
+            <h3 className="text-sm font-medium text-slate-300 mb-3">
               Funding Amount Range
             </h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-neutral-400 mb-1 block">
+                <label className="text-xs text-slate-500 mb-1 block">
                   Min: {formatAmountLabel(prefs.min_amount)}
                 </label>
                 <input
@@ -505,11 +505,11 @@ export default function SettingsForm({
                   onChange={(e) =>
                     setPrefs({ ...prefs, min_amount: Number(e.target.value) })
                   }
-                  className="w-full h-1.5 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+                  className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
                 />
               </div>
               <div>
-                <label className="text-xs text-neutral-400 mb-1 block">
+                <label className="text-xs text-slate-500 mb-1 block">
                   Max: {formatAmountLabel(prefs.max_amount)}
                 </label>
                 <input
@@ -521,7 +521,7 @@ export default function SettingsForm({
                   onChange={(e) =>
                     setPrefs({ ...prefs, max_amount: Number(e.target.value) })
                   }
-                  className="w-full h-1.5 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+                  className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
                 />
               </div>
             </div>
@@ -529,7 +529,7 @@ export default function SettingsForm({
 
           {/* Funding Types */}
           <div>
-            <h3 className="text-sm font-medium text-neutral-700 mb-3">
+            <h3 className="text-sm font-medium text-slate-300 mb-3">
               Funding Types
             </h3>
             <div className="flex flex-wrap gap-2">
@@ -540,8 +540,8 @@ export default function SettingsForm({
                   onClick={() => toggleArrayItem('funding_types', type)}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
                     prefs.funding_types.includes(type)
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                      : 'bg-neutral-50 text-neutral-500 border-neutral-200 hover:border-neutral-300'
+                      ? 'bg-blue-500/20 text-blue-300 border-blue-500/40'
+                      : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-600'
                   }`}
                 >
                   {formatFundingType(type)}
@@ -552,7 +552,7 @@ export default function SettingsForm({
 
           {/* Industries */}
           <div>
-            <h3 className="text-sm font-medium text-neutral-700 mb-3">
+            <h3 className="text-sm font-medium text-slate-300 mb-3">
               Industries
             </h3>
             <div className="flex flex-wrap gap-2">
@@ -563,8 +563,8 @@ export default function SettingsForm({
                   onClick={() => toggleArrayItem('industries', industry)}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
                     prefs.industries.includes(industry)
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                      : 'bg-neutral-50 text-neutral-500 border-neutral-200 hover:border-neutral-300'
+                      ? 'bg-blue-500/20 text-blue-300 border-blue-500/40'
+                      : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-600'
                   }`}
                 >
                   {industry}
@@ -575,7 +575,7 @@ export default function SettingsForm({
 
           {/* Countries */}
           <div>
-            <h3 className="text-sm font-medium text-neutral-700 mb-3">
+            <h3 className="text-sm font-medium text-slate-300 mb-3">
               Countries
             </h3>
             <div className="flex flex-wrap gap-2">
@@ -586,8 +586,8 @@ export default function SettingsForm({
                   onClick={() => toggleArrayItem('countries', country.value)}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
                     prefs.countries.includes(country.value)
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                      : 'bg-neutral-50 text-neutral-500 border-neutral-200 hover:border-neutral-300'
+                      ? 'bg-blue-500/20 text-blue-300 border-blue-500/40'
+                      : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-600'
                   }`}
                 >
                   {country.label}
@@ -599,12 +599,12 @@ export default function SettingsForm({
       </section>
 
       {/* Delivery Section */}
-      <section className="bg-white rounded-2xl p-7 ring-1 ring-neutral-100 shadow-[0_4px_20px_-8px_rgba(0,0,0,0.04)]">
-        <h2 className="text-lg font-semibold text-neutral-950 mb-4">Delivery</h2>
+      <section className="bg-slate-900 border border-slate-700/50 rounded-xl p-6">
+        <h2 className="text-lg font-semibold text-white mb-4">Delivery</h2>
         <div className="space-y-6">
           {/* Digest Frequency */}
           <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+            <label className="block text-sm font-medium text-slate-300 mb-1.5">
               Digest Frequency
             </label>
             <div className="flex gap-3">
@@ -617,8 +617,8 @@ export default function SettingsForm({
                   }
                   className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
                     prefs.digest_frequency === freq
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                      : 'bg-neutral-50 text-neutral-500 border-neutral-200 hover:border-neutral-300'
+                      ? 'bg-blue-500/20 text-blue-300 border-blue-500/40'
+                      : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-600'
                   }`}
                 >
                   {freq.charAt(0).toUpperCase() + freq.slice(1)}
@@ -629,7 +629,7 @@ export default function SettingsForm({
 
           {/* Digest Hour */}
           <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+            <label className="block text-sm font-medium text-slate-300 mb-1.5">
               Digest Time (hour, 24h format)
             </label>
             <select
@@ -637,7 +637,7 @@ export default function SettingsForm({
               onChange={(e) =>
                 setPrefs({ ...prefs, digest_hour: Number(e.target.value) })
               }
-              className="w-full max-w-xs rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-2.5 text-neutral-950 focus:border-neutral-400 focus:ring-2 focus:ring-neutral-100 outline-none transition-colors"
+              className="w-full max-w-xs rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
             >
               {Array.from({ length: 24 }, (_, i) => (
                 <option key={i} value={i}>
@@ -648,8 +648,8 @@ export default function SettingsForm({
           </div>
 
           {/* ---- Slack Section ---- */}
-          <div className="border-t border-neutral-100 pt-6">
-            <h3 className="text-sm font-semibold text-neutral-950 mb-3">Slack</h3>
+          <div className="border-t border-slate-700/50 pt-6">
+            <h3 className="text-sm font-semibold text-white mb-3">Slack</h3>
             <ProGate>
               {slackAppInstalled ? (
                 <div className="flex items-center justify-between">
@@ -657,7 +657,7 @@ export default function SettingsForm({
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                       Connected
                     </span>
-                    <span className="text-sm text-neutral-500">Slack App installed</span>
+                    <span className="text-sm text-slate-400">Slack App installed</span>
                   </div>
                   <button
                     type="button"
@@ -671,7 +671,7 @@ export default function SettingsForm({
                 <div className="space-y-3">
                   <a
                     href={`https://slack.com/oauth/v2/authorize?client_id=${process.env.NEXT_PUBLIC_SLACK_CLIENT_ID || ''}&scope=chat:write,commands,incoming-webhook&redirect_uri=${encodeURIComponent('https://fundingscout.io/api/slack/callback')}`}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4A154B] hover:bg-[#611f64] text-neutral-950 text-sm font-medium transition-colors"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4A154B] hover:bg-[#611f64] text-white text-sm font-medium transition-colors"
                   >
                     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zm0 1.271a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zm-1.271 0a2.528 2.528 0 0 1-2.521 2.521 2.528 2.528 0 0 1-2.521-2.521V2.522A2.528 2.528 0 0 1 15.164 0a2.528 2.528 0 0 1 2.521 2.522v6.312zM15.164 18.956a2.528 2.528 0 0 1 2.521 2.522A2.528 2.528 0 0 1 15.164 24a2.528 2.528 0 0 1-2.521-2.522v-2.522h2.521zm0-1.271a2.528 2.528 0 0 1-2.521-2.521 2.528 2.528 0 0 1 2.521-2.521h6.314A2.528 2.528 0 0 1 24 15.164a2.528 2.528 0 0 1-2.522 2.521h-6.314z" />
@@ -679,7 +679,7 @@ export default function SettingsForm({
                     Add to Slack
                   </a>
                   <div>
-                    <label className="block text-xs text-neutral-400 mb-1">
+                    <label className="block text-xs text-slate-500 mb-1">
                       Or use a webhook URL (legacy)
                     </label>
                     <input
@@ -689,7 +689,7 @@ export default function SettingsForm({
                         setPrefs({ ...prefs, slack_webhook_url: e.target.value })
                       }
                       placeholder="https://hooks.slack.com/services/..."
-                      className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-2.5 text-neutral-950 placeholder-neutral-400 focus:border-neutral-400 focus:ring-2 focus:ring-neutral-100 outline-none transition-colors text-sm"
+                      className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors text-sm"
                     />
                   </div>
                 </div>
@@ -698,8 +698,8 @@ export default function SettingsForm({
           </div>
 
           {/* ---- Teams Section ---- */}
-          <div className="border-t border-neutral-100 pt-6">
-            <h3 className="text-sm font-semibold text-neutral-950 mb-3">Microsoft Teams</h3>
+          <div className="border-t border-slate-700/50 pt-6">
+            <h3 className="text-sm font-semibold text-white mb-3">Microsoft Teams</h3>
             <ProGate>
               <input
                 type="url"
@@ -708,17 +708,17 @@ export default function SettingsForm({
                   setPrefs({ ...prefs, teams_webhook_url: e.target.value })
                 }
                 placeholder="https://outlook.office.com/webhook/..."
-                className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-2.5 text-neutral-950 placeholder-neutral-400 focus:border-neutral-400 focus:ring-2 focus:ring-neutral-100 outline-none transition-colors"
+                className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
               />
-              <p className="text-xs text-neutral-400 mt-1">
+              <p className="text-xs text-slate-500 mt-1">
                 Receive alerts directly in your Teams channel.
               </p>
             </ProGate>
           </div>
 
           {/* ---- Telegram Section ---- */}
-          <div className="border-t border-neutral-100 pt-6">
-            <h3 className="text-sm font-semibold text-neutral-950 mb-3">Telegram</h3>
+          <div className="border-t border-slate-700/50 pt-6">
+            <h3 className="text-sm font-semibold text-white mb-3">Telegram</h3>
             <ProGate>
               {telegramChatId ? (
                 <div className="flex items-center justify-between">
@@ -726,7 +726,7 @@ export default function SettingsForm({
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                       Connected
                     </span>
-                    <span className="text-sm text-neutral-500">
+                    <span className="text-sm text-slate-400">
                       Chat ID: {telegramChatId}
                     </span>
                   </div>
@@ -743,7 +743,7 @@ export default function SettingsForm({
                   type="button"
                   onClick={handleConnectTelegram}
                   disabled={telegramLinking}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0088cc] hover:bg-[#006fa1] text-neutral-950 text-sm font-medium transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0088cc] hover:bg-[#006fa1] text-white text-sm font-medium transition-colors disabled:opacity-50"
                 >
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
@@ -751,21 +751,21 @@ export default function SettingsForm({
                   {telegramLinking ? 'Waiting for connection...' : 'Connect Telegram'}
                 </button>
               )}
-              <p className="text-xs text-neutral-400 mt-2">
+              <p className="text-xs text-slate-500 mt-2">
                 Receive instant alerts via Telegram bot.
               </p>
             </ProGate>
           </div>
 
           {/* ---- Web Push Section ---- */}
-          <div className="border-t border-neutral-100 pt-6">
-            <h3 className="text-sm font-semibold text-neutral-950 mb-3">
+          <div className="border-t border-slate-700/50 pt-6">
+            <h3 className="text-sm font-semibold text-white mb-3">
               Push Notifications
             </h3>
             <ProGate>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-neutral-700">
+                  <p className="text-sm text-slate-300">
                     {pushEnabled
                       ? 'Push notifications are enabled for this browser.'
                       : 'Get browser notifications for new funding alerts.'}
@@ -778,7 +778,7 @@ export default function SettingsForm({
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
                     pushEnabled
                       ? 'bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30'
-                      : 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                      : 'bg-blue-500/20 text-blue-300 border border-blue-500/40 hover:bg-blue-500/30'
                   }`}
                 >
                   {pushLoading
@@ -792,9 +792,9 @@ export default function SettingsForm({
           </div>
 
           {/* ---- Phone Notifications Section (SMS v1, iMessage coming soon) ---- */}
-          <div className="border-t border-neutral-100 pt-6">
-            <h3 className="text-sm font-semibold text-neutral-950 mb-1">Phone Notifications</h3>
-            <p className="text-xs text-neutral-400 mb-3">
+          <div className="border-t border-slate-700/50 pt-6">
+            <h3 className="text-sm font-semibold text-white mb-1">Phone Notifications</h3>
+            <p className="text-xs text-slate-500 mb-3">
               Get instant funding alerts on your phone via SMS.
             </p>
             {phoneVerified ? (
@@ -803,20 +803,20 @@ export default function SettingsForm({
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                     Verified
                   </span>
-                  <span className="text-sm text-neutral-500">{phoneNumber}</span>
+                  <span className="text-sm text-slate-400">{phoneNumber}</span>
                 </div>
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs text-slate-400">
                   You&apos;ll receive SMS alerts at this number for matching funding rounds.
                 </p>
                 <label className="flex items-center gap-2 opacity-50 cursor-not-allowed">
                   <input
                     type="checkbox"
                     disabled
-                    className="w-4 h-4 rounded border-neutral-200 bg-neutral-50"
+                    className="w-4 h-4 rounded border-slate-700 bg-slate-800"
                   />
-                  <span className="text-sm text-neutral-500">
+                  <span className="text-sm text-slate-400">
                     Also notify via iMessage{' '}
-                    <span className="text-neutral-400 text-xs">(coming soon)</span>
+                    <span className="text-slate-500 text-xs">(coming soon)</span>
                   </span>
                 </label>
               </div>
@@ -828,13 +828,13 @@ export default function SettingsForm({
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
                     placeholder="+1 (555) 123-4567"
-                    className="flex-1 rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-2.5 text-neutral-950 placeholder-neutral-400 focus:border-neutral-400 focus:ring-2 focus:ring-neutral-100 outline-none transition-colors"
+                    className="flex-1 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
                   />
                   <button
                     type="button"
                     onClick={handleSendCode}
                     disabled={phoneLoading || !phoneNumber.trim()}
-                    className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-neutral-950 text-sm font-medium transition-colors disabled:opacity-50"
+                    className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors disabled:opacity-50"
                   >
                     {phoneLoading ? 'Sending...' : 'Send Code'}
                   </button>
@@ -847,19 +847,19 @@ export default function SettingsForm({
                       onChange={(e) => setVerificationCode(e.target.value)}
                       placeholder="6-digit code"
                       maxLength={6}
-                      className="flex-1 rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-2.5 text-neutral-950 placeholder-neutral-400 focus:border-neutral-400 focus:ring-2 focus:ring-neutral-100 outline-none transition-colors"
+                      className="flex-1 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
                     />
                     <button
                       type="button"
                       onClick={handleConfirmCode}
                       disabled={phoneLoading || verificationCode.length !== 6}
-                      className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-neutral-950 text-sm font-medium transition-colors disabled:opacity-50"
+                      className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium transition-colors disabled:opacity-50"
                     >
                       Verify
                     </button>
                   </div>
                 )}
-                <p className="text-xs text-neutral-400">
+                <p className="text-xs text-slate-500">
                   We&apos;ll text you a verification code. Standard messaging rates may apply.
                 </p>
               </div>
@@ -869,20 +869,20 @@ export default function SettingsForm({
       </section>
 
       {/* Plan Info */}
-      <section className="bg-white rounded-2xl p-7 ring-1 ring-neutral-100 shadow-[0_4px_20px_-8px_rgba(0,0,0,0.04)]">
-        <h2 className="text-lg font-semibold text-neutral-950 mb-2">Plan</h2>
+      <section className="bg-slate-900 border border-slate-700/50 rounded-xl p-6">
+        <h2 className="text-lg font-semibold text-white mb-2">Plan</h2>
         <div className="flex items-center justify-between">
           <div>
             <span
               className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
                 initialProfile.plan === 'pro'
                   ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                  : 'bg-neutral-200 text-neutral-700 border border-neutral-300'
+                  : 'bg-slate-700 text-slate-300 border border-slate-600'
               }`}
             >
               {initialProfile.plan === 'pro' ? 'Pro' : 'Free'}
             </span>
-            <p className="text-sm text-neutral-500 mt-1">
+            <p className="text-sm text-slate-400 mt-1">
               {initialProfile.plan === 'pro'
                 ? 'Unlimited alerts, bookmarks, and integrations.'
                 : 'Limited to basic alerts. Upgrade for full access.'}
@@ -910,7 +910,7 @@ export default function SettingsForm({
                   })
                 }
               }}
-              className="flex-shrink-0 ml-4 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-neutral-950 text-sm font-medium transition-colors"
+              className="flex-shrink-0 ml-4 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors"
             >
               Upgrade to Pro
             </button>
@@ -923,7 +923,7 @@ export default function SettingsForm({
         <button
           onClick={handleSave}
           disabled={saving}
-          className="px-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-neutral-950 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {saving ? 'Saving...' : 'Save Settings'}
         </button>
