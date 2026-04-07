@@ -76,8 +76,8 @@ export default function Home() {
         {/* Single soft glow */}
         <div aria-hidden className="pointer-events-none absolute -top-32 left-1/2 -z-10 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-emerald-500/15 blur-[140px]" />
 
-        <div className="mx-auto max-w-4xl text-center">
-          <h1 className="text-balance text-5xl font-extrabold leading-[1.02] tracking-[-0.03em] text-white sm:text-6xl md:text-7xl lg:text-[5.5rem]">
+        <div className="mx-auto max-w-5xl text-center">
+          <h1 className="text-balance text-5xl font-extrabold leading-[1.02] tracking-[-0.03em] text-white sm:whitespace-nowrap sm:text-6xl md:text-7xl">
             {c.hero.headline}
           </h1>
 
@@ -158,22 +158,6 @@ export default function Home() {
                 />
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ─────────────────── Logo bar ─────────────────── */}
-      <section className="border-y border-slate-800 bg-slate-900/40 px-6 py-14">
-        <div className="mx-auto max-w-6xl">
-          <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-            {c.logos.label}
-          </p>
-          <div className="mt-7 flex flex-wrap items-center justify-center gap-x-10 gap-y-4 sm:gap-x-16">
-            {c.logos.items.map((item) => (
-              <span key={item} className="text-sm font-semibold text-slate-500">
-                {item}
-              </span>
-            ))}
           </div>
         </div>
       </section>
