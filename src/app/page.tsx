@@ -106,46 +106,46 @@ export default function Home() {
 
       </section>
 
-      {/* ─────────────────── Channel Screenshots ─────────────────── */}
+      {/* ─────────────────── Channel Screenshots (single row) ─────────────────── */}
       <section className="relative overflow-hidden px-6 pb-24 pt-8 sm:pb-32">
-        <div className="mx-auto max-w-6xl">
+        <div className="mx-auto max-w-7xl">
           {/* Background glow */}
           <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[500px] w-[900px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-500/10 blur-3xl" />
 
-          {/* Slack desktop on top — large, full-width, the hero of the section */}
-          <div className="relative mx-auto max-w-4xl">
-            <div className="relative rotate-[-0.5deg] transition-transform duration-500 hover:rotate-0">
-              <div aria-hidden className="absolute -inset-3 rounded-[2rem] bg-emerald-500/15 blur-2xl" />
-              <img
-                src={c.channels.items[2].src}
-                alt={c.channels.items[2].alt}
-                className="relative w-full rounded-2xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)] ring-1 ring-slate-800"
-              />
-            </div>
-          </div>
-
-          {/* Two phones below, side by side — SMS left, Teams right */}
-          <div className="relative mx-auto mt-12 grid max-w-3xl grid-cols-1 items-end gap-10 sm:grid-cols-2 sm:gap-8">
-            {/* SMS phone */}
-            <div className="relative mx-auto w-full max-w-[280px]">
+          {/* Single row on desktop, stacked on mobile */}
+          <div className="flex flex-col items-center justify-center gap-10 lg:flex-row lg:items-end lg:gap-8">
+            {/* SMS phone — left */}
+            <div className="relative mx-auto w-full max-w-[260px] lg:mx-0 lg:w-auto">
               <div className="relative rotate-[-2deg] transition-transform duration-500 hover:rotate-0">
                 <div aria-hidden className="absolute -inset-2 rounded-[2.5rem] bg-emerald-500/20 blur-2xl" />
                 <img
                   src={c.channels.items[0].src}
                   alt={c.channels.items[0].alt}
-                  className="relative w-full rounded-[2.2rem] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)] ring-1 ring-slate-800"
+                  className="relative w-full rounded-[2rem] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)] ring-1 ring-slate-800 lg:h-[480px] lg:w-auto"
                 />
               </div>
             </div>
 
-            {/* Teams phone */}
-            <div className="relative mx-auto w-full max-w-[280px]">
+            {/* Slack desktop — middle, the wide one */}
+            <div className="relative mx-auto w-full max-w-[600px] lg:mx-0 lg:w-auto">
+              <div className="relative rotate-[-0.5deg] transition-transform duration-500 hover:rotate-0">
+                <div aria-hidden className="absolute -inset-3 rounded-[2rem] bg-emerald-500/15 blur-2xl" />
+                <img
+                  src={c.channels.items[2].src}
+                  alt={c.channels.items[2].alt}
+                  className="relative w-full rounded-2xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)] ring-1 ring-slate-800 lg:h-[400px] lg:w-auto"
+                />
+              </div>
+            </div>
+
+            {/* Teams phone — right */}
+            <div className="relative mx-auto w-full max-w-[260px] lg:mx-0 lg:w-auto">
               <div className="relative rotate-[2deg] transition-transform duration-500 hover:rotate-0">
                 <div aria-hidden className="absolute -inset-2 rounded-[2.5rem] bg-emerald-500/20 blur-2xl" />
                 <img
                   src={c.channels.items[1].src}
                   alt={c.channels.items[1].alt}
-                  className="relative w-full rounded-[2.2rem] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)] ring-1 ring-slate-800"
+                  className="relative w-full rounded-[2rem] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)] ring-1 ring-slate-800 lg:h-[480px] lg:w-auto"
                 />
               </div>
             </div>
