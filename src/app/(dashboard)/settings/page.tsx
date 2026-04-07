@@ -65,13 +65,10 @@ export default async function SettingsPage() {
   }
 
   return (
-    // Dark wrapper — Settings page UI still uses dark theme. Migration to bright
-    // theme is queued for v1.1. The negative margins push the dark container out
-    // to the edges of the bright dashboard layout so it visually self-contains.
-    <div className="-mx-4 sm:-mx-6 -my-8 min-h-[calc(100vh-4rem)] bg-slate-950 px-4 sm:px-6 py-8 text-white">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">Settings</h1>
-        <p className="text-sm text-slate-400 mt-1">
+    <div className="mx-auto max-w-4xl">
+      <div className="mb-8">
+        <h1 className="text-3xl font-extrabold tracking-tight text-neutral-950">Settings</h1>
+        <p className="mt-1 text-sm text-neutral-500">
           Manage your profile and alert preferences.
         </p>
       </div>
