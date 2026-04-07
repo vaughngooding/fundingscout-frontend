@@ -23,7 +23,7 @@ export const landingContent = {
     eyebrow: '',
     headline: 'Real-time funding alerts',
     subheadline:
-      'New funding rounds delivered to your phone, Slack, or inbox the moment they break.',
+      'Delivered instantly via SMS, Teams, Slack, Telegram, WhatsApp, or email.',
     primaryCta: 'Start free',
     primaryCtaHref: '/signup',
     secondaryCta: 'See pricing',
@@ -31,24 +31,23 @@ export const landingContent = {
     socialProof: '',
   },
 
-  // ─── "Delivered to your channels" section (real product screenshots) ───
+  // ─── Real product screenshots (no header text — just visuals) ───
   channels: {
-    eyebrow: 'Built for where you work',
-    headline: 'Funding alerts, delivered where you already are',
-    subheadline:
-      'Real alerts. Real channels. No app to install, no tab to keep open.',
     items: [
       {
-        src: '/screenshots/imessage-alert.png',
-        alt: 'FundingScout SMS alert on iPhone showing a $35M Series A round at Yuzu Health',
-        caption: 'Real-time SMS to your phone',
+        src: '/screenshots/sms-alerts.png',
+        alt: 'FundingScout SMS alerts on iPhone showing multiple funding rounds',
         rotate: '-rotate-2',
       },
       {
-        src: '/screenshots/slack-alert.png',
-        alt: 'FundingScout Slack app delivering structured funding alerts in a #funding-alerts channel',
-        caption: 'Branded Slack alerts in your team channel',
+        src: '/screenshots/teams-alerts.jpg',
+        alt: 'FundingScout Microsoft Teams alerts showing funding rounds with company details',
         rotate: 'rotate-1',
+      },
+      {
+        src: '/screenshots/slack-alerts.png',
+        alt: 'FundingScout Slack app delivering structured funding alerts in a #funding-alerts channel',
+        rotate: '-rotate-1',
       },
     ],
   },

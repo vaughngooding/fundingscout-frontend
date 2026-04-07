@@ -107,68 +107,48 @@ export default function Home() {
       </section>
 
       {/* ─────────────────── Channel Screenshots ─────────────────── */}
-      <section className="relative overflow-hidden px-6 pb-24 pt-4 sm:pb-32">
+      <section className="relative overflow-hidden px-6 pb-24 pt-8 sm:pb-32">
         <div className="mx-auto max-w-6xl">
-          <div className="mx-auto max-w-2xl text-center">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">
-              {c.channels.eyebrow}
-            </p>
-            <h2 className="mt-4 text-balance text-3xl font-extrabold tracking-[-0.02em] text-white sm:text-4xl md:text-5xl">
-              {c.channels.headline}
-            </h2>
-            <p className="mt-4 text-balance text-base text-slate-400 sm:text-lg">
-              {c.channels.subheadline}
-            </p>
+          {/* Background glow */}
+          <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[500px] w-[900px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-500/10 blur-3xl" />
+
+          {/* Slack desktop on top — large, full-width, the hero of the section */}
+          <div className="relative mx-auto max-w-4xl">
+            <div className="relative rotate-[-0.5deg] transition-transform duration-500 hover:rotate-0">
+              <div aria-hidden className="absolute -inset-3 rounded-[2rem] bg-emerald-500/15 blur-2xl" />
+              <img
+                src={c.channels.items[2].src}
+                alt={c.channels.items[2].alt}
+                className="relative w-full rounded-2xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)] ring-1 ring-slate-800"
+              />
+            </div>
           </div>
 
-          {/* Tilted/layered screenshot composition */}
-          <div className="relative mx-auto mt-16 grid max-w-5xl items-center gap-10 sm:mt-20 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] sm:gap-6">
-            {/* Glow behind */}
-            <div aria-hidden className="pointer-events-none absolute -inset-x-12 -inset-y-12 -z-10 rounded-[3rem] bg-emerald-500/10 blur-3xl" />
-
-            {/* iMessage (phone) screenshot */}
-            <div className="relative mx-auto w-full max-w-[280px] sm:max-w-none">
-              <div className={`relative rotate-[-2deg] transition-transform duration-500 hover:rotate-0`}>
-                <div className="absolute -inset-2 rounded-[2.5rem] bg-emerald-500/20 blur-2xl" aria-hidden />
+          {/* Two phones below, side by side — SMS left, Teams right */}
+          <div className="relative mx-auto mt-12 grid max-w-3xl grid-cols-1 items-end gap-10 sm:grid-cols-2 sm:gap-8">
+            {/* SMS phone */}
+            <div className="relative mx-auto w-full max-w-[280px]">
+              <div className="relative rotate-[-2deg] transition-transform duration-500 hover:rotate-0">
+                <div aria-hidden className="absolute -inset-2 rounded-[2.5rem] bg-emerald-500/20 blur-2xl" />
                 <img
                   src={c.channels.items[0].src}
                   alt={c.channels.items[0].alt}
-                  className="relative rounded-[2.2rem] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] ring-1 ring-slate-800"
+                  className="relative w-full rounded-[2.2rem] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)] ring-1 ring-slate-800"
                 />
               </div>
-              <p className="relative mt-5 text-center text-sm font-semibold text-slate-300 sm:text-left">
-                {c.channels.items[0].caption}
-              </p>
             </div>
 
-            {/* Slack (laptop) screenshot */}
-            <div className="relative">
-              <div className={`relative rotate-[1deg] transition-transform duration-500 hover:rotate-0`}>
-                <div className="absolute -inset-2 rounded-3xl bg-emerald-500/15 blur-2xl" aria-hidden />
+            {/* Teams phone */}
+            <div className="relative mx-auto w-full max-w-[280px]">
+              <div className="relative rotate-[2deg] transition-transform duration-500 hover:rotate-0">
+                <div aria-hidden className="absolute -inset-2 rounded-[2.5rem] bg-emerald-500/20 blur-2xl" />
                 <img
                   src={c.channels.items[1].src}
                   alt={c.channels.items[1].alt}
-                  className="relative w-full rounded-2xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] ring-1 ring-slate-800"
+                  className="relative w-full rounded-[2.2rem] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)] ring-1 ring-slate-800"
                 />
               </div>
-              <p className="relative mt-5 text-center text-sm font-semibold text-slate-300 sm:text-left">
-                {c.channels.items[1].caption}
-              </p>
             </div>
-          </div>
-
-          {/* Channel logo strip */}
-          <div className="mt-16 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm font-medium text-slate-500">
-            <span className="text-xs uppercase tracking-[0.2em]">Also delivered to</span>
-            <span>Slack</span>
-            <span className="text-slate-700">•</span>
-            <span>Telegram</span>
-            <span className="text-slate-700">•</span>
-            <span>Microsoft Teams</span>
-            <span className="text-slate-700">•</span>
-            <span>Email</span>
-            <span className="text-slate-700">•</span>
-            <span>Web Push</span>
           </div>
         </div>
       </section>
