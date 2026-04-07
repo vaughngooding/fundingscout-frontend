@@ -33,6 +33,11 @@ function isWithinDateRange(
       monthAgo.setMonth(monthAgo.getMonth() - 1)
       return date >= monthAgo
     }
+    case 'quarter': {
+      const ninetyDaysAgo = new Date(startOfToday)
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
+      return date >= ninetyDaysAgo
+    }
     default:
       return true
   }
@@ -49,7 +54,7 @@ export default function DashboardClient({
     amountMax: 500_000_000,
     fundingTypes: [],
     industries: [],
-    country: 'all',
+    countries: [],
   })
 
   const filteredAlerts = useMemo(() => {
@@ -94,10 +99,10 @@ export default function DashboardClient({
         if (!hasMatch) return false
       }
 
-      // Country
+      // Countries (multi-select — empty array = no filter)
       if (
-        filters.country !== 'all' &&
-        round.location_country !== filters.country
+        filters.countries.length > 0 &&
+        !filters.countries.includes(round.location_country || '')
       ) {
         return false
       }

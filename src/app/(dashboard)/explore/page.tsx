@@ -21,10 +21,15 @@ export default async function ExplorePage({
   const sort = params.sort || 'date'
   const fundingTypes = params.types ? params.types.split(',') : []
   const industries = params.industries ? params.industries.split(',') : []
-  const country = params.country || 'all'
+  // Multi-country: ?countries=US,CA  (still accept legacy ?country=US for backwards compat)
+  const countries = params.countries
+    ? params.countries.split(',').filter(Boolean)
+    : params.country && params.country !== 'all'
+      ? [params.country]
+      : []
   const amountMin = parseInt(params.amountMin || '0', 10)
   const amountMax = parseInt(params.amountMax || '500000000', 10)
-  const dateRange = (params.dateRange || 'all') as 'today' | 'week' | 'month' | 'all'
+  const dateRange = (params.dateRange || 'all') as 'today' | 'week' | 'month' | 'quarter' | 'all'
 
   // Fetch stats via RPC
   const { data: statsData } = await supabase.rpc('get_explore_stats')
@@ -45,9 +50,9 @@ export default async function ExplorePage({
     query = query.in('funding_type', fundingTypes)
   }
 
-  // Country filter
-  if (country !== 'all') {
-    query = query.eq('location_country', country)
+  // Country filter (multi-select)
+  if (countries.length > 0) {
+    query = query.in('location_country', countries)
   }
 
   // Amount range
@@ -71,6 +76,9 @@ export default async function ExplorePage({
         break
       case 'month':
         cutoff = new Date(now.getTime() - 30 * 86_400_000)
+        break
+      case 'quarter':
+        cutoff = new Date(now.getTime() - 90 * 86_400_000)
         break
       default:
         cutoff = new Date(0)
@@ -122,7 +130,7 @@ export default async function ExplorePage({
         amountMax,
         fundingTypes,
         industries,
-        country,
+        countries,
       }}
     />
   )

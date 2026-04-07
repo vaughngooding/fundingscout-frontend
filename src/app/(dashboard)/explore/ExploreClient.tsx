@@ -92,7 +92,8 @@ export default function ExploreClient({
       amountMax: filters.amountMax < 500_000_000 ? String(filters.amountMax) : undefined,
       types: filters.fundingTypes.length > 0 ? filters.fundingTypes.join(',') : undefined,
       industries: filters.industries.length > 0 ? filters.industries.join(',') : undefined,
-      country: filters.country === 'all' ? undefined : filters.country,
+      // countries is a comma-separated list (handled server-side as IN clause)
+      countries: filters.countries.length > 0 ? filters.countries.join(',') : undefined,
     })
   }
 

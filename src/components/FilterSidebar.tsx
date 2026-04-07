@@ -3,12 +3,12 @@
 import { useState } from 'react'
 
 export interface FilterState {
-  dateRange: 'today' | 'week' | 'month' | 'all'
+  dateRange: 'today' | 'week' | 'month' | 'quarter' | 'all'
   amountMin: number
   amountMax: number
   fundingTypes: string[]
   industries: string[]
-  country: string
+  countries: string[]
 }
 
 const FUNDING_TYPES = [
@@ -33,10 +33,25 @@ const INDUSTRIES = [
   'Data',
 ]
 
+const COUNTRIES = [
+  { value: 'US', label: 'United States' },
+  { value: 'CA', label: 'Canada' },
+  { value: 'GB', label: 'United Kingdom' },
+  { value: 'DE', label: 'Germany' },
+  { value: 'FR', label: 'France' },
+  { value: 'NL', label: 'Netherlands' },
+  { value: 'IL', label: 'Israel' },
+  { value: 'IN', label: 'India' },
+  { value: 'SG', label: 'Singapore' },
+  { value: 'AU', label: 'Australia' },
+  { value: 'BR', label: 'Brazil' },
+]
+
 const DATE_OPTIONS = [
   { value: 'today', label: 'Today' },
   { value: 'week', label: 'This Week' },
   { value: 'month', label: 'This Month' },
+  { value: 'quarter', label: 'Last 90 days' },
   { value: 'all', label: 'All Time' },
 ] as const
 
@@ -44,7 +59,23 @@ function formatFundingType(type: string): string {
   return type.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
-function formatAmountLabel(value: number): string {
+// Parse human-friendly amount input ('5m', '$2.5M', '500k', '1000000') into a number
+function parseAmount(input: string): number | null {
+  const cleaned = input.trim().replace(/[$,\s]/g, '').toLowerCase()
+  if (!cleaned) return null
+  const match = cleaned.match(/^(\d+\.?\d*)([kmb])?$/)
+  if (!match) return null
+  const num = parseFloat(match[1])
+  if (isNaN(num)) return null
+  const suffix = match[2]
+  if (suffix === 'k') return Math.round(num * 1_000)
+  if (suffix === 'm') return Math.round(num * 1_000_000)
+  if (suffix === 'b') return Math.round(num * 1_000_000_000)
+  return Math.round(num)
+}
+
+function formatAmountForInput(value: number): string {
+  if (value === 0) return ''
   if (value >= 1_000_000_000) return `$${(value / 1_000_000_000).toFixed(1)}B`
   if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(0)}M`
   if (value >= 1_000) return `$${(value / 1_000).toFixed(0)}K`
@@ -63,8 +94,12 @@ export default function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
     amountMax: 500_000_000,
     fundingTypes: [],
     industries: [],
-    country: 'all',
+    countries: [],
   })
+  // Local string state for amount inputs so the user can type partial values
+  // without immediately re-filtering on every keystroke.
+  const [minAmountInput, setMinAmountInput] = useState('')
+  const [maxAmountInput, setMaxAmountInput] = useState('')
 
   function updateFilters(partial: Partial<FilterState>) {
     const updated = { ...filters, ...partial }
@@ -72,12 +107,35 @@ export default function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
     onFilterChange(updated)
   }
 
-  function toggleArrayItem(key: 'fundingTypes' | 'industries', item: string) {
+  function toggleArrayItem(key: 'fundingTypes' | 'industries' | 'countries', item: string) {
     const current = filters[key]
     const updated = current.includes(item)
       ? current.filter((i) => i !== item)
       : [...current, item]
     updateFilters({ [key]: updated })
+  }
+
+  function commitMinAmount() {
+    const parsed = parseAmount(minAmountInput)
+    if (parsed === null) {
+      // Empty or invalid → reset to 0
+      updateFilters({ amountMin: 0 })
+      setMinAmountInput('')
+    } else {
+      updateFilters({ amountMin: parsed })
+      setMinAmountInput(formatAmountForInput(parsed))
+    }
+  }
+
+  function commitMaxAmount() {
+    const parsed = parseAmount(maxAmountInput)
+    if (parsed === null) {
+      updateFilters({ amountMax: 500_000_000 })
+      setMaxAmountInput('')
+    } else {
+      updateFilters({ amountMax: parsed })
+      setMaxAmountInput(formatAmountForInput(parsed))
+    }
   }
 
   function clearAll() {
@@ -87,9 +145,11 @@ export default function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
       amountMax: 500_000_000,
       fundingTypes: [],
       industries: [],
-      country: 'all',
+      countries: [],
     }
     setFilters(cleared)
+    setMinAmountInput('')
+    setMaxAmountInput('')
     onFilterChange(cleared)
   }
 
@@ -99,7 +159,7 @@ export default function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
     filters.amountMax < 500_000_000 ||
     filters.fundingTypes.length > 0 ||
     filters.industries.length > 0 ||
-    filters.country !== 'all'
+    filters.countries.length > 0
 
   const sidebarContent = (
     <div className="space-y-6">
@@ -140,45 +200,48 @@ export default function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
         </div>
       </div>
 
-      {/* Amount Range */}
+      {/* Amount Range — typeable inputs */}
       <div>
         <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
           Amount Range
         </h3>
-        <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="text-xs text-slate-500 mb-1 block">
-              Min: {formatAmountLabel(filters.amountMin)}
-            </label>
+            <label className="text-xs text-slate-500 mb-1 block">Min</label>
             <input
-              type="range"
-              min={0}
-              max={500_000_000}
-              step={1_000_000}
-              value={filters.amountMin}
-              onChange={(e) =>
-                updateFilters({ amountMin: Number(e.target.value) })
-              }
-              className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+              type="text"
+              value={minAmountInput}
+              onChange={(e) => setMinAmountInput(e.target.value)}
+              onBlur={commitMinAmount}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.currentTarget.blur()
+                }
+              }}
+              placeholder="$0"
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
             />
           </div>
           <div>
-            <label className="text-xs text-slate-500 mb-1 block">
-              Max: {formatAmountLabel(filters.amountMax)}
-            </label>
+            <label className="text-xs text-slate-500 mb-1 block">Max</label>
             <input
-              type="range"
-              min={0}
-              max={500_000_000}
-              step={1_000_000}
-              value={filters.amountMax}
-              onChange={(e) =>
-                updateFilters({ amountMax: Number(e.target.value) })
-              }
-              className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+              type="text"
+              value={maxAmountInput}
+              onChange={(e) => setMaxAmountInput(e.target.value)}
+              onBlur={commitMaxAmount}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.currentTarget.blur()
+                }
+              }}
+              placeholder="$500M"
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
             />
           </div>
         </div>
+        <p className="text-[10px] text-slate-500 mt-1.5">
+          Use 5m, $2.5M, 500k, or raw numbers
+        </p>
       </div>
 
       {/* Funding Type */}
@@ -231,27 +294,34 @@ export default function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
         </div>
       </div>
 
-      {/* Country */}
+      {/* Country — multi-select */}
       <div>
         <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
           Country
         </h3>
-        <select
-          value={filters.country}
-          onChange={(e) => updateFilters({ country: e.target.value })}
-          className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
-        >
-          <option value="all">All Countries</option>
-          <option value="US">United States</option>
-          <option value="CA">Canada</option>
-          <option value="GB">United Kingdom</option>
-          <option value="DE">Germany</option>
-          <option value="FR">France</option>
-          <option value="IL">Israel</option>
-          <option value="IN">India</option>
-          <option value="AU">Australia</option>
-          <option value="SG">Singapore</option>
-        </select>
+        <div className="space-y-1.5">
+          {COUNTRIES.map((c) => (
+            <label
+              key={c.value}
+              className="flex items-center gap-2 cursor-pointer group/check"
+            >
+              <input
+                type="checkbox"
+                checked={filters.countries.includes(c.value)}
+                onChange={() => toggleArrayItem('countries', c.value)}
+                className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
+              />
+              <span className="text-sm text-slate-300 group-hover/check:text-white transition-colors">
+                {c.label}
+              </span>
+            </label>
+          ))}
+        </div>
+        {filters.countries.length > 0 && (
+          <p className="text-[10px] text-slate-500 mt-2">
+            {filters.countries.length} selected
+          </p>
+        )}
       </div>
     </div>
   )

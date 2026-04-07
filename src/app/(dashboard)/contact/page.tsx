@@ -31,7 +31,7 @@ export default function ContactPage() {
           </div>
           <h2 className="text-lg font-bold text-white">Text me</h2>
           <p className="mt-1 text-sm text-slate-400">
-            Yes, this is my real number. Text me with feature requests, bugs, questions, or to say hi. I&apos;m listening 😊
+            Yes. This is my real number. Text me with: a delayed or missing funding alert, a false funding alert, feature requests, questions, or just to say hi. I&apos;m listening (:
           </p>
           <div className="mt-5 flex items-center justify-between">
             <span className="font-mono text-sm font-semibold text-emerald-400">
