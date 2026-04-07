@@ -3,6 +3,10 @@ import { redirect } from 'next/navigation'
 import DashboardClient from './DashboardClient'
 import type { UserAlert } from '@/lib/types'
 
+// Always fetch fresh — see (dashboard)/layout.tsx for why.
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function DashboardPage() {
   const supabase = await createClient()
 

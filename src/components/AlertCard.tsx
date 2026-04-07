@@ -42,28 +42,28 @@ export default function AlertCard({ alert }: AlertCardProps) {
   const isUnread = alert.status === 'pending' || alert.status === 'sent'
 
   return (
-    <div className="group relative bg-slate-900 border border-slate-700/50 rounded-xl p-5 hover:border-slate-600 hover:bg-slate-800/80 transition-all duration-200">
+    <div className="group relative rounded-2xl bg-white p-6 ring-1 ring-neutral-100 transition-all duration-200 hover:ring-neutral-200 hover:shadow-[0_8px_24px_-12px_rgba(0,0,0,0.08)]">
       {/* Unread indicator */}
       {isUnread && (
-        <div className="absolute top-4 right-4 w-2.5 h-2.5 rounded-full bg-blue-500 shadow-lg shadow-blue-500/50" />
+        <div className="absolute top-5 right-5 h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-md shadow-emerald-500/40" />
       )}
 
       {/* Header row: company + amount */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0 pr-4">
-          <h3 className="text-lg font-bold text-white truncate">
+          <h3 className="text-lg font-bold tracking-tight text-neutral-950 truncate">
             {round.company_name}
           </h3>
           <div className="flex items-center gap-2 mt-1">
             {round.location && (
-              <span className="text-sm text-slate-400">
+              <span className="text-sm text-neutral-500">
                 {countryFlag(round.location_country)} {round.location}
               </span>
             )}
           </div>
         </div>
         <div className="text-right flex-shrink-0">
-          <span className="text-2xl font-bold text-emerald-400">
+          <span className="text-2xl font-extrabold text-neutral-950">
             {formatAmount(round.amount_usd)}
           </span>
         </div>
@@ -76,7 +76,7 @@ export default function AlertCard({ alert }: AlertCardProps) {
         >
           {formatFundingType(round.funding_type)}
         </span>
-        <span className="text-xs text-slate-500">
+        <span className="text-xs text-neutral-400">
           {formatRelativeTime(alert.created_at)}
         </span>
       </div>
@@ -87,7 +87,7 @@ export default function AlertCard({ alert }: AlertCardProps) {
           {round.industry_tags.map((tag) => (
             <span
               key={tag}
-              className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700"
+              className="inline-flex items-center rounded-md bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-700"
             >
               {tag}
             </span>
@@ -97,19 +97,19 @@ export default function AlertCard({ alert }: AlertCardProps) {
 
       {/* Lead investor */}
       {round.lead_investor && (
-        <p className="text-sm text-slate-400 mb-3">
-          <span className="text-slate-500">Lead:</span>{' '}
-          <span className="text-slate-300 font-medium">{round.lead_investor}</span>
+        <p className="text-sm text-neutral-600 mb-3">
+          <span className="text-neutral-400">Lead:</span>{' '}
+          <span className="font-semibold text-neutral-800">{round.lead_investor}</span>
         </p>
       )}
 
       {/* Bottom row: actions */}
-      <div className="flex items-center justify-between pt-3 border-t border-slate-700/50">
+      <div className="flex items-center justify-between pt-3 border-t border-neutral-100">
         <a
           href={round.article_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-sm text-blue-400 hover:text-blue-300 font-medium transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition-colors"
         >
           <svg
             className="w-4 h-4"
@@ -130,10 +130,10 @@ export default function AlertCard({ alert }: AlertCardProps) {
         <button
           onClick={toggleBookmark}
           disabled={toggling}
-          className={`p-1.5 rounded-lg transition-colors ${
+          className={`rounded-lg p-1.5 transition-colors ${
             bookmarked
-              ? 'text-amber-400 hover:text-amber-300'
-              : 'text-slate-500 hover:text-slate-300'
+              ? 'text-amber-500 hover:text-amber-600'
+              : 'text-neutral-400 hover:text-neutral-600'
           } disabled:opacity-50`}
           title={bookmarked ? 'Remove bookmark' : 'Bookmark'}
         >

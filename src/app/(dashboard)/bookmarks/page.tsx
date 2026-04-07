@@ -27,10 +27,10 @@ export default async function BookmarksPage() {
   // Free users see an upgrade prompt
   if (typedProfile?.plan === 'free') {
     return (
-      <div className="max-w-xl mx-auto text-center py-20">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-500/10 mb-6">
+      <div className="mx-auto max-w-xl py-20 text-center">
+        <div className="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-full bg-amber-50">
           <svg
-            className="w-8 h-8 text-amber-400"
+            className="h-8 w-8 text-amber-500"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -43,17 +43,17 @@ export default async function BookmarksPage() {
             />
           </svg>
         </div>
-        <h1 className="text-2xl font-bold text-white mb-2">
+        <h1 className="mb-2 text-3xl font-extrabold tracking-tight text-neutral-950">
           Bookmarks are a Pro feature
         </h1>
-        <p className="text-slate-400 mb-6 max-w-md mx-auto">
+        <p className="mx-auto mb-8 max-w-md text-neutral-600">
           Save and organize the most promising funding rounds for your outreach.
           Upgrade to Pro to unlock bookmarks, Slack/Teams integrations, and
-          unlimited alerts.
+          real-time alerts.
         </p>
         <Link
           href="/settings"
-          className="inline-flex items-center px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-colors"
+          className="inline-flex items-center rounded-full bg-emerald-600 px-6 py-3 font-semibold text-white shadow-[0_8px_24px_-8px_rgba(16,185,129,0.5)] transition-all hover:bg-emerald-500"
         >
           Upgrade to Pro
         </Link>
@@ -82,25 +82,25 @@ export default async function BookmarksPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">Bookmarks</h1>
-        <p className="text-sm text-slate-400 mt-1">
+      <div className="mb-7">
+        <h1 className="text-3xl font-extrabold tracking-tight text-neutral-950">Bookmarks</h1>
+        <p className="mt-1 text-sm text-neutral-500">
           {typedBookmarks.length} saved funding round
           {typedBookmarks.length !== 1 ? 's' : ''}
         </p>
       </div>
 
       {typedBookmarks.length > 0 ? (
-        <div className="grid gap-4 max-w-3xl">
+        <div className="grid max-w-3xl gap-4">
           {typedBookmarks.map((alert) => (
             <AlertCard key={alert.id} alert={alert} />
           ))}
         </div>
       ) : (
-        <div className="text-center py-16">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-800 mb-4">
+        <div className="rounded-3xl bg-neutral-50/60 py-20 text-center">
+          <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-sm">
             <svg
-              className="w-8 h-8 text-slate-500"
+              className="h-8 w-8 text-neutral-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -113,16 +113,16 @@ export default async function BookmarksPage() {
               />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-white mb-1">
+          <h3 className="mb-1 text-lg font-bold text-neutral-950">
             No bookmarks yet
           </h3>
-          <p className="text-sm text-slate-400 max-w-sm mx-auto">
+          <p className="mx-auto max-w-sm text-sm text-neutral-600">
             Star funding rounds from your dashboard to save them here for easy
             access during your outreach.
           </p>
           <Link
             href="/dashboard"
-            className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium border border-slate-700 transition-colors"
+            className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-neutral-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-800"
           >
             Go to Dashboard
           </Link>

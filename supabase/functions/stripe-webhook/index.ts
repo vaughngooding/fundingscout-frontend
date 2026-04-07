@@ -92,25 +92,52 @@ async function verifyStripeSignature(
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 async function handleCheckoutCompleted(session: Record<string, unknown>) {
-  const customerEmail = session.customer_email as string | null
-    ?? (session.customer_details as Record<string, unknown> | null)?.email as string | null
+  // Prefer metadata.user_id (set in create-checkout) — it's the most reliable
+  // way to match a Stripe session back to a Supabase user. Email lookup is a
+  // fallback for older sessions or edge cases.
+  const metadata = session.metadata as Record<string, string> | null
+  const userIdFromMetadata = metadata?.user_id || null
 
-  if (!customerEmail) {
-    console.error('checkout.session.completed: no customer email found on session')
-    return
-  }
+  const customerEmail = (session.customer_email as string | null)
+    ?? ((session.customer_details as Record<string, unknown> | null)?.email as string | null)
 
   const stripeCustomerId = session.customer as string | null
 
-  // Find the user in profiles by email
-  const { data: profile, error: fetchError } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('email', customerEmail)
-    .single()
+  let profileId: string | null = null
 
-  if (fetchError || !profile) {
-    console.error('checkout.session.completed: could not find profile for email', customerEmail, fetchError)
+  // Strategy 1: lookup by metadata.user_id (preferred)
+  if (userIdFromMetadata) {
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', userIdFromMetadata)
+      .single()
+    if (profile && !error) {
+      profileId = profile.id
+    } else {
+      console.warn('checkout.session.completed: metadata.user_id lookup failed', userIdFromMetadata, error)
+    }
+  }
+
+  // Strategy 2: fall back to case-insensitive email lookup
+  if (!profileId && customerEmail) {
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('id')
+      .ilike('email', customerEmail)
+      .single()
+    if (profile && !error) {
+      profileId = profile.id
+    } else {
+      console.warn('checkout.session.completed: email lookup failed', customerEmail, error)
+    }
+  }
+
+  if (!profileId) {
+    console.error(
+      'checkout.session.completed: could not match session to any profile',
+      { userIdFromMetadata, customerEmail, stripeCustomerId },
+    )
     return
   }
 
@@ -121,12 +148,12 @@ async function handleCheckoutCompleted(session: Record<string, unknown>) {
       plan: 'pro',
       stripe_customer_id: stripeCustomerId,
     })
-    .eq('id', profile.id)
+    .eq('id', profileId)
 
   if (updateError) {
     console.error('checkout.session.completed: failed to update profile', updateError)
   } else {
-    console.log(`checkout.session.completed: upgraded ${customerEmail} to pro`)
+    console.log(`checkout.session.completed: upgraded profile ${profileId} to pro (matched via ${userIdFromMetadata ? 'metadata' : 'email'})`)
   }
 }
 

@@ -105,22 +105,26 @@ export default async function ExplorePage({
   const totalPages = Math.ceil(totalCount / PAGE_SIZE)
 
   return (
-    <ExploreClient
-      rounds={(rounds || []) as FundingRound[]}
-      stats={stats}
-      totalCount={totalCount}
-      totalPages={totalPages}
-      currentPage={page}
-      initialSearch={search}
-      initialSort={sort}
-      initialFilters={{
-        dateRange,
-        amountMin,
-        amountMax,
-        fundingTypes,
-        industries,
-        country,
-      }}
-    />
+    // Dark wrapper — Explore page UI still uses dark theme, will be migrated in v1.1.
+    // Negative margins push out to the edges of the bright dashboard layout.
+    <div className="-mx-4 sm:-mx-6 -my-8 min-h-[calc(100vh-4rem)] bg-slate-950 px-4 sm:px-6 py-8 text-white">
+      <ExploreClient
+        rounds={(rounds || []) as FundingRound[]}
+        stats={stats}
+        totalCount={totalCount}
+        totalPages={totalPages}
+        currentPage={page}
+        initialSearch={search}
+        initialSort={sort}
+        initialFilters={{
+          dateRange,
+          amountMin,
+          amountMax,
+          fundingTypes,
+          industries,
+          country,
+        }}
+      />
+    </div>
   )
 }
