@@ -3,6 +3,11 @@ import { redirect } from 'next/navigation'
 import SettingsForm from './SettingsForm'
 import type { Profile, UserPreferences } from '@/lib/types'
 
+// Always fetch fresh — never serve a cached version. Critical so the Pro
+// upgrade reflects in the UI immediately after the Stripe webhook fires.
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function SettingsPage() {
   const supabase = await createClient()
 

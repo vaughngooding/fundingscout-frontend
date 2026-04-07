@@ -31,7 +31,10 @@ export default function Navbar() {
       }
     }
     loadUserAndPlan()
-  }, [supabase])
+    // Re-fetch on every navigation so a fresh upgrade is reflected immediately
+    // without requiring a full page refresh.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase, pathname])
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -61,10 +64,10 @@ export default function Navbar() {
   }
 
   const navLinks = [
-    { href: '/explore', label: 'Explore' },
+    { href: '/explore', label: 'Feed' },
     { href: '/dashboard', label: 'My Alerts' },
     { href: '/bookmarks', label: 'Bookmarks' },
-    { href: '/settings', label: 'Settings' },
+    { href: '/settings', label: 'Alert Settings' },
   ]
 
   return (

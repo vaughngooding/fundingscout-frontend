@@ -4,6 +4,11 @@ import Link from 'next/link'
 import AlertCard from '@/components/AlertCard'
 import type { UserAlert, Profile } from '@/lib/types'
 
+// Always fetch fresh — never serve a cached version. The plan status drives
+// whether the Pro upgrade prompt or the bookmarks list is shown.
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function BookmarksPage() {
   const supabase = await createClient()
 
