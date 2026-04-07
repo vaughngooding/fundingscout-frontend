@@ -72,27 +72,20 @@ export default function Home() {
       </nav>
 
       {/* ─────────────────── Hero ─────────────────── */}
-      <section className="relative overflow-hidden px-6 pt-24 pb-20 sm:pt-32 sm:pb-28">
-        {/* Single soft glow — no rainbow */}
+      <section className="relative overflow-hidden px-6 pt-24 pb-12 sm:pt-32 sm:pb-16">
+        {/* Single soft glow */}
         <div aria-hidden className="pointer-events-none absolute -top-32 left-1/2 -z-10 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-emerald-500/15 blur-[140px]" />
 
-        <div className="mx-auto max-w-4xl text-center">
-          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900/90 px-4 py-1.5 text-xs font-semibold text-slate-300 shadow-sm backdrop-blur">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            {c.hero.eyebrow}
-          </div>
-
+        <div className="mx-auto max-w-3xl text-center">
           <h1 className="text-balance text-5xl font-extrabold leading-[1.02] tracking-[-0.03em] text-white sm:text-6xl md:text-7xl lg:text-[5.5rem]">
-            {c.hero.headline.split('\n').map((line, i) => (
-              <span key={i} className="block">{line}</span>
-            ))}
+            {c.hero.headline}
           </h1>
 
-          <p className="mx-auto mt-8 max-w-2xl text-balance text-lg leading-relaxed text-slate-400 sm:text-xl">
+          <p className="mx-auto mt-7 max-w-xl text-balance text-lg leading-relaxed text-slate-400 sm:text-xl">
             {c.hero.subheadline}
           </p>
 
-          <div className="mt-12 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
               href={c.hero.primaryCtaHref}
               className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-emerald-600 px-7 py-4 text-base font-semibold text-white shadow-[0_8px_24px_-8px_rgba(16,185,129,0.5)] transition-all hover:bg-emerald-500 hover:shadow-[0_12px_32px_-8px_rgba(16,185,129,0.6)] sm:w-auto"
@@ -109,92 +102,73 @@ export default function Home() {
               {c.hero.secondaryCta}
             </Link>
           </div>
-
-          <p className="mt-8 text-xs font-medium text-slate-500">{c.hero.socialProof}</p>
         </div>
 
-        {/* Dashboard preview mockup */}
-        <div className="relative mx-auto mt-20 max-w-5xl px-2 sm:mt-24">
-          <div className="absolute -inset-x-8 -inset-y-4 rounded-[2.5rem] bg-emerald-500/10 blur-3xl" aria-hidden />
-          <div className="relative overflow-hidden rounded-3xl border border-slate-700/50 bg-slate-900 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.15)]">
-            {/* Mockup top bar (browser chrome) */}
-            <div className="flex items-center gap-2 border-b border-slate-800 bg-slate-900/60 px-5 py-3.5">
-              <div className="flex gap-1.5">
-                <div className="h-3 w-3 rounded-full bg-slate-700" />
-                <div className="h-3 w-3 rounded-full bg-slate-700" />
-                <div className="h-3 w-3 rounded-full bg-slate-700" />
+      </section>
+
+      {/* ─────────────────── Channel Screenshots ─────────────────── */}
+      <section className="relative overflow-hidden px-6 pb-24 pt-4 sm:pb-32">
+        <div className="mx-auto max-w-6xl">
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">
+              {c.channels.eyebrow}
+            </p>
+            <h2 className="mt-4 text-balance text-3xl font-extrabold tracking-[-0.02em] text-white sm:text-4xl md:text-5xl">
+              {c.channels.headline}
+            </h2>
+            <p className="mt-4 text-balance text-base text-slate-400 sm:text-lg">
+              {c.channels.subheadline}
+            </p>
+          </div>
+
+          {/* Tilted/layered screenshot composition */}
+          <div className="relative mx-auto mt-16 grid max-w-5xl items-center gap-10 sm:mt-20 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] sm:gap-6">
+            {/* Glow behind */}
+            <div aria-hidden className="pointer-events-none absolute -inset-x-12 -inset-y-12 -z-10 rounded-[3rem] bg-emerald-500/10 blur-3xl" />
+
+            {/* iMessage (phone) screenshot */}
+            <div className="relative mx-auto w-full max-w-[280px] sm:max-w-none">
+              <div className={`relative rotate-[-2deg] transition-transform duration-500 hover:rotate-0`}>
+                <div className="absolute -inset-2 rounded-[2.5rem] bg-emerald-500/20 blur-2xl" aria-hidden />
+                <img
+                  src={c.channels.items[0].src}
+                  alt={c.channels.items[0].alt}
+                  className="relative rounded-[2.2rem] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] ring-1 ring-slate-800"
+                />
               </div>
-              <div className="ml-3 flex-1 rounded-md bg-slate-900 px-3 py-1 text-xs text-slate-500 shadow-inner">
-                fundingscout.io/dashboard
-              </div>
+              <p className="relative mt-5 text-center text-sm font-semibold text-slate-300 sm:text-left">
+                {c.channels.items[0].caption}
+              </p>
             </div>
 
-            {/* Mockup body — fake dashboard content */}
-            <div className="grid grid-cols-1 gap-0 md:grid-cols-[200px_1fr]">
-              {/* Sidebar */}
-              <aside className="hidden border-r border-slate-800 bg-slate-900/40 p-5 md:block">
-                <div className="mb-4 text-[10px] font-bold uppercase tracking-wider text-slate-500">Filters</div>
-                <div className="space-y-1.5 text-xs">
-                  <div className="rounded-lg bg-slate-900 px-3 py-2 font-semibold text-slate-200 shadow-sm">All rounds</div>
-                  <div className="px-3 py-2 text-slate-500">Series A+</div>
-                  <div className="px-3 py-2 text-slate-500">$10M+</div>
-                  <div className="px-3 py-2 text-slate-500">AI/ML</div>
-                  <div className="px-3 py-2 text-slate-500">Bookmarked</div>
-                </div>
-                <div className="mt-6 mb-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Geography</div>
-                <div className="space-y-1 text-xs">
-                  <div className="px-3 py-1.5 text-slate-500">United States</div>
-                  <div className="px-3 py-1.5 text-slate-500">Europe</div>
-                  <div className="px-3 py-1.5 text-slate-500">Asia</div>
-                </div>
-              </aside>
-
-              {/* Main feed */}
-              <div className="p-5 sm:p-7">
-                <div className="mb-5 flex items-center justify-between">
-                  <div>
-                    <div className="text-sm font-bold text-white">Today&apos;s funding rounds</div>
-                    <div className="text-xs text-slate-500">{MOCK_ROUNDS.length} new since 9:00 AM</div>
-                  </div>
-                  <div className="hidden gap-2 sm:flex">
-                    <div className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-400">Sort: Newest</div>
-                    <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
-                      <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-                      Live
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  {MOCK_ROUNDS.map((r) => (
-                    <div
-                      key={r.company}
-                      className={`flex items-center justify-between rounded-xl px-4 py-3.5 transition-colors ${
-                        r.highlight ? 'bg-emerald-500/10 ring-1 ring-emerald-500/30' : 'bg-slate-900/40 hover:bg-slate-800/60'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`flex h-9 w-9 items-center justify-center rounded-xl text-xs font-bold ${
-                          r.highlight ? 'bg-emerald-500 text-white' : 'bg-slate-900 text-slate-300 ring-1 ring-slate-700'
-                        }`}>
-                          {r.company[0]}
-                        </div>
-                        <div>
-                          <div className="text-sm font-bold text-white">{r.company}</div>
-                          <div className="text-[11px] text-slate-500">{r.location} • {r.industry}</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-right">
-                          <div className="text-sm font-bold text-white">{r.amount}</div>
-                          <div className="text-[11px] text-slate-500">{r.stage}</div>
-                        </div>
-                        <div className="hidden text-[11px] text-slate-500 sm:block">{r.when}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+            {/* Slack (laptop) screenshot */}
+            <div className="relative">
+              <div className={`relative rotate-[1deg] transition-transform duration-500 hover:rotate-0`}>
+                <div className="absolute -inset-2 rounded-3xl bg-emerald-500/15 blur-2xl" aria-hidden />
+                <img
+                  src={c.channels.items[1].src}
+                  alt={c.channels.items[1].alt}
+                  className="relative w-full rounded-2xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] ring-1 ring-slate-800"
+                />
               </div>
+              <p className="relative mt-5 text-center text-sm font-semibold text-slate-300 sm:text-left">
+                {c.channels.items[1].caption}
+              </p>
             </div>
+          </div>
+
+          {/* Channel logo strip */}
+          <div className="mt-16 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm font-medium text-slate-500">
+            <span className="text-xs uppercase tracking-[0.2em]">Also delivered to</span>
+            <span>Slack</span>
+            <span className="text-slate-700">•</span>
+            <span>Telegram</span>
+            <span className="text-slate-700">•</span>
+            <span>Microsoft Teams</span>
+            <span className="text-slate-700">•</span>
+            <span>Email</span>
+            <span className="text-slate-700">•</span>
+            <span>Web Push</span>
           </div>
         </div>
       </section>
@@ -295,7 +269,7 @@ export default function Home() {
             </Link>
           </div>
           <div className="relative">
-            <div className="absolute -inset-x-6 -inset-y-4 rounded-[2.5rem] bg-emerald-500/15/30 blur-3xl" aria-hidden />
+            <div className="absolute -inset-x-6 -inset-y-4 rounded-[2.5rem] bg-emerald-500/15 blur-3xl" aria-hidden />
             <div className="relative overflow-hidden rounded-3xl border border-slate-700/50 bg-slate-900 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.12)]">
               {/* Compact mockup — just the alert list */}
               <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900/60 px-5 py-3.5">
@@ -306,8 +280,13 @@ export default function Home() {
                 </div>
               </div>
               <div className="divide-y divide-slate-800">
-                {MOCK_ROUNDS.slice(0, 4).map((r) => (
-                  <div key={r.company} className="flex items-center justify-between px-5 py-4">
+                {MOCK_ROUNDS.slice(0, 4).map((r, i) => (
+                  <div
+                    key={r.company}
+                    className={`flex items-center justify-between px-5 py-4 ${
+                      i === 0 ? 'animate-[fade-in-pulse_4s_ease-in-out_infinite] bg-emerald-500/5' : ''
+                    }`}
+                  >
                     <div className="flex items-center gap-3">
                       <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-800 text-xs font-bold text-slate-300">
                         {r.company[0]}

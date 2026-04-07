@@ -20,15 +20,37 @@ export const landingContent = {
 
   // ─── Hero section ───
   hero: {
-    eyebrow: 'AI-powered funding intelligence',
+    eyebrow: '',
     headline: 'Real-time funding alerts',
     subheadline:
-      'FundingScout monitors every funding announcement across the web 24/7 and pushes the rounds that match your filters straight to your phone. Real-time. Filtered. Actionable.',
+      'New funding rounds delivered to your phone, Slack, or inbox the moment they break.',
     primaryCta: 'Start free',
     primaryCtaHref: '/signup',
     secondaryCta: 'See pricing',
     secondaryCtaHref: '#pricing',
-    socialProof: 'Trusted by founders, VCs, and B2B sales teams',
+    socialProof: '',
+  },
+
+  // ─── "Delivered to your channels" section (real product screenshots) ───
+  channels: {
+    eyebrow: 'Built for where you work',
+    headline: 'Funding alerts, delivered where you already are',
+    subheadline:
+      'Real alerts. Real channels. No app to install, no tab to keep open.',
+    items: [
+      {
+        src: '/screenshots/imessage-alert.png',
+        alt: 'FundingScout SMS alert on iPhone showing a $35M Series A round at Yuzu Health',
+        caption: 'Real-time SMS to your phone',
+        rotate: '-rotate-2',
+      },
+      {
+        src: '/screenshots/slack-alert.png',
+        alt: 'FundingScout Slack app delivering structured funding alerts in a #funding-alerts channel',
+        caption: 'Branded Slack alerts in your team channel',
+        rotate: 'rotate-1',
+      },
+    ],
   },
 
   // ─── Logo bar (placeholder — swap in real customer logos when you have them) ───

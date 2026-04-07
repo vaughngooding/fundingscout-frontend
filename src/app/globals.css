@@ -24,3 +24,13 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Subtle "live alert pulse" animation for landing page mockup */
+@keyframes fade-in-pulse {
+  0%, 100% {
+    background-color: rgba(16, 185, 129, 0.05);
+  }
+  50% {
+    background-color: rgba(16, 185, 129, 0.15);
+  }
+}
