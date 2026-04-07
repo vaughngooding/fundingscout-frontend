@@ -1,16 +1,24 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
-export default function SignupPage() {
+// useSearchParams must be inside a Suspense boundary during static prerender.
+// Wrapper at the bottom of the file provides it.
+function SignupPageInner() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  // Preserve the ?plan=annual or ?plan=monthly param from the landing page CTA
+  // so onboarding can route them to the right Stripe price.
+  const planParam = searchParams.get('plan')
   const supabase = createClient()
 
   async function handleSignup(e: React.FormEvent) {
@@ -18,7 +26,7 @@ export default function SignupPage() {
     setError(null)
     setLoading(true)
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -35,6 +43,19 @@ export default function SignupPage() {
       return
     }
 
+    // With mailer_autoconfirm enabled in Supabase Auth, signUp returns a
+    // session immediately and the user is logged in. Redirect them straight
+    // to onboarding (preserving the plan param for the upgrade step).
+    if (data.session) {
+      const onboardingUrl = planParam
+        ? `/onboarding?plan=${encodeURIComponent(planParam)}`
+        : '/onboarding'
+      router.push(onboardingUrl)
+      router.refresh()
+      return
+    }
+
+    // Fallback: confirmation flow still required (autoconfirm disabled)
     setSuccess(true)
     setLoading(false)
   }
@@ -174,5 +195,13 @@ export default function SignupPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-950" />}>
+      <SignupPageInner />
+    </Suspense>
   )
 }

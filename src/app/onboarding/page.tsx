@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 const ROLES = [
@@ -50,8 +50,16 @@ function formatAmountLabel(value: number): string {
 
 const TOTAL_STEPS = 4
 
-export default function OnboardingPage() {
+// useSearchParams must be inside a Suspense boundary during static prerender.
+// Wrapper at the bottom of the file provides it.
+function OnboardingPageInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  // ?plan=annual or ?plan=monthly carries through from the landing pricing CTAs
+  // via signup. If present, we pre-select Pro and the right billing cycle so
+  // the user can confirm and pay without re-picking.
+  const planFromUrl = searchParams.get('plan') // 'annual' | 'monthly' | null
+
   const [step, setStep] = useState(1)
   const [saving, setSaving] = useState(false)
   const [upgrading, setUpgrading] = useState(false)
@@ -68,8 +76,14 @@ export default function OnboardingPage() {
   const [maxAmount, setMaxAmount] = useState(100_000_000)
   const [fundingTypes, setFundingTypes] = useState<string[]>([])
 
-  // Step 4: Plan choice — defaults to free
-  const [chosenPlan, setChosenPlan] = useState<'free' | 'pro'>('free')
+  // Step 4: Plan choice — pre-selected from URL if present, else free
+  const [chosenPlan, setChosenPlan] = useState<'free' | 'pro'>(
+    planFromUrl === 'annual' || planFromUrl === 'monthly' ? 'pro' : 'free',
+  )
+  // Annual is the default for Pro (matches landing page default)
+  const [billingCycle, setBillingCycle] = useState<'annual' | 'monthly'>(
+    planFromUrl === 'monthly' ? 'monthly' : 'annual',
+  )
 
   function toggleCountry(country: string) {
     setCountries((prev) =>
@@ -165,7 +179,11 @@ export default function OnboardingPage() {
       return
     }
     try {
-      const res = await fetch('/api/create-checkout', { method: 'POST' })
+      const res = await fetch('/api/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: billingCycle }),
+      })
       const data = await res.json()
       if (data.url) {
         window.location.href = data.url
@@ -403,21 +421,66 @@ export default function OnboardingPage() {
               </button>
 
               {/* Pro plan card */}
-              <button
-                type="button"
-                onClick={() => setChosenPlan('pro')}
+              <div
                 className={`text-left p-5 rounded-xl border-2 transition-all relative ${
                   chosenPlan === 'pro'
                     ? 'bg-gradient-to-br from-emerald-500/10 to-blue-500/10 border-emerald-400 ring-2 ring-emerald-400/30'
                     : 'bg-slate-800/40 border-slate-700 hover:border-emerald-500/40'
                 }`}
               >
-                <div className="absolute -top-2.5 right-4 px-2 py-0.5 rounded-full bg-emerald-500 text-xs font-bold text-slate-900">
-                  RECOMMENDED
-                </div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-base font-bold text-white">Pro</span>
-                  <span className="text-sm font-semibold text-emerald-300">$89/mo</span>
+                <button
+                  type="button"
+                  onClick={() => setChosenPlan('pro')}
+                  className="w-full text-left"
+                >
+                  <div className="absolute -top-2.5 right-4 px-2 py-0.5 rounded-full bg-emerald-500 text-xs font-bold text-slate-900">
+                    RECOMMENDED
+                  </div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-base font-bold text-white">Pro</span>
+                    <span className="text-sm font-semibold text-emerald-300">
+                      {billingCycle === 'annual' ? '$49/mo' : '$89/mo'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mb-2">
+                    {billingCycle === 'annual'
+                      ? 'Billed $588 once a year — save $480 vs monthly'
+                      : 'Billed monthly. Cancel anytime.'}
+                  </p>
+                </button>
+
+                {/* Annual / Monthly toggle inside the Pro card */}
+                <div className="mb-3 mt-1 inline-flex rounded-full bg-slate-900/70 p-0.5 ring-1 ring-slate-700">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setBillingCycle('annual')
+                      setChosenPlan('pro')
+                    }}
+                    className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider transition-all ${
+                      billingCycle === 'annual'
+                        ? 'bg-emerald-600 text-white shadow'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Annual
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setBillingCycle('monthly')
+                      setChosenPlan('pro')
+                    }}
+                    className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider transition-all ${
+                      billingCycle === 'monthly'
+                        ? 'bg-emerald-600 text-white shadow'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Monthly
+                  </button>
                 </div>
                 <p className="text-xs text-slate-400 mb-3">
                   Real-time funding alerts pushed to your phone, Slack, Teams, Telegram, or WhatsApp the moment a round is announced.
@@ -444,7 +507,7 @@ export default function OnboardingPage() {
                     Email digest, dashboard, bookmarks, CSV export
                   </li>
                 </ul>
-              </button>
+              </div>
             </div>
 
             <p className="text-xs text-slate-500 mt-4 text-center">
@@ -507,5 +570,13 @@ export default function OnboardingPage() {
         </button>
       )}
     </div>
+  )
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-950" />}>
+      <OnboardingPageInner />
+    </Suspense>
   )
 }
