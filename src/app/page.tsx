@@ -388,32 +388,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ─────────────────── Final CTA ─────────────────── */}
-      <section className="px-6 pb-14 sm:pb-20">
-        <div className="mx-auto max-w-5xl">
-          <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950 px-8 py-20 text-center ring-1 ring-slate-800 sm:px-16 sm:py-24">
-            <div aria-hidden className="pointer-events-none absolute -top-20 left-1/2 -z-10 h-[300px] w-[500px] -translate-x-1/2 rounded-full bg-emerald-500/15 blur-3xl" />
-            <h2 className="text-balance text-4xl font-extrabold tracking-[-0.02em] text-white sm:text-5xl md:text-6xl">
-              {c.finalCta.headline}
-            </h2>
-            <p className="mx-auto mt-5 max-w-xl text-balance text-lg text-slate-400">
-              {c.finalCta.subheadline}
-            </p>
-            <div className="mt-10">
-              <Link
-                href={c.finalCta.primaryCtaHref}
-                className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-8 py-4 text-base font-semibold text-white shadow-[0_8px_24px_-8px_rgba(16,185,129,0.5)] transition-all hover:bg-emerald-500 hover:shadow-[0_12px_32px_-8px_rgba(16,185,129,0.6)]"
-              >
-                {c.finalCta.primaryCta}
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                </svg>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* ─────────────────── Footer ─────────────────── */}
       <footer className="border-t border-slate-800 bg-slate-900 px-6 py-16">
         <div className="mx-auto max-w-6xl">
