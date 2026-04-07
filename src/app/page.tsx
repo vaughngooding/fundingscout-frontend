@@ -190,7 +190,7 @@ export default function Home() {
       </section>
 
       {/* ─────────────────── Features grid ─────────────────── */}
-      <section id="features" className="bg-slate-900/40 px-6 py-14 sm:py-20">
+      <section id="features" className="scroll-mt-24 bg-slate-900/40 px-6 py-14 sm:py-20">
         <div className="mx-auto max-w-6xl">
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">
@@ -279,7 +279,7 @@ export default function Home() {
       </section>
 
       {/* ─────────────────── Pricing ─────────────────── */}
-      <section id="pricing" className="bg-slate-900/40 px-6 py-14 sm:py-20">
+      <section id="pricing" className="scroll-mt-24 bg-slate-900/40 px-6 py-14 sm:py-20">
         <div className="mx-auto max-w-5xl">
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">
