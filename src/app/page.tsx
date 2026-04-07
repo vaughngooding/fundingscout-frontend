@@ -201,7 +201,7 @@ export default function Home() {
             </h2>
           </div>
 
-          <div className="mt-20 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-12 grid grid-cols-2 gap-3 sm:mt-20 sm:gap-5 lg:grid-cols-3">
             {c.features.items.map((feature) => (
               <div
                 key={feature.title}
