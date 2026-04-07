@@ -158,7 +158,7 @@ export const landingContent = {
       },
       {
         name: 'Pro',
-        price: '$49',
+        price: '$89',
         period: '/month',
         description: 'For founders, reps, and VCs who need to act on signals fast.',
         cta: 'Go Pro',

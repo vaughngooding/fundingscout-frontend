@@ -417,7 +417,7 @@ export default function OnboardingPage() {
                 </div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-base font-bold text-white">Pro</span>
-                  <span className="text-sm font-semibold text-emerald-300">$49/mo</span>
+                  <span className="text-sm font-semibold text-emerald-300">$89/mo</span>
                 </div>
                 <p className="text-xs text-slate-400 mb-3">
                   Real-time funding alerts pushed to your phone, Slack, Teams, Telegram, or WhatsApp the moment a round is announced.
