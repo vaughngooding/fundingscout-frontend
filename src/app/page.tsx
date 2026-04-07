@@ -112,49 +112,49 @@ export default function Home() {
           {/* Background glow */}
           <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[500px] w-[900px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-500/10 blur-3xl" />
 
-          {/* Single row on desktop, stacked on mobile */}
-          <div className="flex flex-col items-center justify-center gap-10 lg:flex-row lg:items-end lg:gap-8">
+          {/* 3-column grid on mobile/tablet, switch to centered flex row on desktop */}
+          <div className="grid grid-cols-3 items-end gap-3 sm:gap-5 lg:flex lg:justify-center lg:gap-8">
             {/* SMS phone — left */}
-            <div className="relative mx-auto w-full max-w-[260px] lg:mx-0 lg:w-auto">
-              <p className="mb-5 text-center text-xl font-bold uppercase tracking-[0.2em] text-emerald-400 sm:text-2xl">
+            <div className="relative mx-auto w-full lg:mx-0">
+              <p className="mb-3 text-center text-base font-bold uppercase tracking-[0.15em] text-emerald-400 sm:text-xl sm:tracking-[0.2em] lg:mb-5 lg:text-2xl">
                 SMS
               </p>
-              <div className="relative rotate-[-2deg] transition-transform duration-500 hover:rotate-0">
+              <div className="relative transition-transform duration-500 hover:rotate-0 lg:rotate-[-2deg]">
                 <div aria-hidden className="absolute -inset-2 rounded-[2.5rem] bg-emerald-500/20 blur-2xl" />
                 <img
                   src={c.channels.items[0].src}
                   alt={c.channels.items[0].alt}
-                  className="relative w-full rounded-[2rem] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)] ring-1 ring-slate-800 lg:h-[480px] lg:w-auto"
+                  className="relative w-full rounded-xl shadow-[0_20px_60px_-20px_rgba(0,0,0,0.7)] ring-1 ring-slate-800 sm:rounded-2xl lg:h-[480px] lg:w-auto lg:rounded-[2rem]"
                 />
               </div>
             </div>
 
             {/* Slack phone — middle */}
-            <div className="relative mx-auto w-full max-w-[260px] lg:mx-0 lg:w-auto">
-              <p className="mb-5 text-center text-xl font-bold uppercase tracking-[0.2em] text-emerald-400 sm:text-2xl">
+            <div className="relative mx-auto w-full lg:mx-0">
+              <p className="mb-3 text-center text-base font-bold uppercase tracking-[0.15em] text-emerald-400 sm:text-xl sm:tracking-[0.2em] lg:mb-5 lg:text-2xl">
                 Slack
               </p>
-              <div className="relative rotate-[-0.5deg] transition-transform duration-500 hover:rotate-0">
+              <div className="relative transition-transform duration-500 hover:rotate-0 lg:rotate-[-0.5deg]">
                 <div aria-hidden className="absolute -inset-2 rounded-[2.5rem] bg-emerald-500/20 blur-2xl" />
                 <img
                   src={c.channels.items[2].src}
                   alt={c.channels.items[2].alt}
-                  className="relative w-full rounded-[2rem] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)] ring-1 ring-slate-800 lg:h-[480px] lg:w-auto"
+                  className="relative w-full rounded-xl shadow-[0_20px_60px_-20px_rgba(0,0,0,0.7)] ring-1 ring-slate-800 sm:rounded-2xl lg:h-[480px] lg:w-auto lg:rounded-[2rem]"
                 />
               </div>
             </div>
 
             {/* Teams phone — right */}
-            <div className="relative mx-auto w-full max-w-[260px] lg:mx-0 lg:w-auto">
-              <p className="mb-5 text-center text-xl font-bold uppercase tracking-[0.2em] text-emerald-400 sm:text-2xl">
+            <div className="relative mx-auto w-full lg:mx-0">
+              <p className="mb-3 text-center text-base font-bold uppercase tracking-[0.15em] text-emerald-400 sm:text-xl sm:tracking-[0.2em] lg:mb-5 lg:text-2xl">
                 Teams
               </p>
-              <div className="relative rotate-[2deg] transition-transform duration-500 hover:rotate-0">
+              <div className="relative transition-transform duration-500 hover:rotate-0 lg:rotate-[2deg]">
                 <div aria-hidden className="absolute -inset-2 rounded-[2.5rem] bg-emerald-500/20 blur-2xl" />
                 <img
                   src={c.channels.items[1].src}
                   alt={c.channels.items[1].alt}
-                  className="relative w-full rounded-[2rem] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)] ring-1 ring-slate-800 lg:h-[480px] lg:w-auto"
+                  className="relative w-full rounded-xl shadow-[0_20px_60px_-20px_rgba(0,0,0,0.7)] ring-1 ring-slate-800 sm:rounded-2xl lg:h-[480px] lg:w-auto lg:rounded-[2rem]"
                 />
               </div>
             </div>
