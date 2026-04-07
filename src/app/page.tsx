@@ -115,7 +115,7 @@ export default function Home() {
           {/* 3-column grid on mobile/tablet, switch to centered flex row on desktop */}
           <div className="grid grid-cols-3 items-end gap-3 sm:gap-5 lg:flex lg:justify-center lg:gap-8">
             {/* SMS phone — left */}
-            <div className="relative mx-auto w-full lg:mx-0">
+            <div className="relative mx-auto w-full lg:mx-0 lg:w-auto">
               <p className="mb-3 text-center text-base font-bold uppercase tracking-[0.15em] text-emerald-400 sm:text-xl sm:tracking-[0.2em] lg:mb-5 lg:text-2xl">
                 SMS
               </p>
@@ -130,7 +130,7 @@ export default function Home() {
             </div>
 
             {/* Slack phone — middle */}
-            <div className="relative mx-auto w-full lg:mx-0">
+            <div className="relative mx-auto w-full lg:mx-0 lg:w-auto">
               <p className="mb-3 text-center text-base font-bold uppercase tracking-[0.15em] text-emerald-400 sm:text-xl sm:tracking-[0.2em] lg:mb-5 lg:text-2xl">
                 Slack
               </p>
@@ -145,7 +145,7 @@ export default function Home() {
             </div>
 
             {/* Teams phone — right */}
-            <div className="relative mx-auto w-full lg:mx-0">
+            <div className="relative mx-auto w-full lg:mx-0 lg:w-auto">
               <p className="mb-3 text-center text-base font-bold uppercase tracking-[0.15em] text-emerald-400 sm:text-xl sm:tracking-[0.2em] lg:mb-5 lg:text-2xl">
                 Teams
               </p>
