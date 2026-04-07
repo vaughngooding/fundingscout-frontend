@@ -61,7 +61,7 @@ export const landingContent = {
   // ─── How it works ───
   howItWorks: {
     eyebrow: 'How it works',
-    headline: 'From signal to outreach in 3 steps',
+    headline: 'From announcement to alert in 3 steps',
     steps: [
       {
         number: '01',
@@ -71,7 +71,7 @@ export const landingContent = {
       },
       {
         number: '02',
-        title: 'AI extracts the details that matter',
+        title: 'AI removes the noise and extracts funding details',
         description:
           'Company name, amount raised, round stage, lead investors, location, and industry — pulled cleanly from every article. Zero manual work.',
       },
