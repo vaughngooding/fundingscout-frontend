@@ -72,7 +72,7 @@ export default function Home() {
       </nav>
 
       {/* ─────────────────── Hero ─────────────────── */}
-      <section className="relative overflow-hidden px-6 pt-12 pb-10 sm:pt-16 sm:pb-12">
+      <section className="relative overflow-hidden px-6 pt-12 pb-4 sm:pt-16 sm:pb-6">
         {/* Single soft glow */}
         <div aria-hidden className="pointer-events-none absolute -top-32 left-1/2 -z-10 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-emerald-500/15 blur-[140px]" />
 
@@ -107,7 +107,7 @@ export default function Home() {
       </section>
 
       {/* ─────────────────── Channel Screenshots (single row) ─────────────────── */}
-      <section className="relative overflow-hidden px-6 pb-24 pt-8 sm:pb-32">
+      <section className="relative overflow-hidden px-6 pb-24 pt-2 sm:pb-32">
         <div className="mx-auto max-w-7xl">
           {/* Background glow */}
           <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[500px] w-[900px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-500/10 blur-3xl" />
