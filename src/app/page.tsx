@@ -163,7 +163,7 @@ export default function Home() {
       </section>
 
       {/* ─────────────────── How it works ─────────────────── */}
-      <section className="px-6 pt-12 pb-28 sm:pt-16 sm:pb-36">
+      <section className="px-6 pt-10 pb-14 sm:pt-14 sm:pb-20">
         <div className="mx-auto max-w-6xl">
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">
@@ -190,7 +190,7 @@ export default function Home() {
       </section>
 
       {/* ─────────────────── Features grid ─────────────────── */}
-      <section id="features" className="bg-slate-900/40 px-6 py-28 sm:py-36">
+      <section id="features" className="bg-slate-900/40 px-6 py-14 sm:py-20">
         <div className="mx-auto max-w-6xl">
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">
@@ -219,7 +219,7 @@ export default function Home() {
       </section>
 
       {/* ─────────────────── Dashboard preview callout ─────────────────── */}
-      <section className="px-6 py-28 sm:py-36">
+      <section className="px-6 py-14 sm:py-20">
         <div className="mx-auto grid max-w-6xl items-center gap-16 lg:grid-cols-2">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">
@@ -279,7 +279,7 @@ export default function Home() {
       </section>
 
       {/* ─────────────────── Pricing ─────────────────── */}
-      <section id="pricing" className="bg-slate-900/40 px-6 py-28 sm:py-36">
+      <section id="pricing" className="bg-slate-900/40 px-6 py-14 sm:py-20">
         <div className="mx-auto max-w-5xl">
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">
@@ -358,7 +358,7 @@ export default function Home() {
       </section>
 
       {/* ─────────────────── FAQ ─────────────────── */}
-      <section className="px-6 py-28 sm:py-36">
+      <section className="px-6 py-14 sm:py-20">
         <div className="mx-auto max-w-3xl">
           <div className="text-center">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">
@@ -389,7 +389,7 @@ export default function Home() {
       </section>
 
       {/* ─────────────────── Final CTA ─────────────────── */}
-      <section className="px-6 pb-28 sm:pb-36">
+      <section className="px-6 pb-14 sm:pb-20">
         <div className="mx-auto max-w-5xl">
           <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950 px-8 py-20 text-center ring-1 ring-slate-800 sm:px-16 sm:py-24">
             <div aria-hidden className="pointer-events-none absolute -top-20 left-1/2 -z-10 h-[300px] w-[500px] -translate-x-1/2 rounded-full bg-emerald-500/15 blur-3xl" />
