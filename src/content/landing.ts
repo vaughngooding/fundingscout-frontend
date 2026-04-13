@@ -243,6 +243,13 @@ export const landingContent = {
           { label: 'Settings', href: '/settings' },
         ],
       },
+      {
+        title: 'Legal',
+        links: [
+          { label: 'SMS Alerts', href: '/sms' },
+          { label: 'Privacy Policy', href: '/privacy' },
+        ],
+      },
     ],
     copyright: 'FundingScout. All rights reserved.',
   },

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 export interface FilterState {
   dateRange: 'today' | 'week' | 'month' | 'quarter' | 'all'
@@ -49,8 +49,8 @@ const COUNTRIES = [
 
 const DATE_OPTIONS = [
   { value: 'today', label: 'Today' },
-  { value: 'week', label: 'This Week' },
-  { value: 'month', label: 'This Month' },
+  { value: 'week', label: 'Last 7 days' },
+  { value: 'month', label: 'Last 30 days' },
   { value: 'quarter', label: 'Last 90 days' },
   { value: 'all', label: 'All Time' },
 ] as const
@@ -59,7 +59,12 @@ function formatFundingType(type: string): string {
   return type.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
-// Parse human-friendly amount input ('5m', '$2.5M', '500k', '1000000') into a number
+// Parse human-friendly amount input into a number.
+//
+// Funding alerts are denominated in millions of dollars by default — typing
+// "10" means $10M, not literally $10. Users explicitly add a 'k' suffix
+// when they mean thousands. Suffixes still work for users who want to be
+// explicit (5m, $2.5M, 500k, 1.5b).
 function parseAmount(input: string): number | null {
   const cleaned = input.trim().replace(/[$,\s]/g, '').toLowerCase()
   if (!cleaned) return null
@@ -71,7 +76,9 @@ function parseAmount(input: string): number | null {
   if (suffix === 'k') return Math.round(num * 1_000)
   if (suffix === 'm') return Math.round(num * 1_000_000)
   if (suffix === 'b') return Math.round(num * 1_000_000_000)
-  return Math.round(num)
+  // Bare number → assume millions. Funding rounds in the single dollars
+  // don't exist, so this is the right default for the funding domain.
+  return Math.round(num * 1_000_000)
 }
 
 function formatAmountForInput(value: number): string {
@@ -96,10 +103,13 @@ export default function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
     industries: [],
     countries: [],
   })
-  // Local string state for amount inputs so the user can type partial values
-  // without immediately re-filtering on every keystroke.
+  // Local string state for amount inputs. The numeric filter is debounced
+  // off these so users see results update as they type without needing to
+  // blur or hit Enter — but a 350ms pause prevents flicker mid-typing.
   const [minAmountInput, setMinAmountInput] = useState('')
   const [maxAmountInput, setMaxAmountInput] = useState('')
+  const minDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const maxDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function updateFilters(partial: Partial<FilterState>) {
     const updated = { ...filters, ...partial }
@@ -115,27 +125,56 @@ export default function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
     updateFilters({ [key]: updated })
   }
 
-  function commitMinAmount() {
-    const parsed = parseAmount(minAmountInput)
-    if (parsed === null) {
-      // Empty or invalid → reset to 0
-      updateFilters({ amountMin: 0 })
-      setMinAmountInput('')
-    } else {
-      updateFilters({ amountMin: parsed })
-      setMinAmountInput(formatAmountForInput(parsed))
+  // Auto-apply min as user types (debounced 350ms). Empty input → 0.
+  useEffect(() => {
+    if (minDebounceRef.current) clearTimeout(minDebounceRef.current)
+    minDebounceRef.current = setTimeout(() => {
+      const trimmed = minAmountInput.trim()
+      if (trimmed === '') {
+        if (filters.amountMin !== 0) updateFilters({ amountMin: 0 })
+        return
+      }
+      const parsed = parseAmount(trimmed)
+      if (parsed !== null && parsed !== filters.amountMin) {
+        updateFilters({ amountMin: parsed })
+      }
+    }, 350)
+    return () => {
+      if (minDebounceRef.current) clearTimeout(minDebounceRef.current)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [minAmountInput])
+
+  // Auto-apply max as user types (debounced 350ms). Empty input → 500M.
+  useEffect(() => {
+    if (maxDebounceRef.current) clearTimeout(maxDebounceRef.current)
+    maxDebounceRef.current = setTimeout(() => {
+      const trimmed = maxAmountInput.trim()
+      if (trimmed === '') {
+        if (filters.amountMax !== 500_000_000) updateFilters({ amountMax: 500_000_000 })
+        return
+      }
+      const parsed = parseAmount(trimmed)
+      if (parsed !== null && parsed !== filters.amountMax) {
+        updateFilters({ amountMax: parsed })
+      }
+    }, 350)
+    return () => {
+      if (maxDebounceRef.current) clearTimeout(maxDebounceRef.current)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [maxAmountInput])
+
+  // Reformat the input on blur so "4m" becomes "$4M" — purely cosmetic,
+  // the filter has already applied via the debounce above.
+  function formatMinOnBlur() {
+    const parsed = parseAmount(minAmountInput)
+    if (parsed !== null) setMinAmountInput(formatAmountForInput(parsed))
   }
 
-  function commitMaxAmount() {
+  function formatMaxOnBlur() {
     const parsed = parseAmount(maxAmountInput)
-    if (parsed === null) {
-      updateFilters({ amountMax: 500_000_000 })
-      setMaxAmountInput('')
-    } else {
-      updateFilters({ amountMax: parsed })
-      setMaxAmountInput(formatAmountForInput(parsed))
-    }
+    if (parsed !== null) setMaxAmountInput(formatAmountForInput(parsed))
   }
 
   function clearAll() {
@@ -212,13 +251,13 @@ export default function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
               type="text"
               value={minAmountInput}
               onChange={(e) => setMinAmountInput(e.target.value)}
-              onBlur={commitMinAmount}
+              onBlur={formatMinOnBlur}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.currentTarget.blur()
                 }
               }}
-              placeholder="$0"
+              placeholder="0"
               className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
             />
           </div>
@@ -228,19 +267,19 @@ export default function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
               type="text"
               value={maxAmountInput}
               onChange={(e) => setMaxAmountInput(e.target.value)}
-              onBlur={commitMaxAmount}
+              onBlur={formatMaxOnBlur}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.currentTarget.blur()
                 }
               }}
-              placeholder="$500M"
+              placeholder="500"
               className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
             />
           </div>
         </div>
         <p className="text-[10px] text-slate-500 mt-1.5">
-          Use 5m, $2.5M, 500k, or raw numbers
+          Numbers = millions (e.g. <code className="text-slate-400">10</code> = $10M). Use <code className="text-slate-400">k</code> for thousands (e.g. <code className="text-slate-400">500k</code>).
         </p>
       </div>
 

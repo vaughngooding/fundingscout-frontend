@@ -83,6 +83,9 @@ export default function SettingsForm({
     digest_hour: initialPreferences.digest_hour,
     slack_webhook_url: initialPreferences.slack_webhook_url || '',
     teams_webhook_url: initialPreferences.teams_webhook_url || '',
+    slack_channel_email: initialPreferences.slack_channel_email || '',
+    teams_channel_email: initialPreferences.teams_channel_email || '',
+    linkedin_url: initialPreferences.linkedin_url || '',
   })
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState<{
@@ -163,7 +166,7 @@ export default function SettingsForm({
     }
 
     // Open Telegram deep link
-    window.open(`https://t.me/FundingPulseBot?start=${token}`, '_blank')
+    window.open(`https://t.me/FundingScoutAlerts_Bot?start=${token}`, '_blank')
 
     // Poll for connection every 3s for up to 60s
     let attempts = 0
@@ -394,6 +397,9 @@ export default function SettingsForm({
           digest_hour: prefs.digest_hour,
           slack_webhook_url: prefs.slack_webhook_url || null,
           teams_webhook_url: prefs.teams_webhook_url || null,
+          slack_channel_email: prefs.slack_channel_email || null,
+          teams_channel_email: prefs.teams_channel_email || null,
+          linkedin_url: prefs.linkedin_url || null,
           imessage_enabled: imessageEnabled,
         },
         { onConflict: 'user_id' },
@@ -469,6 +475,20 @@ export default function SettingsForm({
                 setProfile({ ...profile, company: e.target.value })
               }
               placeholder="Acme Corp"
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1.5">
+              LinkedIn profile
+            </label>
+            <input
+              type="url"
+              value={prefs.linkedin_url}
+              onChange={(e) =>
+                setPrefs({ ...prefs, linkedin_url: e.target.value })
+              }
+              placeholder="https://www.linkedin.com/in/yourname"
               className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
             />
           </div>
@@ -695,6 +715,27 @@ export default function SettingsForm({
                       className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors text-sm"
                     />
                   </div>
+                  <details className="rounded-lg border border-slate-700/50 bg-slate-800/40 px-3 py-2">
+                    <summary className="text-xs font-semibold text-slate-300 cursor-pointer">
+                      Workplace Slack locked down? Use channel email instead
+                    </summary>
+                    <div className="mt-3 space-y-2">
+                      <p className="text-xs text-slate-400 leading-relaxed">
+                        If your IT requires app approval, you can route alerts via your channel&apos;s built-in
+                        email address — no app install needed. In Slack: open your channel → click the channel name →
+                        Integrations → Send emails to this channel → copy the generated address and paste below.
+                      </p>
+                      <input
+                        type="email"
+                        value={prefs.slack_channel_email}
+                        onChange={(e) =>
+                          setPrefs({ ...prefs, slack_channel_email: e.target.value })
+                        }
+                        placeholder="channel-name-abc123@yourcompany.slack.com"
+                        className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors text-xs"
+                      />
+                    </div>
+                  </details>
                 </div>
               )}
             </ProGate>
@@ -716,6 +757,27 @@ export default function SettingsForm({
               <p className="text-xs text-slate-500 mt-1">
                 Receive alerts directly in your Teams channel.
               </p>
+              <details className="mt-3 rounded-lg border border-slate-700/50 bg-slate-800/40 px-3 py-2">
+                <summary className="text-xs font-semibold text-slate-300 cursor-pointer">
+                  Workplace Teams locked down? Use channel email instead
+                </summary>
+                <div className="mt-3 space-y-2">
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    If your IT requires app approval, route alerts via your channel&apos;s built-in
+                    email. In Teams: open your channel → click the &ldquo;...&rdquo; menu → Get
+                    email address → copy and paste below.
+                  </p>
+                  <input
+                    type="email"
+                    value={prefs.teams_channel_email}
+                    onChange={(e) =>
+                      setPrefs({ ...prefs, teams_channel_email: e.target.value })
+                    }
+                    placeholder="Channel Name - Workspace abc@amer.teams.ms"
+                    className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors text-xs"
+                  />
+                </div>
+              </details>
             </ProGate>
           </div>
 
@@ -798,7 +860,11 @@ export default function SettingsForm({
           <div className="border-t border-slate-700/50 pt-6">
             <h3 className="text-sm font-semibold text-white mb-1">Phone Notifications</h3>
             <p className="text-xs text-slate-500 mb-3">
-              Get instant funding alerts on your phone via SMS.
+              Get instant funding alerts on your phone via SMS. Up to 10 messages per day.
+              Msg &amp; data rates may apply. Reply STOP to unsubscribe, HELP for help. See{' '}
+              <a href="/sms" className="text-emerald-400 hover:underline">SMS terms</a>{' '}
+              and{' '}
+              <a href="/privacy" className="text-emerald-400 hover:underline">Privacy Policy</a>.
             </p>
             {phoneVerified ? (
               <div className="space-y-3">
@@ -869,7 +935,15 @@ export default function SettingsForm({
                   </div>
                 )}
                 <p className="text-xs text-slate-500">
-                  We&apos;ll text you a verification code. Standard messaging rates may apply.
+                  By clicking Send Code and entering the verification code we send to
+                  the number above, you expressly consent to receive recurring
+                  automated SMS funding alerts from FundingScout matching your saved
+                  filters. Up to 10 messages per day. Message and data rates may apply.
+                  Consent is not a condition of any purchase. Reply STOP at any time to
+                  unsubscribe, or HELP for help. See our{' '}
+                  <a href="/sms" className="text-emerald-400 hover:underline">SMS terms</a>{' '}
+                  and{' '}
+                  <a href="/privacy" className="text-emerald-400 hover:underline">Privacy Policy</a>.
                 </p>
               </div>
             )}

@@ -2,7 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import AlertCard from '@/components/AlertCard'
-import type { UserAlert, Profile } from '@/lib/types'
+import ExportButton from './ExportButton'
+import type { UserAlert, Profile, FundingRound } from '@/lib/types'
 
 // Always fetch fresh — never serve a cached version. The plan status drives
 // whether the Pro upgrade prompt or the bookmarks list is shown.
@@ -87,12 +88,15 @@ export default async function BookmarksPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">Bookmarks</h1>
-        <p className="text-sm text-slate-400 mt-1">
-          {typedBookmarks.length} saved funding round
-          {typedBookmarks.length !== 1 ? 's' : ''}
-        </p>
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Bookmarks</h1>
+          <p className="text-sm text-slate-400 mt-1">
+            {typedBookmarks.length} saved funding round
+            {typedBookmarks.length !== 1 ? 's' : ''}
+          </p>
+        </div>
+        <ExportButton rounds={typedBookmarks.map(a => a.funding_round).filter(Boolean) as FundingRound[]} />
       </div>
 
       {typedBookmarks.length > 0 ? (

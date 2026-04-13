@@ -56,6 +56,9 @@ export default async function SettingsPage() {
     slack_channel_id: null,
     slack_bot_token: null,
     slack_app_installed: false,
+    slack_channel_email: null,
+    teams_channel_email: null,
+    linkedin_url: null,
   }
 
   const defaultProfile: Profile = {

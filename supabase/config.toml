@@ -364,6 +364,19 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# Webhook handlers — called by external services (Stripe, Telegram, Slack)
+# that don't and can't send a Supabase JWT. They verify their own signatures
+# inside the function. Without verify_jwt = false here, every redeploy resets
+# the function to JWT-required and silently breaks payments / integrations.
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.telegram-webhook]
+verify_jwt = false
+
+[functions.slack-interactions]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

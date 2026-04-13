@@ -91,6 +91,12 @@ export default async function CompanyPage({
                 </a>
               )}
             </div>
+
+            {bestRow.company_description && (
+              <p className="mt-3 text-sm text-slate-300 leading-relaxed max-w-2xl">
+                {bestRow.company_description}
+              </p>
+            )}
           </div>
 
           <div className="flex gap-6 text-center flex-shrink-0">
@@ -102,6 +108,18 @@ export default async function CompanyPage({
               <p className="text-2xl font-bold text-white">{allRounds.length}</p>
               <p className="text-xs text-slate-400 mt-0.5">Round{allRounds.length !== 1 ? 's' : ''}</p>
             </div>
+            {bestRow.founded_year && (
+              <div>
+                <p className="text-2xl font-bold text-white">{bestRow.founded_year}</p>
+                <p className="text-xs text-slate-400 mt-0.5">Founded</p>
+              </div>
+            )}
+            {bestRow.employee_range && (
+              <div>
+                <p className="text-2xl font-bold text-white">{bestRow.employee_range}</p>
+                <p className="text-xs text-slate-400 mt-0.5">Employees</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

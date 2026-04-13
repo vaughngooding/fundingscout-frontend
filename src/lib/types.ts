@@ -21,6 +21,10 @@ export interface FundingRound {
   website_source: string | null
   ceo_source: string | null
   enrichment_attempted_at: string | null
+  // Layer 1 enrichment: extracted from article at zero cost
+  company_description: string | null
+  founded_year: number | null
+  employee_range: string | null
 }
 
 export interface UserAlert {

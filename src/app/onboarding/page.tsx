@@ -48,7 +48,7 @@ function formatAmountLabel(value: number): string {
   return `$${value}`
 }
 
-const TOTAL_STEPS = 4
+const TOTAL_STEPS = 5
 
 // useSearchParams must be inside a Suspense boundary during static prerender.
 // Wrapper at the bottom of the file provides it.
@@ -65,8 +65,9 @@ function OnboardingPageInner() {
   const [upgrading, setUpgrading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Step 1: Role
+  // Step 1: Role + LinkedIn (optional)
   const [role, setRole] = useState('')
+  const [linkedinUrl, setLinkedinUrl] = useState('')
 
   // Step 2: Geographies
   const [countries, setCountries] = useState<string[]>([])
@@ -80,10 +81,18 @@ function OnboardingPageInner() {
   const [chosenPlan, setChosenPlan] = useState<'free' | 'pro'>(
     planFromUrl === 'annual' || planFromUrl === 'monthly' ? 'pro' : 'free',
   )
-  // Annual is the default for Pro (matches landing page default)
+  // Monthly is the default for Pro so the displayed price ($89/mo) matches
+  // the headline pricing on the landing page. Users can still toggle to
+  // Annual ($49/mo billed yearly) if they want the discount.
   const [billingCycle, setBillingCycle] = useState<'annual' | 'monthly'>(
-    planFromUrl === 'monthly' ? 'monthly' : 'annual',
+    planFromUrl === 'annual' ? 'annual' : 'monthly',
   )
+
+  // Step 5: Telegram connect (optional, last step). Same pattern as
+  // SettingsForm.tsx — generate a token, open the deep link, poll for
+  // telegram_chat_id to be set by the webhook.
+  const [telegramConnected, setTelegramConnected] = useState(false)
+  const [telegramConnecting, setTelegramConnecting] = useState(false)
 
   function toggleCountry(country: string) {
     setCountries((prev) =>
@@ -107,9 +116,62 @@ function OnboardingPageInner() {
         return fundingTypes.length > 0
       case 4:
         return true
+      case 5:
+        return true // Telegram step is always skippable
       default:
         return false
     }
+  }
+
+  // Step 5: Telegram connect — same pattern as SettingsForm.tsx
+  async function handleConnectTelegram() {
+    setTelegramConnecting(true)
+    setError(null)
+    const supabase = createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) {
+      setError('Not authenticated. Please log in again.')
+      setTelegramConnecting(false)
+      return
+    }
+
+    const token = crypto.randomUUID()
+    const { error: tokenError } = await supabase
+      .from('user_preferences')
+      .upsert(
+        { user_id: user.id, telegram_link_token: token },
+        { onConflict: 'user_id' },
+      )
+    if (tokenError) {
+      setError(`Failed to generate Telegram link: ${tokenError.message}`)
+      setTelegramConnecting(false)
+      return
+    }
+
+    // Open deep link in a new tab so the user lands in Telegram
+    window.open(`https://t.me/FundingScoutAlerts_Bot?start=${token}`, '_blank')
+
+    // Poll for telegram_chat_id every 2s for up to 60s
+    let attempts = 0
+    const maxAttempts = 30
+    const interval = setInterval(async () => {
+      attempts += 1
+      const { data } = await supabase
+        .from('user_preferences')
+        .select('telegram_chat_id')
+        .eq('user_id', user.id)
+        .single()
+      if (data?.telegram_chat_id) {
+        clearInterval(interval)
+        setTelegramConnected(true)
+        setTelegramConnecting(false)
+      } else if (attempts >= maxAttempts) {
+        clearInterval(interval)
+        setTelegramConnecting(false)
+      }
+    }, 2000)
   }
 
   // Persist preferences. If `goPro` is true, also redirect to Stripe Checkout.
@@ -149,6 +211,7 @@ function OnboardingPageInner() {
           digest_hour: 9,
           slack_webhook_url: null,
           teams_webhook_url: null,
+          linkedin_url: linkedinUrl.trim() || null,
         },
         { onConflict: 'user_id' },
       )
@@ -236,7 +299,7 @@ function OnboardingPageInner() {
           </div>
         )}
 
-        {/* Step 1: Role */}
+        {/* Step 1: Role + LinkedIn */}
         {step === 1 && (
           <div>
             <h2 className="text-xl font-semibold text-white mb-1">
@@ -264,6 +327,24 @@ function OnboardingPageInner() {
                   </span>
                 </button>
               ))}
+            </div>
+
+            {/* LinkedIn profile (optional) */}
+            <div className="mt-6 pt-6 border-t border-slate-800">
+              <label htmlFor="linkedin" className="block text-sm font-semibold text-white mb-1">
+                LinkedIn profile
+              </label>
+              <p className="text-xs text-slate-400 mb-3">
+                Helps us understand who you are and what you&apos;re building.
+              </p>
+              <input
+                id="linkedin"
+                type="url"
+                value={linkedinUrl}
+                onChange={(e) => setLinkedinUrl(e.target.value)}
+                placeholder="https://www.linkedin.com/in/yourname"
+                className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors text-sm"
+              />
             </div>
           </div>
         )}
@@ -516,6 +597,68 @@ function OnboardingPageInner() {
           </div>
         )}
 
+        {/* Step 5: Telegram (optional) */}
+        {step === 5 && (
+          <div>
+            <h2 className="text-xl font-semibold text-white mb-1">
+              Want instant alerts on Telegram?
+            </h2>
+            <p className="text-sm text-slate-400 mb-6">
+              Free, instant, works on every device. Connect now in 30 seconds —
+              or skip and add it later from Settings.
+            </p>
+
+            {telegramConnected ? (
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-6 text-center">
+                <div className="text-3xl mb-2">✅</div>
+                <h3 className="text-lg font-semibold text-white mb-1">
+                  Telegram connected!
+                </h3>
+                <p className="text-sm text-slate-300">
+                  You&apos;ll start receiving funding alerts in your Telegram chat.
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-6">
+                <div className="flex items-start gap-3 mb-5">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center text-xl">
+                    📱
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-white">
+                      Get pinged the moment a round matches your filters
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-1">
+                      No app install. No phone number. Works on any device with
+                      Telegram. We&apos;ll never DM you outside funding alerts.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleConnectTelegram}
+                  disabled={telegramConnecting}
+                  className="w-full rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-4 py-2.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {telegramConnecting ? 'Waiting for confirmation in Telegram…' : 'Connect Telegram'}
+                </button>
+
+                {telegramConnecting && (
+                  <p className="text-xs text-slate-400 mt-3 text-center">
+                    A new tab opened. Tap <strong>Start</strong> in the bot to
+                    confirm. We&apos;ll detect it automatically.
+                  </p>
+                )}
+              </div>
+            )}
+
+            <p className="text-xs text-slate-500 mt-4 text-center">
+              Prefer Slack, Teams, SMS, or email? Set them up after onboarding in <strong className="text-slate-400">Settings</strong>.
+            </p>
+          </div>
+        )}
+
         {/* Navigation buttons */}
         <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-700/50">
           {step > 1 ? (
@@ -543,7 +686,7 @@ function OnboardingPageInner() {
               disabled={upgrading}
               className="px-6 py-2.5 rounded-lg bg-gradient-to-r from-emerald-500 to-blue-500 hover:from-emerald-400 hover:to-blue-400 text-white text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/30"
             >
-              {upgrading ? 'Loading checkout…' : 'Continue to Pro Checkout →'}
+              {upgrading ? 'Loading checkout…' : telegramConnected ? 'Continue to Pro Checkout →' : 'Skip & continue to Pro →'}
             </button>
           ) : (
             <button
@@ -551,7 +694,7 @@ function OnboardingPageInner() {
               disabled={saving}
               className="px-6 py-2.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {saving ? 'Setting up...' : 'Start with Free →'}
+              {saving ? 'Setting up...' : telegramConnected ? 'Finish →' : 'Skip & finish →'}
             </button>
           )}
         </div>

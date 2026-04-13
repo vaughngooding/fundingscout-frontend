@@ -29,14 +29,20 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Redirect unauthenticated users away from protected routes
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith('/login') &&
-    !request.nextUrl.pathname.startsWith('/signup') &&
-    !request.nextUrl.pathname.startsWith('/auth') &&
-    request.nextUrl.pathname !== '/'
-  ) {
+  // Redirect unauthenticated users away from protected routes.
+  // Public routes (no auth needed): the marketing landing, auth flow,
+  // and the legal/compliance pages that Twilio TFV reviewers visit
+  // without an account.
+  const path = request.nextUrl.pathname
+  const isPublic =
+    path === '/' ||
+    path.startsWith('/login') ||
+    path.startsWith('/signup') ||
+    path.startsWith('/auth') ||
+    path.startsWith('/sms') ||
+    path.startsWith('/privacy')
+
+  if (!user && !isPublic) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
