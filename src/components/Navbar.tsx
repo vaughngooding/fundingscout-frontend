@@ -70,7 +70,7 @@ export default function Navbar() {
     { href: '/bookmarks', label: 'Bookmarks' },
     { href: '/settings', label: 'Alert Settings' },
     { href: '/contact', label: 'Contact' },
-    ...(isAdmin ? [{ href: '/admin/quality', label: 'Quality' }] : []),
+    ...(isAdmin ? [{ href: '/admin', label: 'Admin' }] : []),
   ]
 
   return (
