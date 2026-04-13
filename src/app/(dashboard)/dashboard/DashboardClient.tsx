@@ -28,6 +28,8 @@ function roundToSyntheticAlert(round: FundingRound): UserAlert {
     email_sent_at: null,
     read_at: null,
     created_at: round.created_at,
+    user_flag: null,
+    user_flag_at: null,
   }
 }
 
@@ -49,9 +51,12 @@ function isWithinDateRange(
       return date >= weekAgo
     }
     case 'month': {
-      const monthAgo = new Date(startOfToday)
-      monthAgo.setMonth(monthAgo.getMonth() - 1)
-      return date >= monthAgo
+      // "Last 30 days" — use setDate not setMonth to avoid calendar
+      // edge cases (March 31 - 1 month = "Feb 31" which JS coerces to
+      // March 3, giving only 28 days back instead of 30).
+      const thirtyDaysAgo = new Date(startOfToday)
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+      return date >= thirtyDaysAgo
     }
     case 'quarter': {
       const ninetyDaysAgo = new Date(startOfToday)

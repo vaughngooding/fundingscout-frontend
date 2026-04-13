@@ -4,6 +4,12 @@
 // and SMS for FundingScout Pro users when new user_alerts are created.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+// Web Push: use the npm package via esm.sh to get a proper RFC 8291 implementation.
+// The previous hand-rolled VAPID JWT + plaintext-payload approach was broken because
+// payloads must be aes128gcm-encrypted with the subscription's keys (which the dispatcher
+// was claiming via header but not actually doing). Push services silently rejected every
+// attempt. The web-push package handles encryption + VAPID signing in one call.
+import webpush from 'https://esm.sh/web-push@3.6.7?target=denonext'
 
 // ---------------------------------------------------------------------------
 // Types (mirrored from src/lib/types.ts for Deno compatibility)
@@ -27,6 +33,9 @@ interface FundingRound {
   source_feed: string | null
   published_date: string | null
   created_at: string
+  // Phase 6: enrichment fields (CEO + website source tracking)
+  ceo_name: string | null
+  enrichment_attempted_at: string | null
 }
 
 interface PendingAlert {
@@ -58,6 +67,12 @@ interface UserPreference {
   slack_bot_token: string | null
   slack_channel_id: string | null
   slack_app_installed: boolean
+  // Phase 5: Email-to-channel relay (for enterprise users who can't install
+  // custom Slack/Teams apps). Both Slack and Teams expose a per-channel
+  // email address that posts the email body into the channel — we just
+  // dispatch via Resend to that address.
+  slack_channel_email: string | null
+  teams_channel_email: string | null
 }
 
 // ---------------------------------------------------------------------------
@@ -71,6 +86,7 @@ interface DeliveryStats {
   push_sent: number
   sms_sent: number
   slack_app_sent: number
+  channel_email_sent: number
 }
 
 // ---------------------------------------------------------------------------
@@ -283,10 +299,30 @@ function buildTelegramPayload(round: FundingRound) {
       ? round.investors.join(', ')
       : 'Undisclosed'
 
+  // Phase 6: enrichment fields. Show "Unknown" for missing values IF
+  // we attempted enrichment, otherwise omit the line entirely (for
+  // pre-enrichment historical rounds that haven't been backfilled).
+  const tried = !!round.enrichment_attempted_at
+  const ceoLabel = round.ceo_name || (tried ? 'Unknown' : '')
+  const websiteRaw = round.website || ''
+  const websiteDisplay = websiteRaw
+    ? websiteRaw.replace(/^https?:\/\//, '').replace(/\/$/, '')
+    : (tried ? 'Unknown' : '')
+
   let text = `<b>Funding Alert: ${escapeHtml(round.company_name)}</b>\n\n`
   text += `<b>Amount:</b> ${amount}\n`
   text += `<b>Round:</b> ${escapeHtml(round.funding_type)}\n`
   text += `<b>Location:</b> ${escapeHtml(location)}\n`
+  if (ceoLabel) {
+    text += `<b>CEO:</b> ${escapeHtml(ceoLabel)}\n`
+  }
+  if (websiteDisplay) {
+    if (websiteRaw) {
+      text += `<b>Website:</b> <a href="${escapeHtml(websiteRaw)}">${escapeHtml(websiteDisplay)}</a>\n`
+    } else {
+      text += `<b>Website:</b> ${escapeHtml(websiteDisplay)}\n`
+    }
+  }
   text += `<b>Investors:</b> ${escapeHtml(investors)}\n`
 
   if (round.industry) {
@@ -402,97 +438,34 @@ async function sendWebPush(
     return { ok: false, error: 'VAPID keys not set' }
   }
 
+  // Configure VAPID once per call (idempotent + safe across cold starts).
+  webpush.setVapidDetails(
+    'mailto:alerts@fundingscout.io',
+    vapidPublicKey,
+    vapidPrivateKey,
+  )
+
   const payload = JSON.stringify(buildWebPushPayload(round))
 
-  // Web Push requires RFC 8291 encryption. In Deno edge functions we use
-  // a simplified approach — POST the payload as plain JSON to the push endpoint
-  // with VAPID JWT authorization. For full encryption, consider the web-push npm
-  // package via esm.sh.
-  //
-  // Simplified VAPID auth approach:
   try {
-    // Create VAPID JWT
-    const audience = new URL(subscription.endpoint).origin
-    const vapidJwt = await createVapidJwt(audience, vapidPublicKey, vapidPrivateKey)
-
-    // For a proper implementation, the payload needs to be encrypted using
-    // the subscription keys (p256dh, auth) per RFC 8291. For now, we send
-    // using the standard Web Push protocol headers.
-    const res = await fetch(subscription.endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/octet-stream',
-        'Content-Encoding': 'aes128gcm',
-        Authorization: `vapid t=${vapidJwt}, k=${vapidPublicKey}`,
-        TTL: '86400',
-        Urgency: 'high',
-      },
-      body: payload,
+    // web-push handles aes128gcm encryption with the subscription's
+    // p256dh + auth keys per RFC 8291, sets all the right headers, and
+    // signs the VAPID JWT. The previous hand-rolled implementation
+    // skipped encryption entirely and silently failed.
+    await webpush.sendNotification(subscription, payload, {
+      TTL: 86400,
+      urgency: 'high',
     })
-
-    if (res.status === 201 || res.status === 200) {
-      return { ok: true }
+    return { ok: true }
+  } catch (error: unknown) {
+    // web-push throws WebPushError for HTTP failures from the push service.
+    const err = error as { statusCode?: number; body?: string; message?: string }
+    if (err.statusCode === 410 || err.statusCode === 404) {
+      return { ok: false, error: `Subscription expired (${err.statusCode})` }
     }
-    // 410 Gone = subscription expired, should be cleaned up
-    if (res.status === 410) {
-      return { ok: false, error: 'Subscription expired (410)' }
-    }
-    const body = await res.text()
-    return { ok: false, error: `${res.status}: ${body}` }
-  } catch (error) {
-    return { ok: false, error: error instanceof Error ? error.message : String(error) }
+    const msg = err.body || err.message || String(error)
+    return { ok: false, error: `${err.statusCode || ''} ${msg}`.trim() }
   }
-}
-
-async function createVapidJwt(
-  audience: string,
-  _publicKey: string,
-  privateKeyBase64: string,
-): Promise<string> {
-  const header = btoa(JSON.stringify({ typ: 'JWT', alg: 'ES256' }))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '')
-
-  const now = Math.floor(Date.now() / 1000)
-  const payload = btoa(
-    JSON.stringify({
-      aud: audience,
-      exp: now + 12 * 60 * 60,
-      sub: 'mailto:alerts@fundingscout.io',
-    }),
-  )
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '')
-
-  const unsignedToken = `${header}.${payload}`
-
-  // Import the private key
-  const rawKey = Uint8Array.from(atob(privateKeyBase64.replace(/-/g, '+').replace(/_/g, '/')), (c) =>
-    c.charCodeAt(0),
-  )
-
-  const key = await crypto.subtle.importKey(
-    'pkcs8',
-    rawKey,
-    { name: 'ECDSA', namedCurve: 'P-256' },
-    false,
-    ['sign'],
-  )
-
-  const signature = await crypto.subtle.sign(
-    { name: 'ECDSA', hash: 'SHA-256' },
-    key,
-    new TextEncoder().encode(unsignedToken),
-  )
-
-  const sig = btoa(String.fromCharCode(...new Uint8Array(signature)))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '')
-
-  return `${unsignedToken}.${sig}`
 }
 
 async function sendSms(
@@ -525,6 +498,124 @@ async function sendSms(
         From: fromNumber,
         Body: body,
       }).toString(),
+    })
+
+    if (!res.ok) {
+      const errBody = await res.text()
+      return { ok: false, error: `${res.status}: ${errBody}` }
+    }
+    return { ok: true }
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : String(error) }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Email-to-channel: relays a funding alert via Resend to a Slack or Teams
+// channel-specific email address. Used by enterprise users who can't install
+// custom Slack/Teams apps because their workspace requires admin approval.
+//
+// Slack: channel → Settings → Integrations → "Send emails to this channel"
+//   → generates `channel-name-abc123@yourcompany.slack.com`
+// Teams: channel → ... menu → "Get email address"
+//   → generates `Channel Name - Workspace <id>@amer.teams.ms`
+// ---------------------------------------------------------------------------
+
+function buildChannelEmail(round: FundingRound): { subject: string; html: string; text: string } {
+  const amount = formatAmount(round.amount_usd)
+  const type = formatFundingType(round.funding_type)
+  const company = round.company_name
+  const url = round.article_url || ''
+  const location = round.location || ''
+  const country = round.location_country || ''
+  const lead = round.lead_investor || ''
+  const tags = (round.industry_tags || []).join(' • ')
+  // Phase 6: enrichment fields. Display "Unknown" when missing IF we tried
+  // (enrichment_attempted_at is set), otherwise omit the line entirely.
+  const tried = !!round.enrichment_attempted_at
+  const ceoLabel = round.ceo_name || (tried ? 'Unknown' : '')
+  const websiteRaw = round.website || ''
+  const websiteDisplay = websiteRaw
+    ? websiteRaw.replace(/^https?:\/\//, '').replace(/\/$/, '')
+    : (tried ? 'Unknown' : '')
+
+  const subject = `🚀 ${company} raised ${amount} (${type})`
+
+  const text = [
+    `${company} raised ${amount} (${type})`,
+    location ? `📍 ${location}${country ? `, ${country}` : ''}` : '',
+    ceoLabel ? `👤 CEO: ${ceoLabel}` : '',
+    websiteDisplay ? `🌐 Website: ${websiteDisplay}` : '',
+    lead ? `💼 Led by ${lead}` : '',
+    tags ? `🏷️ ${tags}` : '',
+    '',
+    url,
+    '',
+    '— FundingScout (alerts matching your saved filters). Manage at https://fundingscout.io/settings',
+  ]
+    .filter(Boolean)
+    .join('\n')
+
+  // Build HTML versions of CEO + website rows. Website becomes a real link
+  // when present; "Unknown" stays as plain text.
+  const ceoHtml = ceoLabel
+    ? `<div style="margin-bottom:6px;color:#475569;">👤 CEO: <strong>${ceoLabel}</strong></div>`
+    : ''
+  const websiteHtml = websiteRaw
+    ? `<div style="margin-bottom:6px;color:#475569;">🌐 <a href="${websiteRaw}" style="color:#0369a1;text-decoration:none;">${websiteDisplay}</a></div>`
+    : (tried
+      ? `<div style="margin-bottom:6px;color:#475569;">🌐 Website: <span style="color:#94a3b8;font-style:italic;">Unknown</span></div>`
+      : '')
+
+  const html = `
+<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:600px;color:#0f172a;">
+  <div style="font-size:13px;color:#10b981;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:4px;">FundingScout · New funding alert</div>
+  <h2 style="margin:0 0 6px 0;font-size:22px;color:#0f172a;">${company}</h2>
+  <div style="font-size:28px;font-weight:800;color:#059669;margin-bottom:14px;">${amount}<span style="font-size:14px;font-weight:600;color:#64748b;margin-left:8px;">${type}</span></div>
+  ${location ? `<div style="margin-bottom:6px;color:#475569;">📍 ${location}${country ? `, ${country}` : ''}</div>` : ''}
+  ${ceoHtml}
+  ${websiteHtml}
+  ${lead ? `<div style="margin-bottom:6px;color:#475569;">💼 Led by <strong>${lead}</strong></div>` : ''}
+  ${tags ? `<div style="margin-bottom:6px;color:#475569;">🏷️ ${tags}</div>` : ''}
+  <div style="margin-top:18px;">
+    <a href="${url}" style="display:inline-block;background:#10b981;color:#fff;text-decoration:none;font-weight:600;padding:10px 18px;border-radius:8px;font-size:14px;">Read article →</a>
+  </div>
+  <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0;">
+  <div style="font-size:11px;color:#94a3b8;line-height:1.5;">
+    Sent by FundingScout because this funding round matched your saved alert filters.
+    <br>
+    <a href="https://fundingscout.io/settings" style="color:#94a3b8;">Manage filters</a> · <a href="https://fundingscout.io/sms" style="color:#94a3b8;">About</a>
+  </div>
+</div>`.trim()
+
+  return { subject, html, text }
+}
+
+async function sendChannelEmail(
+  toEmail: string,
+  round: FundingRound,
+): Promise<{ ok: boolean; error?: string }> {
+  const resendApiKey = Deno.env.get('RESEND_API_KEY')
+  if (!resendApiKey) {
+    return { ok: false, error: 'RESEND_API_KEY not set' }
+  }
+
+  const { subject, html, text } = buildChannelEmail(round)
+
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'FundingScout <alerts@fundingscout.io>',
+        to: [toEmail],
+        subject,
+        html,
+        text,
+      }),
     })
 
     if (!res.ok) {
@@ -624,7 +715,9 @@ Deno.serve(async (req: Request) => {
           article_title,
           source_feed,
           published_date,
-          created_at
+          created_at,
+          ceo_name,
+          enrichment_attempted_at
         ),
         profile:profiles!inner (
           id,
@@ -655,7 +748,7 @@ Deno.serve(async (req: Request) => {
     const { data: prefs, error: prefsError } = await supabase
       .from('user_preferences')
       .select(
-        'user_id, slack_webhook_url, teams_webhook_url, telegram_chat_id, push_subscription, phone_number, phone_verified, slack_bot_token, slack_channel_id, slack_app_installed',
+        'user_id, slack_webhook_url, teams_webhook_url, telegram_chat_id, push_subscription, phone_number, phone_verified, slack_bot_token, slack_channel_id, slack_app_installed, slack_channel_email, teams_channel_email',
       )
       .in('user_id', userIds)
 
@@ -666,6 +759,32 @@ Deno.serve(async (req: Request) => {
     const prefsMap = new Map<string, UserPreference>()
     for (const p of (prefs || []) as UserPreference[]) {
       prefsMap.set(p.user_id, p)
+    }
+
+    // ----- L5: per-user rate limit -----
+    // Final safety net against carpet-bombing. Even if upstream dedup
+    // fails and 20 duplicate user_alerts get queued for the same user,
+    // this dispatcher refuses to deliver more than RATE_LIMIT_MAX in a
+    // RATE_LIMIT_WINDOW_MIN window. Excess alerts wait for the next
+    // cron tick (1 min) so the user gets them throttled.
+    const RATE_LIMIT_MAX_PER_WINDOW = 5
+    const RATE_LIMIT_WINDOW_MIN = 5
+    const rateCutoff = new Date(Date.now() - RATE_LIMIT_WINDOW_MIN * 60_000).toISOString()
+    const { data: recentSends } = await supabase
+      .from('user_alerts')
+      .select('user_id')
+      .in('user_id', userIds)
+      .eq('status', 'sent')
+      .gte('created_at', rateCutoff)
+    const recentSendCounts = new Map<string, number>()
+    for (const r of (recentSends || []) as Array<{ user_id: string }>) {
+      recentSendCounts.set(r.user_id, (recentSendCounts.get(r.user_id) || 0) + 1)
+    }
+    const rateLimitedUsers = new Set<string>()
+    for (const [uid, count] of recentSendCounts.entries()) {
+      if (count >= RATE_LIMIT_MAX_PER_WINDOW) {
+        rateLimitedUsers.add(uid)
+      }
     }
 
     // -----------------------------------------------------------------------
@@ -679,15 +798,27 @@ Deno.serve(async (req: Request) => {
       push_sent: 0,
       sms_sent: 0,
       slack_app_sent: 0,
+      channel_email_sent: 0,
     }
     const errors: Array<{ alert_id: string; platform: string; error: string }> = []
     const deliveredAlertIds: string[] = []
+    let rateLimitedCount = 0
 
     for (const alert of alerts as unknown as PendingAlert[]) {
       const { funding_round: round } = alert
       const userPrefs = prefsMap.get(alert.user_id)
 
       if (!round || !userPrefs) continue
+
+      // L5 rate limit: skip users who have already received >= 5 alerts
+      // in the last 5 minutes. Also track in-batch sends so a user who
+      // hits the cap mid-batch is skipped for subsequent alerts in this run.
+      const currentCount = recentSendCounts.get(alert.user_id) || 0
+      if (rateLimitedUsers.has(alert.user_id) || currentCount >= RATE_LIMIT_MAX_PER_WINDOW) {
+        rateLimitedUsers.add(alert.user_id)
+        rateLimitedCount++
+        continue
+      }
 
       let anySuccess = false
 
@@ -741,8 +872,10 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      // ----- Telegram -----
-      if (userPrefs.telegram_chat_id) {
+      // ----- Telegram (Pro-only) -----
+      // The outer query already filters profile.plan = 'pro', but we re-check
+      // here defensively so a race during a downgrade can't leak alerts.
+      if (userPrefs.telegram_chat_id && alert.profile?.plan === 'pro') {
         try {
           const result = await sendTelegram(userPrefs.telegram_chat_id, round)
           if (result.ok) {
@@ -793,9 +926,47 @@ Deno.serve(async (req: Request) => {
         }
       }
 
+      // ----- Slack channel email (enterprise workaround for users who can't install custom apps) -----
+      if (userPrefs.slack_channel_email) {
+        try {
+          const result = await sendChannelEmail(userPrefs.slack_channel_email, round)
+          if (result.ok) {
+            stats.channel_email_sent++
+            anySuccess = true
+          } else {
+            errors.push({ alert_id: alert.id, platform: 'slack_channel_email', error: result.error || 'Unknown' })
+          }
+        } catch (e) {
+          errors.push({ alert_id: alert.id, platform: 'slack_channel_email', error: String(e) })
+        }
+      }
+
+      // ----- Teams channel email (same enterprise workaround for Microsoft Teams) -----
+      if (userPrefs.teams_channel_email) {
+        try {
+          const result = await sendChannelEmail(userPrefs.teams_channel_email, round)
+          if (result.ok) {
+            stats.channel_email_sent++
+            anySuccess = true
+          } else {
+            errors.push({ alert_id: alert.id, platform: 'teams_channel_email', error: result.error || 'Unknown' })
+          }
+        } catch (e) {
+          errors.push({ alert_id: alert.id, platform: 'teams_channel_email', error: String(e) })
+        }
+      }
+
       // Mark as delivered if ANY channel succeeded
       if (anySuccess) {
         deliveredAlertIds.push(alert.id)
+        // L5: increment in-batch counter so subsequent alerts in this run
+        // see the updated rate-limit state. If this user just hit the cap,
+        // mark them so the next iteration short-circuits.
+        const newCount = (recentSendCounts.get(alert.user_id) || 0) + 1
+        recentSendCounts.set(alert.user_id, newCount)
+        if (newCount >= RATE_LIMIT_MAX_PER_WINDOW) {
+          rateLimitedUsers.add(alert.user_id)
+        }
       }
     }
 
@@ -824,7 +995,8 @@ Deno.serve(async (req: Request) => {
       stats.telegram_sent +
       stats.push_sent +
       stats.sms_sent +
-      stats.slack_app_sent
+      stats.slack_app_sent +
+      stats.channel_email_sent
 
     const response = {
       success: true,
@@ -837,6 +1009,20 @@ Deno.serve(async (req: Request) => {
     console.log(
       `Delivery complete: ${stats.slack_sent} slack, ${stats.slack_app_sent} slack_app, ${stats.teams_sent} teams, ${stats.telegram_sent} telegram, ${stats.push_sent} push, ${stats.sms_sent} sms, ${errors.length} errors`,
     )
+
+    // Log this run to agent_runs for watchdog monitoring
+    try {
+      await supabase.from('agent_runs').insert({
+        agent: 'webhooks',
+        domain: 'notification_delivery',
+        items: total,
+        errors: errors.length,
+        summary: { ...stats, alerts_delivered: deliveredAlertIds.length },
+        metadata: errors.length > 0 ? { errors: errors.slice(0, 10) } : undefined,
+      })
+    } catch (logErr) {
+      console.error('Failed to log agent_run:', logErr)
+    }
 
     return new Response(JSON.stringify(response), {
       status: 200,

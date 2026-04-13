@@ -342,6 +342,24 @@ Deno.serve(async (req: Request) => {
       response.errors = errors
     }
 
+    // Log this run to agent_runs for watchdog monitoring
+    try {
+      await supabase.from('agent_runs').insert({
+        agent: 'digest',
+        domain: 'notification_delivery',
+        items: emailsSent,
+        errors: errors.length,
+        summary: {
+          emails_sent: emailsSent,
+          users_eligible: eligibleUsers.length,
+          utc_hour: currentUtcHour,
+        },
+        metadata: errors.length > 0 ? { errors: errors.slice(0, 10) } : undefined,
+      })
+    } catch (logErr) {
+      console.error('Failed to log agent_run:', logErr)
+    }
+
     return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

@@ -63,11 +63,14 @@ export default function Navbar() {
     return pathname === path || pathname.startsWith(path + '/')
   }
 
+  const isAdmin = user?.id === '17ffe015-825d-4326-b52f-d3c795ac3d43'
+
   const navLinks = [
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/bookmarks', label: 'Bookmarks' },
     { href: '/settings', label: 'Alert Settings' },
     { href: '/contact', label: 'Contact' },
+    ...(isAdmin ? [{ href: '/admin/quality', label: 'Quality' }] : []),
   ]
 
   return (

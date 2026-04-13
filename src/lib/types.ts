@@ -16,6 +16,11 @@ export interface FundingRound {
   source_feed: string | null
   published_date: string | null
   created_at: string
+  // Phase 6: enrichment fields (CEO + website source tracking)
+  ceo_name: string | null
+  website_source: string | null
+  ceo_source: string | null
+  enrichment_attempted_at: string | null
 }
 
 export interface UserAlert {
@@ -28,6 +33,8 @@ export interface UserAlert {
   email_sent_at: string | null
   read_at: string | null
   created_at: string
+  user_flag: 'not_funding' | 'duplicate' | 'incorrect_details' | null
+  user_flag_at: string | null
   funding_round?: FundingRound
 }
 
@@ -68,6 +75,11 @@ export interface UserPreferences {
   slack_channel_id: string | null
   slack_bot_token: string | null
   slack_app_installed: boolean
+  // Phase 5: Email-to-channel relay (enterprise workaround)
+  slack_channel_email: string | null
+  teams_channel_email: string | null
+  // Phase 7: LinkedIn profile (optional, captured during onboarding or in settings)
+  linkedin_url: string | null
 }
 
 export interface PushSubscriptionJSON {
