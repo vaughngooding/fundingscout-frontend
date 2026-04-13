@@ -349,7 +349,8 @@ export default function QualityClient({ agentRuns, audits, userFlags }: Props) {
           <div className="text-left">
             <h2 className="text-base font-semibold text-white">Agent Runs</h2>
             <p className="text-xs text-slate-400">
-              Last 24 hours — {agentRuns.length} runs
+              All time — {agentRuns.length} runs
+              {agentRuns.length > 0 && ` (since ${new Date(agentRuns[agentRuns.length - 1].run_at).toLocaleDateString()})`}
             </p>
           </div>
           <div className="flex items-center gap-2">

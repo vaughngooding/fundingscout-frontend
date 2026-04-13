@@ -27,12 +27,15 @@ export default async function QualityDashboard() {
 
   // Fetch data in parallel
   const [agentRunsRes, auditsRes, userFlagsRes] = await Promise.all([
+    // Fetch ALL runs for uptime calculation (no time cap).
+    // For the table view we only show recent rows, but uptime %
+    // should reflect the entire lifetime of the system.
+    // We select only the columns needed to keep payload small.
     supabase
       .from('agent_runs')
-      .select('*')
-      .gte('run_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+      .select('id,agent,run_at,duration_ms,domain,items,errors,learnings')
       .order('run_at', { ascending: false })
-      .limit(2000),
+      .limit(50000),
     supabase
       .from('alert_audits')
       .select('*, funding_round:funding_rounds(company_name, source_feed, amount_usd, funding_type)')
