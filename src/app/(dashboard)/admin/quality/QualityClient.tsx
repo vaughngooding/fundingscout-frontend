@@ -209,7 +209,7 @@ export default function QualityClient({ agentRuns, audits, userFlags }: Props) {
   const [runsExpanded, setRunsExpanded] = useState(false)
   const [expandedAudit, setExpandedAudit] = useState<string | null>(null)
 
-  const visibleRuns = runsExpanded ? agentRuns : agentRuns.slice(0, 5)
+  const tableRuns = runsExpanded ? agentRuns.slice(0, 100) : agentRuns.slice(0, 5)
   const uptimeStats = useMemo(() => computeUptime(agentRuns), [agentRuns])
 
   return (
@@ -349,12 +349,12 @@ export default function QualityClient({ agentRuns, audits, userFlags }: Props) {
           <div className="text-left">
             <h2 className="text-base font-semibold text-white">Agent Runs</h2>
             <p className="text-xs text-slate-400">
-              Central heartbeat log — {agentRuns.length} runs
+              Last 24 hours — {agentRuns.length} runs
             </p>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-500">
-              {runsExpanded ? 'Showing all' : `Showing ${visibleRuns.length} of ${agentRuns.length}`}
+              {runsExpanded ? `Showing 100 of ${agentRuns.length}` : `Showing ${tableRuns.length} of ${agentRuns.length}`}
             </span>
             <svg
               className={`w-4 h-4 text-slate-400 transition-transform ${runsExpanded ? 'rotate-180' : ''}`}
@@ -421,7 +421,7 @@ export default function QualityClient({ agentRuns, audits, userFlags }: Props) {
               </tr>
             </thead>
             <tbody>
-              {visibleRuns.map((run) => (
+              {tableRuns.map((run) => (
                 <tr key={run.id} className="border-b border-slate-800/50 hover:bg-slate-800/30">
                   <td className="px-4 py-2">
                     <span className={agentBadge(run.agent)}>{run.agent}</span>
@@ -459,7 +459,7 @@ export default function QualityClient({ agentRuns, audits, userFlags }: Props) {
             onClick={() => setRunsExpanded(true)}
             className="w-full py-2 text-xs text-slate-400 hover:text-white hover:bg-slate-800/30 transition-colors border-t border-slate-800/50"
           >
-            Show {agentRuns.length - 5} more runs
+            Show more (up to 100 of {agentRuns.length} runs)
           </button>
         )}
       </section>

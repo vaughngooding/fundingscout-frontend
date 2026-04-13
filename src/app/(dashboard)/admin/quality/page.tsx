@@ -30,8 +30,9 @@ export default async function QualityDashboard() {
     supabase
       .from('agent_runs')
       .select('*')
+      .gte('run_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
       .order('run_at', { ascending: false })
-      .limit(50),
+      .limit(2000),
     supabase
       .from('alert_audits')
       .select('*, funding_round:funding_rounds(company_name, source_feed, amount_usd, funding_type)')
