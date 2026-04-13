@@ -33,7 +33,7 @@ export default async function QualityDashboard() {
     // We select only the columns needed to keep payload small.
     supabase
       .from('agent_runs')
-      .select('id,agent,run_at,duration_ms,domain,items,errors,learnings')
+      .select('id,agent,run_at,duration_ms,domain,items,errors,learnings,summary')
       .order('run_at', { ascending: false })
       .limit(50000),
     supabase
