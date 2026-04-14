@@ -82,7 +82,7 @@ export const landingContent = {
           { label: 'Yes', tone: 'good' as const },
           { label: 'Low', tone: 'good' as const },
           { label: 'Yes', tone: 'good' as const },
-          { label: '$89', tone: 'price-highlight' as const },
+          { label: '$49–89', tone: 'price-highlight' as const },
         ],
       },
       {
