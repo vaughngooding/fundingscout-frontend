@@ -89,14 +89,39 @@ export default function SmsOptInPage() {
               </span>
               <div>
                 <h3 className="text-base font-semibold text-white">
-                  Enter your phone number in Settings
+                  Enter your phone number and consent to SMS
                 </h3>
                 <p className="mt-1 text-sm text-slate-400">
                   Once signed in, navigate to{' '}
                   <span className="font-mono text-slate-300">Settings → Phone Notifications</span>{' '}
-                  and enter your mobile number into the labeled phone input field. You
-                  must explicitly type your number — we never auto-fill or pull it from
-                  any other source.
+                  and enter your mobile number. Before you can proceed, you must read the
+                  consent disclosure and check the box confirming:
+                </p>
+                {/* Replica of the actual opt-in form users see */}
+                <div className="mt-4 rounded-lg border border-slate-600 bg-slate-800/50 p-4">
+                  <p className="text-sm text-slate-300 mb-3">
+                    By checking the box below and clicking &quot;Send Code,&quot; I agree to receive
+                    recurring automated SMS text messages from FundingScout containing
+                    real-time funding alerts matching my saved filters. Up to 10 messages
+                    per day. Message and data rates may apply. Consent is not a condition
+                    of any purchase. Reply STOP at any time to unsubscribe, or HELP for
+                    help.
+                  </p>
+                  <label className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      disabled
+                      className="w-4 h-4 mt-0.5 rounded border-slate-600 bg-slate-700"
+                    />
+                    <span className="text-sm text-white font-medium">
+                      I agree to receive SMS text messages from FundingScout
+                    </span>
+                  </label>
+                </div>
+                <p className="mt-3 text-sm text-slate-400">
+                  The &quot;Send Code&quot; button remains disabled until you check the consent
+                  checkbox. You must explicitly type your number — we never auto-fill or
+                  pull it from any other source.
                 </p>
               </div>
             </li>
