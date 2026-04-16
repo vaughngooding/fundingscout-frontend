@@ -109,6 +109,7 @@ export default function SettingsForm({
   const [verificationCode, setVerificationCode] = useState('')
   const [codeSent, setCodeSent] = useState(false)
   const [phoneLoading, setPhoneLoading] = useState(false)
+  const [smsConsent, setSmsConsent] = useState(false)
   // iMessage is deferred to v1.1 (pending business Apple ID setup).
   // Field stays in DB so the dispatcher and UI can light up later without a migration.
   const [imessageEnabled] = useState(initialPreferences.imessage_enabled ?? false)
@@ -905,14 +906,41 @@ export default function SettingsForm({
                     placeholder="+1 (555) 123-4567"
                     className="flex-1 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
                   />
+                </div>
+                <div className="rounded-lg border border-slate-600 bg-slate-800/50 p-4">
+                  <p className="text-sm text-slate-300 mb-3">
+                    By checking the box below and clicking &quot;Send Code,&quot; I agree to receive
+                    recurring automated SMS text messages from FundingScout containing
+                    real-time funding alerts matching my saved filters. Up to 10 messages
+                    per day. Message and data rates may apply. Consent is not a condition
+                    of any purchase. Reply STOP at any time to unsubscribe, or HELP for
+                    help.
+                  </p>
+                  <label className="flex items-start gap-3 cursor-pointer mb-3">
+                    <input
+                      type="checkbox"
+                      checked={smsConsent}
+                      onChange={(e) => setSmsConsent(e.target.checked)}
+                      className="w-4 h-4 mt-0.5 rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-white font-medium">
+                      I agree to receive SMS text messages from FundingScout
+                    </span>
+                  </label>
                   <button
                     type="button"
                     onClick={handleSendCode}
-                    disabled={phoneLoading || !phoneNumber.trim()}
-                    className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors disabled:opacity-50"
+                    disabled={phoneLoading || !phoneNumber.trim() || !smsConsent}
+                    className="w-full px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors disabled:opacity-50"
                   >
                     {phoneLoading ? 'Sending...' : 'Send Code'}
                   </button>
+                  <p className="text-xs text-slate-500 mt-2">
+                    See our{' '}
+                    <a href="/sms" className="text-emerald-400 hover:underline">SMS terms</a>{' '}
+                    and{' '}
+                    <a href="/privacy" className="text-emerald-400 hover:underline">Privacy Policy</a>.
+                  </p>
                 </div>
                 {codeSent && (
                   <div className="flex gap-2">
@@ -934,17 +962,6 @@ export default function SettingsForm({
                     </button>
                   </div>
                 )}
-                <p className="text-xs text-slate-500">
-                  By clicking Send Code and entering the verification code we send to
-                  the number above, you expressly consent to receive recurring
-                  automated SMS funding alerts from FundingScout matching your saved
-                  filters. Up to 10 messages per day. Message and data rates may apply.
-                  Consent is not a condition of any purchase. Reply STOP at any time to
-                  unsubscribe, or HELP for help. See our{' '}
-                  <a href="/sms" className="text-emerald-400 hover:underline">SMS terms</a>{' '}
-                  and{' '}
-                  <a href="/privacy" className="text-emerald-400 hover:underline">Privacy Policy</a>.
-                </p>
               </div>
             )}
           </div>
