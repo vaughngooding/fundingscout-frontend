@@ -35,6 +35,10 @@ interface FundingRound {
   created_at: string
   // Phase 6: enrichment fields (CEO + website source tracking)
   ceo_name: string | null
+  // Phase 7: Kirha/Apollo CEO contact enrichment
+  ceo_email: string | null
+  ceo_linkedin_url: string | null
+  ceo_email_source: string | null
   enrichment_attempted_at: string | null
 }
 
@@ -138,6 +142,15 @@ function buildSlackWebhookPayload(round: FundingRound) {
     { type: 'section', fields },
   ]
 
+  // Phase 7: CEO contact card (Kirha/Apollo enrichment)
+  const ceoContext = buildCeoContextLine(round)
+  if (ceoContext) {
+    blocks.push({
+      type: 'context',
+      elements: [{ type: 'mrkdwn', text: ceoContext }],
+    })
+  }
+
   if (round.industry || (round.industry_tags && round.industry_tags.length > 0)) {
     const tags = round.industry_tags?.length > 0 ? round.industry_tags.join(', ') : round.industry
     blocks.push({
@@ -162,6 +175,22 @@ function buildSlackWebhookPayload(round: FundingRound) {
 
   blocks.push({ type: 'divider' })
   return { blocks }
+}
+
+// Phase 7: Shared helper for the CEO • email • LinkedIn line.
+// Returns Slack mrkdwn formatted string, or null if no enrichment data.
+function buildCeoContextLine(round: FundingRound): string | null {
+  const parts: string[] = []
+  if (round.ceo_name) {
+    parts.push(`*CEO:* ${round.ceo_name}`)
+  }
+  if (round.ceo_email) {
+    parts.push(`<mailto:${round.ceo_email}|${round.ceo_email}>`)
+  }
+  if (round.ceo_linkedin_url) {
+    parts.push(`<${round.ceo_linkedin_url}|LinkedIn>`)
+  }
+  return parts.length > 0 ? parts.join(' • ') : null
 }
 
 // ---------------------------------------------------------------------------
@@ -195,6 +224,15 @@ function buildSlackAppPayload(round: FundingRound, alertId: string) {
       ],
     },
   ]
+
+  // Phase 7: CEO contact card
+  const ceoContextApp = buildCeoContextLine(round)
+  if (ceoContextApp) {
+    blocks.push({
+      type: 'context',
+      elements: [{ type: 'mrkdwn', text: ceoContextApp }],
+    })
+  }
 
   if (round.industry || (round.industry_tags && round.industry_tags.length > 0)) {
     const tags = round.industry_tags?.length > 0 ? round.industry_tags.join(', ') : round.industry
@@ -255,6 +293,10 @@ function buildTeamsPayload(round: FundingRound) {
   ]
 
   if (round.website) facts.push({ name: 'Website', value: round.website })
+  // Phase 7: CEO contact enrichment (Kirha/Apollo)
+  if (round.ceo_name) facts.push({ name: 'CEO', value: round.ceo_name })
+  if (round.ceo_email) facts.push({ name: 'CEO Email', value: round.ceo_email })
+  if (round.ceo_linkedin_url) facts.push({ name: 'CEO LinkedIn', value: round.ceo_linkedin_url })
   if (round.investors?.length > 0) facts.push({ name: 'Investors', value: round.investors.join(', ') })
   if (round.lead_investor) facts.push({ name: 'Lead Investor', value: round.lead_investor })
   if (round.industry) facts.push({ name: 'Industry', value: round.industry })
@@ -314,7 +356,15 @@ function buildTelegramPayload(round: FundingRound) {
   text += `<b>Round:</b> ${escapeHtml(round.funding_type)}\n`
   text += `<b>Location:</b> ${escapeHtml(location)}\n`
   if (ceoLabel) {
-    text += `<b>CEO:</b> ${escapeHtml(ceoLabel)}\n`
+    // Phase 7: if we have a verified Apollo email, show it inline with the CEO.
+    // Also link LinkedIn URL when available.
+    if (round.ceo_email) {
+      text += `<b>CEO:</b> ${escapeHtml(ceoLabel)} (<a href="mailto:${escapeHtml(round.ceo_email)}">${escapeHtml(round.ceo_email)}</a>)\n`
+    } else if (round.ceo_linkedin_url) {
+      text += `<b>CEO:</b> <a href="${escapeHtml(round.ceo_linkedin_url)}">${escapeHtml(ceoLabel)}</a>\n`
+    } else {
+      text += `<b>CEO:</b> ${escapeHtml(ceoLabel)}\n`
+    }
   }
   if (websiteDisplay) {
     if (websiteRaw) {
@@ -717,6 +767,9 @@ Deno.serve(async (req: Request) => {
           published_date,
           created_at,
           ceo_name,
+          ceo_email,
+          ceo_linkedin_url,
+          ceo_email_source,
           enrichment_attempted_at
         ),
         profile:profiles!inner (

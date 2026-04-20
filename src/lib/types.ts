@@ -20,6 +20,10 @@ export interface FundingRound {
   ceo_name: string | null
   website_source: string | null
   ceo_source: string | null
+  // Phase 7: Kirha/Apollo CEO contact enrichment
+  ceo_email: string | null
+  ceo_linkedin_url: string | null
+  ceo_email_source: string | null
   enrichment_attempted_at: string | null
   // Layer 1 enrichment: extracted from article at zero cost
   company_description: string | null
