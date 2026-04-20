@@ -282,7 +282,22 @@ function aggregateUsageByDay(agentRuns: AgentRun[]): DailyUsage[] {
     }
 
     existing.runs++
-    const s = run.summary as Record<string, number> | null
+    // The `summary` column is TEXT in the DB (the scraper writes
+    // `json.dumps(...)` into it), so Supabase returns it as a string
+    // here — NOT as a parsed object. Previous code cast-as-object and
+    // silently read `undefined` for every field, which is why the Usage
+    // tab showed '—' for tokens/cost even though the data existed.
+    let s: Record<string, number> | null = null
+    const raw = run.summary as unknown
+    if (typeof raw === 'string' && raw.length > 0) {
+      try {
+        s = JSON.parse(raw) as Record<string, number>
+      } catch {
+        s = null
+      }
+    } else if (raw && typeof raw === 'object') {
+      s = raw as Record<string, number>
+    }
     if (s) {
       existing.articles += s.new_articles || 0
       if (s.api_calls !== undefined) {
