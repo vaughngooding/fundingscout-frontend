@@ -7,8 +7,8 @@ const corsHeaders = {
 
 interface FundingRound {
   company_name: string
-  amount: number | null
-  round_type: string | null
+  amount_usd: number | null
+  funding_type: string | null
   location: string | null
   investors: string[] | null
   article_url: string | null
@@ -22,62 +22,84 @@ interface UserAlert {
 
 interface UserPreference {
   user_id: string
-  digest_hour: number
-  timezone: string
+  digest_frequency: string | null
+  digest_hour: number | null
   profiles: {
     email: string
     full_name: string | null
     plan: string
+    timezone: string | null
   }
 }
 
-function formatAmount(amount: number | null, roundType: string | null): string {
-  if (!amount) {
-    return roundType ? `${roundType} Round` : 'Undisclosed Amount'
+// Default digest hour when the user hasn't set one — "end of day" per product
+// spec. 20 local = 8pm user time.
+const DEFAULT_DIGEST_HOUR = 20
+// Weekly digest fires on this day of week (0=Sunday, 1=Monday, ..., 5=Friday,
+// 6=Saturday). Friday = end of work week, matches standard "week in review"
+// cadence. If you change this, also update the scheduler cron comment.
+const WEEKLY_DIGEST_DOW = 5
+
+function formatAmount(amountUsd: number | null, fundingType: string | null): string {
+  if (!amountUsd) {
+    return fundingType ? `${fundingType} Round` : 'Undisclosed Amount'
   }
 
   let formatted: string
-  if (amount >= 1_000_000_000) {
-    formatted = `$${(amount / 1_000_000_000).toFixed(1).replace(/\.0$/, '')}B`
-  } else if (amount >= 1_000_000) {
-    formatted = `$${(amount / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`
-  } else if (amount >= 1_000) {
-    formatted = `$${(amount / 1_000).toFixed(0)}K`
+  if (amountUsd >= 1_000_000_000) {
+    formatted = `$${(amountUsd / 1_000_000_000).toFixed(1).replace(/\.0$/, '')}B`
+  } else if (amountUsd >= 1_000_000) {
+    formatted = `$${(amountUsd / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`
+  } else if (amountUsd >= 1_000) {
+    formatted = `$${(amountUsd / 1_000).toFixed(0)}K`
   } else {
-    formatted = `$${amount}`
+    formatted = `$${amountUsd}`
   }
 
-  return roundType ? `${formatted} ${roundType} Round` : formatted
+  return fundingType ? `${formatted} ${fundingType} Round` : formatted
 }
 
-function getUtcHourForTimezone(timezone: string): number {
+// Returns {hour, dayOfWeek} in the given IANA timezone (e.g. "America/New_York").
+// Falls back to UTC if the timezone string is invalid.
+function getLocalTime(timezone: string | null): { hour: number; dayOfWeek: number } {
+  const now = new Date()
   try {
-    const now = new Date()
-    const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: timezone,
+    const tz = timezone || 'UTC'
+    const hourFmt = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
       hour: 'numeric',
       hour12: false,
     })
-    const localHour = parseInt(formatter.format(now), 10)
-    return localHour
+    const weekdayFmt = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
+      weekday: 'short',
+    })
+    const hour = parseInt(hourFmt.format(now), 10)
+    const weekday = weekdayFmt.format(now)
+    const dayMap: Record<string, number> = {
+      Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
+    }
+    return { hour, dayOfWeek: dayMap[weekday] ?? now.getUTCDay() }
   } catch {
-    // Default to UTC if timezone is invalid
-    return new Date().getUTCHours()
+    return { hour: now.getUTCHours(), dayOfWeek: now.getUTCDay() }
   }
 }
 
 function buildEmailHtml(
   userName: string | null,
   alerts: UserAlert[],
-  appBaseUrl: string
+  appBaseUrl: string,
+  cadence: 'daily' | 'weekly',
 ): string {
   const greeting = userName ? `Hi ${userName},` : 'Hi there,'
   const alertCount = alerts.length
+  const periodLabel = cadence === 'weekly' ? 'weekly' : 'daily'
+  const periodText = cadence === 'weekly' ? 'this week' : 'today'
 
   const alertRows = alerts
     .map((alert) => {
       const fr = alert.funding_round
-      const amountText = formatAmount(fr.amount, fr.round_type)
+      const amountText = formatAmount(fr.amount_usd, fr.funding_type)
       const locationLine = fr.location
         ? `<p style="margin:0;color:#6b7280;font-size:14px;">${fr.location}</p>`
         : ''
@@ -120,7 +142,7 @@ function buildEmailHtml(
           <tr>
             <td style="background:linear-gradient(135deg,#2563eb,#7c3aed);padding:24px 32px;">
               <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;letter-spacing:-0.5px;">FundingScout</h1>
-              <p style="margin:4px 0 0 0;color:#dbeafe;font-size:14px;">Your daily funding digest</p>
+              <p style="margin:4px 0 0 0;color:#dbeafe;font-size:14px;">Your ${periodLabel} funding digest</p>
             </td>
           </tr>
 
@@ -129,7 +151,7 @@ function buildEmailHtml(
             <td style="padding:24px 24px 8px 24px;">
               <p style="margin:0;font-size:15px;color:#374151;">${greeting}</p>
               <p style="margin:8px 0 0 0;font-size:15px;color:#374151;">
-                You have <strong>${alertCount} new funding alert${alertCount !== 1 ? 's' : ''}</strong> matching your criteria.
+                You have <strong>${alertCount} new funding alert${alertCount !== 1 ? 's' : ''}</strong> ${periodText} matching your criteria.
               </p>
             </td>
           </tr>
@@ -189,29 +211,25 @@ Deno.serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     // ---------------------------------------------------------------
-    // 1. Determine the current UTC hour
-    // ---------------------------------------------------------------
-    const currentUtcHour = new Date().getUTCHours()
-
-    // ---------------------------------------------------------------
-    // 2. Find users whose digest_hour matches the current hour in
-    //    their local timezone.
-    //    We fetch all preferences and filter in code because timezone
-    //    offset math is non-trivial in SQL.
+    // 1. Fetch every user whose digest_frequency is daily or weekly.
+    //    We pull timezone from profiles (not user_preferences — there's
+    //    no timezone column there). Filtering by digest_hour + day-of-week
+    //    is done in code because timezone arithmetic is messy in SQL.
     // ---------------------------------------------------------------
     const { data: preferences, error: prefError } = await supabase
       .from('user_preferences')
       .select(`
         user_id,
+        digest_frequency,
         digest_hour,
-        timezone,
         profiles!inner (
           email,
           full_name,
-          plan
+          plan,
+          timezone
         )
       `)
-      .eq('email_notifications', true)
+      .in('digest_frequency', ['daily', 'weekly'])
 
     if (prefError) {
       throw new Error(`Failed to fetch user preferences: ${prefError.message}`)
@@ -219,27 +237,48 @@ Deno.serve(async (req: Request) => {
 
     if (!preferences || preferences.length === 0) {
       return new Response(
-        JSON.stringify({ success: true, emails_sent: 0, message: 'No users with email notifications enabled.' }),
+        JSON.stringify({ success: true, emails_sent: 0, message: 'No users with digest enabled.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Filter to users whose local hour matches their preferred digest_hour
+    // ---------------------------------------------------------------
+    // 2. Filter to users whose LOCAL hour matches their digest_hour
+    //    (default 20 / 8pm local). Weekly digests additionally require
+    //    today to be the configured day-of-week (Friday by default).
+    // ---------------------------------------------------------------
     const eligibleUsers = (preferences as unknown as UserPreference[]).filter((pref) => {
-      const localHour = getUtcHourForTimezone(pref.timezone)
-      return localHour === pref.digest_hour
+      const { hour, dayOfWeek } = getLocalTime(pref.profiles.timezone)
+      const targetHour = pref.digest_hour ?? DEFAULT_DIGEST_HOUR
+
+      if (hour !== targetHour) {
+        return false
+      }
+
+      if (pref.digest_frequency === 'weekly') {
+        return dayOfWeek === WEEKLY_DIGEST_DOW
+      }
+
+      // daily
+      return true
     })
 
     if (eligibleUsers.length === 0) {
       return new Response(
-        JSON.stringify({ success: true, emails_sent: 0, message: 'No users scheduled for this hour.' }),
+        JSON.stringify({
+          success: true,
+          emails_sent: 0,
+          candidates_checked: preferences.length,
+          message: 'No users scheduled for this hour.',
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     // ---------------------------------------------------------------
     // 3. For each eligible user, fetch pending alerts, send email,
-    //    and mark alerts as sent.
+    //    and mark alerts as sent. Weekly users get the last 7 days of
+    //    alerts; daily users get whatever has accumulated as pending.
     // ---------------------------------------------------------------
     let emailsSent = 0
     const errors: string[] = []
@@ -247,27 +286,40 @@ Deno.serve(async (req: Request) => {
     for (const user of eligibleUsers) {
       try {
         const isFreeUser = user.profiles.plan === 'free'
-        const alertLimit = isFreeUser ? 3 : 50
+        const alertLimit = isFreeUser ? 10 : 50
+        const cadence: 'daily' | 'weekly' =
+          user.digest_frequency === 'weekly' ? 'weekly' : 'daily'
 
-        // Fetch pending alerts joined with funding_rounds
-        const { data: pendingAlerts, error: alertError } = await supabase
+        // Weekly digest: include all alerts (sent or pending) from the
+        // last 7 days, so Pro users who already got real-time alerts also
+        // get a weekly recap. Daily digest: only pending alerts (users on
+        // real-time channels have already seen everything marked 'sent').
+        let alertQuery = supabase
           .from('user_alerts')
           .select(`
             id,
             created_at,
             funding_round:funding_rounds (
               company_name,
-              amount,
-              round_type,
+              amount_usd,
+              funding_type,
               location,
               investors,
               article_url
             )
           `)
           .eq('user_id', user.user_id)
-          .eq('status', 'pending')
           .order('created_at', { ascending: false })
           .limit(alertLimit)
+
+        if (cadence === 'weekly') {
+          const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+          alertQuery = alertQuery.gte('created_at', sevenDaysAgo)
+        } else {
+          alertQuery = alertQuery.eq('status', 'pending')
+        }
+
+        const { data: pendingAlerts, error: alertError } = await alertQuery
 
         if (alertError) {
           errors.push(`User ${user.user_id}: failed to fetch alerts — ${alertError.message}`)
@@ -281,9 +333,10 @@ Deno.serve(async (req: Request) => {
         const alerts = pendingAlerts as unknown as UserAlert[]
 
         // Build the email HTML
-        const html = buildEmailHtml(user.profiles.full_name, alerts, appBaseUrl)
+        const html = buildEmailHtml(user.profiles.full_name, alerts, appBaseUrl, cadence)
         const alertCount = alerts.length
-        const subject = `Your Funding Digest — ${alertCount} new alert${alertCount !== 1 ? 's' : ''}`
+        const periodPrefix = cadence === 'weekly' ? 'Weekly' : 'Daily'
+        const subject = `Your ${periodPrefix} Funding Digest — ${alertCount} alert${alertCount !== 1 ? 's' : ''}`
 
         // Send via Resend
         const resendResponse = await fetch('https://api.resend.com/emails', {
@@ -306,19 +359,23 @@ Deno.serve(async (req: Request) => {
           continue
         }
 
-        // Mark alerts as sent
-        const alertIds = alerts.map((a) => a.id)
-        const { error: updateError } = await supabase
-          .from('user_alerts')
-          .update({
-            status: 'sent',
-            email_sent_at: new Date().toISOString(),
-          })
-          .in('id', alertIds)
+        // Mark alerts as sent (daily only — for weekly we just show a
+        // recap and don't flip status, since 'sent' already means
+        // real-time-delivered).
+        if (cadence === 'daily') {
+          const alertIds = alerts.map((a) => a.id)
+          const { error: updateError } = await supabase
+            .from('user_alerts')
+            .update({
+              status: 'sent',
+              email_sent_at: new Date().toISOString(),
+            })
+            .in('id', alertIds)
 
-        if (updateError) {
-          errors.push(`User ${user.user_id}: failed to update alert status — ${updateError.message}`)
-          // Email was still sent, so we count it
+          if (updateError) {
+            errors.push(`User ${user.user_id}: failed to update alert status — ${updateError.message}`)
+            // Email was still sent, so we count it
+          }
         }
 
         emailsSent++
@@ -335,7 +392,7 @@ Deno.serve(async (req: Request) => {
       success: true,
       emails_sent: emailsSent,
       users_eligible: eligibleUsers.length,
-      current_utc_hour: currentUtcHour,
+      candidates_checked: preferences.length,
     }
 
     if (errors.length > 0) {
@@ -352,7 +409,7 @@ Deno.serve(async (req: Request) => {
         summary: {
           emails_sent: emailsSent,
           users_eligible: eligibleUsers.length,
-          utc_hour: currentUtcHour,
+          candidates_checked: preferences.length,
         },
         metadata: errors.length > 0 ? { errors: errors.slice(0, 10) } : undefined,
       })
