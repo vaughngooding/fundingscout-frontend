@@ -253,10 +253,10 @@ export default function PrivacyPage() {
               <p className="mt-3 text-sm leading-relaxed text-slate-400">
                 Questions about this policy or your data? Email{' '}
                 <a
-                  href="mailto:support@fundingscout.io"
+                  href="mailto:info@fundingscout.io"
                   className="text-emerald-400 underline-offset-2 hover:underline"
                 >
-                  support@fundingscout.io
+                  info@fundingscout.io
                 </a>
                 .
               </p>

@@ -247,10 +247,10 @@ export default function SmsOptInPage() {
                 FundingScout message to receive support contact information. Or email us
                 directly at{' '}
                 <a
-                  href="mailto:support@fundingscout.io"
+                  href="mailto:info@fundingscout.io"
                   className="text-emerald-400 underline-offset-2 hover:underline"
                 >
-                  support@fundingscout.io
+                  info@fundingscout.io
                 </a>
                 .
               </p>
@@ -274,6 +274,118 @@ export default function SmsOptInPage() {
                 for full details on how we handle phone numbers and SMS data.
               </p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SMS Program Terms and Conditions */}
+      <section id="terms" className="px-6 py-12">
+        <div className="mx-auto max-w-3xl">
+          <h2 className="text-2xl font-bold tracking-tight">
+            SMS Program Terms and Conditions
+          </h2>
+          <p className="mt-3 text-sm text-slate-500">
+            Last updated: April 2026
+          </p>
+
+          <div className="mt-6 space-y-5 rounded-2xl border border-slate-700 bg-slate-800/60 p-6 text-sm leading-relaxed text-slate-400">
+            <p>
+              <span className="font-semibold text-slate-200">1. Program description.</span>{' '}
+              The FundingScout SMS alert program ("Program") delivers automated text
+              message notifications about startup funding rounds that match the alert
+              filters you save in your FundingScout account. The Program is operated by
+              FundingScout ("we," "us," "our").
+            </p>
+            <p>
+              <span className="font-semibold text-slate-200">2. Eligibility.</span>{' '}
+              You must be at least 18 years old and the account holder or authorized
+              user of the mobile phone number you enroll. You must have a valid
+              FundingScout account and have completed the double opt-in verification
+              described above.
+            </p>
+            <p>
+              <span className="font-semibold text-slate-200">3. Consent.</span>{' '}
+              By checking the consent box on your Settings page and completing SMS
+              verification, you expressly consent to receive recurring automated text
+              messages from FundingScout at the mobile number you provided. Consent is
+              not a condition of purchase of any FundingScout product or service.
+            </p>
+            <p>
+              <span className="font-semibold text-slate-200">4. Message frequency.</span>{' '}
+              You will receive up to 10 messages per day. Actual frequency depends on
+              the breadth of your saved filters and how many funding rounds match on a
+              given day. Most users receive fewer than 5 messages per day.
+            </p>
+            <p>
+              <span className="font-semibold text-slate-200">5. Costs.</span>{' '}
+              FundingScout does not charge a per-message fee for SMS alerts. Message
+              and data rates from your mobile carrier may apply. Contact your carrier
+              for pricing on SMS and data services.
+            </p>
+            <p>
+              <span className="font-semibold text-slate-200">6. Supported carriers.</span>{' '}
+              The Program is available on all major U.S. wireless carriers, including
+              AT&amp;T, T-Mobile, Verizon Wireless, and their MVNOs. Carriers are not
+              liable for delayed or undelivered messages.
+            </p>
+            <p>
+              <span className="font-semibold text-slate-200">7. How to opt out.</span>{' '}
+              You may cancel the Program at any time by replying{' '}
+              <span className="font-mono text-slate-200">STOP</span> to any FundingScout
+              message. You will receive a single confirmation message and will not
+              receive any further SMS notifications. You may also remove your phone
+              number from Settings → Phone Notifications.
+            </p>
+            <p>
+              <span className="font-semibold text-slate-200">8. How to get help.</span>{' '}
+              Reply <span className="font-mono text-slate-200">HELP</span> to any
+              FundingScout message, or email{' '}
+              <a
+                href="mailto:info@fundingscout.io"
+                className="text-emerald-400 underline-offset-2 hover:underline"
+              >
+                info@fundingscout.io
+              </a>
+              .
+            </p>
+            <p>
+              <span className="font-semibold text-slate-200">9. No warranty.</span>{' '}
+              FundingScout alerts are provided on an "as-is" basis for informational
+              purposes only. We do not guarantee the accuracy, timeliness, or delivery
+              of any message, and we are not responsible for investment, business, or
+              other decisions made based on the content of any alert. Nothing in an
+              SMS alert constitutes investment advice or a recommendation to buy or
+              sell any security.
+            </p>
+            <p>
+              <span className="font-semibold text-slate-200">10. Changes.</span>{' '}
+              We may modify or terminate the Program at any time, with or without
+              notice. Continued use of the Program after changes constitutes
+              acceptance of the updated terms.
+            </p>
+            <p>
+              <span className="font-semibold text-slate-200">11. Privacy.</span>{' '}
+              Information collected in connection with the Program is handled
+              according to our{' '}
+              <Link
+                href="/privacy"
+                className="text-emerald-400 underline-offset-2 hover:underline"
+              >
+                Privacy Policy
+              </Link>
+              .
+            </p>
+            <p>
+              <span className="font-semibold text-slate-200">12. Contact.</span>{' '}
+              Questions about these Terms? Email{' '}
+              <a
+                href="mailto:info@fundingscout.io"
+                className="text-emerald-400 underline-offset-2 hover:underline"
+              >
+                info@fundingscout.io
+              </a>
+              .
+            </p>
           </div>
         </div>
       </section>
