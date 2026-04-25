@@ -87,6 +87,42 @@ interface UserStats {
   mrr: number
 }
 
+interface EngagementRow {
+  id: string
+  email: string
+  full_name: string | null
+  plan: 'free' | 'pro'
+  created_at: string
+  last_sign_in_at: string | null
+  alerts_read: number
+  bookmarks: number
+  channels_configured: number
+  sessions_7d: number
+  time_on_site_7d_min: number
+}
+
+interface EngagementStats {
+  total: number
+  active7d: number
+  active30d: number
+  neverLoggedIn: number
+  zombie: number
+  activated: number
+}
+
+interface Funnel {
+  signedUp: number
+  loggedIn: number
+  readAlert: number
+  bookmarked: number
+  configuredChannel: number
+}
+
+interface AnonymousDay {
+  date: string
+  visitors: number
+}
+
 interface Props {
   agentRuns: AgentRun[]
   audits: AuditRow[]
@@ -94,9 +130,15 @@ interface Props {
   qualityStats: QualityStats
   userRows: UserRow[]
   userStats: UserStats
+  engagementRows: EngagementRow[]
+  engagementStats: EngagementStats
+  funnel: Funnel
+  topPages: [string, number][]
+  anonymousDaily: AnonymousDay[]
+  eventsTableMissing: boolean
 }
 
-type Tab = 'users' | 'quality' | 'usage'
+type Tab = 'users' | 'engagement' | 'quality' | 'usage'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -349,6 +391,12 @@ export default function AdminClient({
   qualityStats,
   userRows,
   userStats,
+  engagementRows,
+  engagementStats,
+  funnel,
+  topPages,
+  anonymousDaily,
+  eventsTableMissing,
 }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('users')
   const [runsExpanded, setRunsExpanded] = useState(false)
@@ -361,6 +409,7 @@ export default function AdminClient({
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'users', label: 'Users' },
+    { key: 'engagement', label: 'Engagement' },
     { key: 'quality', label: 'Quality' },
     { key: 'usage', label: 'Usage' },
   ]
@@ -394,6 +443,16 @@ export default function AdminClient({
       {/* Tab Content */}
       {activeTab === 'users' && (
         <UsersTab rows={userRows} stats={userStats} />
+      )}
+      {activeTab === 'engagement' && (
+        <EngagementTab
+          rows={engagementRows}
+          stats={engagementStats}
+          funnel={funnel}
+          topPages={topPages}
+          anonymousDaily={anonymousDaily}
+          eventsTableMissing={eventsTableMissing}
+        />
       )}
       {activeTab === 'quality' && (
         <QualityTab
@@ -1059,6 +1118,270 @@ function UsageTab({
           </table>
         </div>
       </section>
+    </>
+  )
+}
+
+// ===========================================================================
+// Engagement Tab
+// ===========================================================================
+
+function lastSignInLabel(iso: string | null): string {
+  if (!iso) return 'Never'
+  return timeAgo(iso)
+}
+
+function engagementScore(r: EngagementRow): number {
+  const now = Date.now()
+  const ageDays = r.last_sign_in_at
+    ? (now - new Date(r.last_sign_in_at).getTime()) / (24 * 60 * 60 * 1000)
+    : Infinity
+  const loginPts = ageDays <= 7 ? 30 : ageDays <= 30 ? 15 : 0
+  const readPts = Math.min(r.alerts_read * 2, 25)
+  const bookmarkPts = Math.min(r.bookmarks * 5, 20)
+  const channelPts = Math.min(r.channels_configured * 5, 25)
+  return loginPts + readPts + bookmarkPts + channelPts
+}
+
+function scoreColor(score: number): string {
+  if (score >= 70) return 'text-emerald-400'
+  if (score >= 40) return 'text-amber-400'
+  if (score >= 15) return 'text-slate-300'
+  return 'text-red-400'
+}
+
+function formatTimeOnSite(min: number): string {
+  if (min === 0) return '—'
+  if (min < 60) return `${min}m`
+  return `${(min / 60).toFixed(1)}h`
+}
+
+function EngagementTab({
+  rows,
+  stats,
+  funnel,
+  topPages,
+  anonymousDaily,
+  eventsTableMissing,
+}: {
+  rows: EngagementRow[]
+  stats: EngagementStats
+  funnel: Funnel
+  topPages: [string, number][]
+  anonymousDaily: AnonymousDay[]
+  eventsTableMissing: boolean
+}) {
+  type SortKey = 'score' | 'lastLogin' | 'reads' | 'bookmarks' | 'time'
+  const [sortKey, setSortKey] = useState<SortKey>('lastLogin')
+
+  const sorted = useMemo(() => {
+    const copy = [...rows]
+    if (sortKey === 'score') {
+      copy.sort((a, b) => engagementScore(b) - engagementScore(a))
+    } else if (sortKey === 'lastLogin') {
+      copy.sort((a, b) => {
+        const at = a.last_sign_in_at ? new Date(a.last_sign_in_at).getTime() : 0
+        const bt = b.last_sign_in_at ? new Date(b.last_sign_in_at).getTime() : 0
+        return bt - at
+      })
+    } else if (sortKey === 'reads') {
+      copy.sort((a, b) => b.alerts_read - a.alerts_read)
+    } else if (sortKey === 'bookmarks') {
+      copy.sort((a, b) => b.bookmarks - a.bookmarks)
+    } else if (sortKey === 'time') {
+      copy.sort((a, b) => b.time_on_site_7d_min - a.time_on_site_7d_min)
+    }
+    return copy
+  }, [rows, sortKey])
+
+  const funnelSteps = [
+    { label: 'Signed up', count: funnel.signedUp },
+    { label: 'Logged in ≥1×', count: funnel.loggedIn },
+    { label: 'Read an alert', count: funnel.readAlert },
+    { label: 'Bookmarked', count: funnel.bookmarked },
+    { label: 'Set up channel', count: funnel.configuredChannel },
+  ]
+  const funnelMax = funnelSteps[0].count || 1
+
+  return (
+    <>
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <SummaryCard label="Total users" value={stats.total.toString()} />
+        <SummaryCard label="Active 7d" value={stats.active7d.toString()} color="emerald" />
+        <SummaryCard label="Active 30d" value={stats.active30d.toString()} color="blue" />
+        <SummaryCard label="Never logged in" value={stats.neverLoggedIn.toString()} color={stats.neverLoggedIn > 0 ? 'red' : undefined} />
+        <SummaryCard label="Zombie" value={stats.zombie.toString()} sub="logged in, no engagement" color={stats.zombie > 0 ? 'amber' : undefined} />
+        <SummaryCard label="Activated" value={stats.activated.toString()} sub="login + read + channel" color="emerald" />
+      </div>
+
+      {eventsTableMissing && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-amber-200">
+          Page-tracker events table not found. Time-on-site, sessions, top pages, and anonymous traffic
+          will populate after the <code className="text-xs bg-slate-900 px-1.5 py-0.5 rounded">user_events</code> migration is applied.
+        </div>
+      )}
+
+      {/* Activation funnel */}
+      <section className="rounded-xl border border-slate-700/50 bg-slate-900 overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-700/50">
+          <h2 className="text-base font-semibold text-white">Activation funnel</h2>
+          <p className="text-xs text-slate-400">Signup → first login → first alert read → bookmark → channel set up</p>
+        </div>
+        <div className="p-4 space-y-2">
+          {funnelSteps.map((step, i) => {
+            const pct = (step.count / funnelMax) * 100
+            const drop = i > 0 ? funnelSteps[i - 1].count - step.count : 0
+            return (
+              <div key={step.label} className="flex items-center gap-3">
+                <div className="w-32 text-sm text-slate-300">{step.label}</div>
+                <div className="flex-1 h-7 bg-slate-950 rounded-md overflow-hidden border border-slate-800">
+                  <div
+                    className="h-full bg-emerald-500/60 flex items-center px-2 text-xs font-semibold text-white transition-all"
+                    style={{ width: `${pct}%` }}
+                  >
+                    {step.count}
+                  </div>
+                </div>
+                <div className="w-24 text-right text-xs text-slate-400">
+                  {i === 0 ? '—' : drop > 0 ? `−${drop} dropped` : 'no drop'}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </section>
+
+      {/* Top pages + Anonymous traffic */}
+      <div className="grid md:grid-cols-2 gap-4">
+        <section className="rounded-xl border border-slate-700/50 bg-slate-900 overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-700/50">
+            <h2 className="text-base font-semibold text-white">Top pages (logged-in)</h2>
+            <p className="text-xs text-slate-400">Most-visited dashboard pages, last 30 days</p>
+          </div>
+          <div className="p-4">
+            {topPages.length === 0 ? (
+              <p className="text-sm text-slate-500">No page-view data yet.</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {topPages.map(([path, count]) => (
+                  <li key={path} className="flex items-center justify-between text-sm">
+                    <code className="text-slate-300 truncate">{path}</code>
+                    <span className="text-slate-400 ml-2 tabular-nums">{count}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-slate-700/50 bg-slate-900 overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-700/50">
+            <h2 className="text-base font-semibold text-white">Anonymous landing traffic</h2>
+            <p className="text-xs text-slate-400">Distinct anonymous visitors per day</p>
+          </div>
+          <div className="p-4">
+            {anonymousDaily.length === 0 ? (
+              <p className="text-sm text-slate-500">No anonymous traffic recorded yet.</p>
+            ) : (
+              <ul className="space-y-1">
+                {anonymousDaily.map(d => (
+                  <li key={d.date} className="flex items-center justify-between text-sm">
+                    <span className="text-slate-400 tabular-nums">{d.date}</span>
+                    <span className="text-slate-200 font-medium tabular-nums">{d.visitors}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
+      </div>
+
+      {/* Per-user table */}
+      <div className="rounded-xl border border-slate-700/50 overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-700/50 bg-slate-900 flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-white">Per-user engagement</h2>
+            <p className="text-xs text-slate-400">Click a column header to sort</p>
+          </div>
+          <div className="text-xs text-slate-500">
+            Sorted by <span className="text-slate-300">{
+              sortKey === 'score' ? 'engagement score'
+              : sortKey === 'lastLogin' ? 'last login'
+              : sortKey === 'reads' ? 'alerts read'
+              : sortKey === 'bookmarks' ? 'bookmarks'
+              : 'time on site'
+            }</span>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-900 border-b border-slate-700/50">
+              <tr className="text-xs uppercase tracking-wider text-slate-400">
+                <th className="px-3 py-3 text-left font-semibold">User</th>
+                <th className="px-3 py-3 text-left font-semibold">Plan</th>
+                <th className="px-3 py-3 text-left font-semibold">Joined</th>
+                <th
+                  onClick={() => setSortKey('lastLogin')}
+                  className={`px-3 py-3 text-left font-semibold cursor-pointer hover:text-slate-200 ${sortKey === 'lastLogin' ? 'text-white' : ''}`}
+                >Last login {sortKey === 'lastLogin' && '↓'}</th>
+                <th
+                  onClick={() => setSortKey('time')}
+                  className={`px-3 py-3 text-right font-semibold cursor-pointer hover:text-slate-200 ${sortKey === 'time' ? 'text-white' : ''}`}
+                >Time 7d {sortKey === 'time' && '↓'}</th>
+                <th className="px-3 py-3 text-right font-semibold">Sessions 7d</th>
+                <th
+                  onClick={() => setSortKey('reads')}
+                  className={`px-3 py-3 text-right font-semibold cursor-pointer hover:text-slate-200 ${sortKey === 'reads' ? 'text-white' : ''}`}
+                >Reads {sortKey === 'reads' && '↓'}</th>
+                <th
+                  onClick={() => setSortKey('bookmarks')}
+                  className={`px-3 py-3 text-right font-semibold cursor-pointer hover:text-slate-200 ${sortKey === 'bookmarks' ? 'text-white' : ''}`}
+                >Bookmarks {sortKey === 'bookmarks' && '↓'}</th>
+                <th className="px-3 py-3 text-right font-semibold">Channels</th>
+                <th
+                  onClick={() => setSortKey('score')}
+                  className={`px-3 py-3 text-right font-semibold cursor-pointer hover:text-slate-200 ${sortKey === 'score' ? 'text-white' : ''}`}
+                >Score {sortKey === 'score' && '↓'}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map(r => {
+                const score = engagementScore(r)
+                const neverLoggedIn = r.last_sign_in_at === null
+                return (
+                  <tr key={r.id} className="bg-slate-950 hover:bg-slate-900/80 transition-colors border-b border-slate-800/50">
+                    <td className="px-3 py-3">
+                      <div className="text-slate-200 font-medium">{r.full_name || '—'}</div>
+                      <div className="text-xs text-slate-500">{r.email}</div>
+                    </td>
+                    <td className="px-3 py-3">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border ${
+                        r.plan === 'pro'
+                          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                          : 'bg-slate-700/40 text-slate-300 border-slate-600/40'
+                      }`}>{r.plan}</span>
+                    </td>
+                    <td className="px-3 py-3 text-slate-400 text-xs">{formatDate(r.created_at)}</td>
+                    <td className={`px-3 py-3 text-xs ${neverLoggedIn ? 'text-red-400' : 'text-slate-300'}`}>
+                      {lastSignInLabel(r.last_sign_in_at)}
+                    </td>
+                    <td className="px-3 py-3 text-right text-slate-300 tabular-nums">{formatTimeOnSite(r.time_on_site_7d_min)}</td>
+                    <td className="px-3 py-3 text-right text-slate-300 tabular-nums">{r.sessions_7d || '—'}</td>
+                    <td className="px-3 py-3 text-right text-slate-300 tabular-nums">{r.alerts_read || '—'}</td>
+                    <td className="px-3 py-3 text-right text-slate-300 tabular-nums">{r.bookmarks || '—'}</td>
+                    <td className="px-3 py-3 text-right text-slate-300 tabular-nums">{r.channels_configured || '—'}</td>
+                    <td className={`px-3 py-3 text-right font-semibold tabular-nums ${scoreColor(score)}`}>{score}</td>
+                  </tr>
+                )
+              })}
+              {sorted.length === 0 && (
+                <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-500">No users found.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </>
   )
 }

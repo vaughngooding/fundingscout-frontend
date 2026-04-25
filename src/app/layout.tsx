@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import RefCapture from "@/components/RefCapture";
+import PageTracker from "@/components/PageTracker";
 import { AuthProvider } from "@/components/auth-provider";
 import "./globals.css";
 
@@ -34,6 +35,7 @@ export default function RootLayout({
       >
         <AuthProvider>
           <RefCapture />
+          <PageTracker />
           {children}
         </AuthProvider>
       </body>

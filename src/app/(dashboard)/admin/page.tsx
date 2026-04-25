@@ -25,8 +25,8 @@ export default async function AdminDashboard() {
     { auth: { autoRefreshToken: false, persistSession: false } },
   )
 
-  // Fetch ALL data for all 3 tabs in parallel
-  const [agentRunsRes, auditsRes, alertsRes, profilesRes, prefsRes] = await Promise.all([
+  // Fetch ALL data for all 4 tabs in parallel
+  const [agentRunsRes, auditsRes, alertsRes, profilesRes, prefsRes, authUsersRes, eventsRes] = await Promise.all([
     // Quality + Usage tabs
     supabase
       .from('agent_runs')
@@ -38,13 +38,13 @@ export default async function AdminDashboard() {
       .select('*, funding_round:funding_rounds(company_name, source_feed, amount_usd, funding_type)')
       .order('created_at', { ascending: false })
       .limit(100),
-    // Used for both user flags (quality tab) and alert counts (users tab)
+    // Used for user flags (quality), alert counts (users), and engagement (read/bookmark)
     supabase
       .from('user_alerts')
-      .select('id, user_id, user_flag, user_flag_at, funding_round:funding_rounds(company_name)')
+      .select('id, user_id, user_flag, user_flag_at, read_at, is_bookmarked, funding_round:funding_rounds(company_name)')
       .order('user_flag_at', { ascending: false })
       .limit(50000),
-    // Users tab
+    // Users + Engagement tabs
     supabase
       .from('profiles')
       .select('id, email, full_name, company, plan, stripe_customer_id, created_at')
@@ -54,6 +54,16 @@ export default async function AdminDashboard() {
       .select(
         'user_id, linkedin_url, min_amount, max_amount, funding_types, countries, industries, slack_webhook_url, slack_channel_email, teams_webhook_url, teams_channel_email, telegram_chat_id, phone_number, phone_verified, push_subscription, imessage_enabled',
       ),
+    // Engagement tab — last_sign_in_at is exposed by the auth admin API for free
+    supabase.auth.admin.listUsers({ perPage: 1000 }),
+    // Engagement tab — page tracker events (Phase 2). Query is best-effort: if
+    // the table doesn't exist yet (migration not applied), we treat it as empty.
+    supabase
+      .from('user_events')
+      .select('user_id, visitor_id, session_id, event_type, page_path, duration_ms, created_at')
+      // eslint-disable-next-line react-hooks/purity
+      .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+      .limit(200000),
   ])
 
   const agentRuns = agentRunsRes.data || []
@@ -143,6 +153,119 @@ export default async function AdminDashboard() {
   const totalPaying = userRows.filter(r => r.plan === 'pro' && r.stripe_customer_id).length
   const mrr = totalPaying * 89
 
+  // --- Engagement stats (server-computed) ---
+  const authUsers = authUsersRes.data?.users || []
+  const lastSignInByUser = new Map<string, string | null>(
+    authUsers.map(u => [u.id, u.last_sign_in_at ?? null] as const)
+  )
+
+  // Per-user alert engagement
+  const readByUser = new Map<string, number>()
+  const bookmarksByUser = new Map<string, number>()
+  for (const a of allAlerts) {
+    if (a.read_at) readByUser.set(a.user_id, (readByUser.get(a.user_id) || 0) + 1)
+    if (a.is_bookmarked) bookmarksByUser.set(a.user_id, (bookmarksByUser.get(a.user_id) || 0) + 1)
+  }
+
+  function channelsConfigured(p: typeof prefs[number] | undefined): number {
+    if (!p) return 0
+    let n = 0
+    if (p.slack_webhook_url || p.slack_channel_email) n++
+    if (p.teams_webhook_url || p.teams_channel_email) n++
+    if (p.telegram_chat_id) n++
+    if (p.phone_number && p.phone_verified) n++
+    if (p.imessage_enabled) n++
+    if (p.push_subscription) n++
+    return n
+  }
+
+  // --- Page-tracker aggregations (Phase 2 data; safe to be empty) ---
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const events = (eventsRes.data || []) as any[]
+  const eventsTableMissing = !!eventsRes.error
+  // eslint-disable-next-line react-hooks/purity
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+  const sessionsByUser = new Map<string, Set<string>>()
+  const timeMsByUser = new Map<string, number>()
+  const pagePathCounts = new Map<string, number>()
+  const anonymousVisitorsByDay = new Map<string, Set<string>>()
+  for (const e of events) {
+    const t = new Date(e.created_at).getTime()
+    if (e.user_id && t >= sevenDaysAgo) {
+      if (!sessionsByUser.has(e.user_id)) sessionsByUser.set(e.user_id, new Set())
+      sessionsByUser.get(e.user_id)!.add(e.session_id)
+      if (e.event_type === 'session_end' && typeof e.duration_ms === 'number') {
+        timeMsByUser.set(e.user_id, (timeMsByUser.get(e.user_id) || 0) + e.duration_ms)
+      }
+    }
+    if (e.event_type === 'page_view' && e.user_id) {
+      pagePathCounts.set(e.page_path, (pagePathCounts.get(e.page_path) || 0) + 1)
+    }
+    if (e.event_type === 'page_view' && !e.user_id && e.visitor_id) {
+      const day = e.created_at.slice(0, 10)
+      if (!anonymousVisitorsByDay.has(day)) anonymousVisitorsByDay.set(day, new Set())
+      anonymousVisitorsByDay.get(day)!.add(e.visitor_id)
+    }
+  }
+
+  const engagementRows = profiles.map(p => {
+    const lastSignIn = lastSignInByUser.get(p.id) ?? null
+    const alertsRead = readByUser.get(p.id) || 0
+    const bookmarks = bookmarksByUser.get(p.id) || 0
+    const channels = channelsConfigured(prefsByUser.get(p.id))
+    const sessions7d = sessionsByUser.get(p.id)?.size || 0
+    const timeOnSite7dMin = Math.round((timeMsByUser.get(p.id) || 0) / 60000)
+    return {
+      id: p.id,
+      email: p.email,
+      full_name: p.full_name,
+      plan: p.plan as 'free' | 'pro',
+      created_at: p.created_at,
+      last_sign_in_at: lastSignIn,
+      alerts_read: alertsRead,
+      bookmarks,
+      channels_configured: channels,
+      sessions_7d: sessions7d,
+      time_on_site_7d_min: timeOnSite7dMin,
+    }
+  })
+
+  // eslint-disable-next-line react-hooks/purity
+  const now = Date.now()
+  const within = (iso: string | null, days: number) =>
+    iso !== null && now - new Date(iso).getTime() <= days * 24 * 60 * 60 * 1000
+
+  const engagementStats = {
+    total: engagementRows.length,
+    active7d: engagementRows.filter(r => within(r.last_sign_in_at, 7)).length,
+    active30d: engagementRows.filter(r => within(r.last_sign_in_at, 30)).length,
+    neverLoggedIn: engagementRows.filter(r => r.last_sign_in_at === null).length,
+    zombie: engagementRows.filter(
+      r => r.last_sign_in_at !== null && r.alerts_read === 0 && r.channels_configured === 0
+    ).length,
+    activated: engagementRows.filter(
+      r => r.last_sign_in_at !== null && r.alerts_read > 0 && r.channels_configured > 0
+    ).length,
+  }
+
+  // Activation funnel — Signed up → Logged in → Read alert → Bookmarked → Channel
+  const funnel = {
+    signedUp: engagementRows.length,
+    loggedIn: engagementRows.filter(r => r.last_sign_in_at !== null).length,
+    readAlert: engagementRows.filter(r => r.alerts_read > 0).length,
+    bookmarked: engagementRows.filter(r => r.bookmarks > 0).length,
+    configuredChannel: engagementRows.filter(r => r.channels_configured > 0).length,
+  }
+
+  const topPages = Array.from(pagePathCounts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+
+  const anonymousDaily = Array.from(anonymousVisitorsByDay.entries())
+    .map(([date, set]) => ({ date, visitors: set.size }))
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 14)
+
   return (
     <AdminClient
       agentRuns={agentRuns}
@@ -159,6 +282,12 @@ export default async function AdminDashboard() {
       }}
       userRows={userRows}
       userStats={{ totalUsers, totalPro, totalFree, totalPaying, mrr }}
+      engagementRows={engagementRows}
+      engagementStats={engagementStats}
+      funnel={funnel}
+      topPages={topPages}
+      anonymousDaily={anonymousDaily}
+      eventsTableMissing={eventsTableMissing}
     />
   )
 }
