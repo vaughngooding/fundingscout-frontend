@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { trackOutboundClick } from '@/components/PageTracker'
 import type { UserAlert } from '@/lib/types'
 import {
   formatAmount,
@@ -155,6 +156,7 @@ export default function AlertCard({ alert }: AlertCardProps) {
             href={round.article_url}
             target="_blank"
             rel="noopener noreferrer"
+            onMouseDown={() => trackOutboundClick(round.article_url)}
             className="p-1.5 rounded-lg text-slate-500 hover:text-blue-300 transition-colors"
             title="Read article"
           >

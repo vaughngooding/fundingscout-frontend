@@ -186,11 +186,19 @@ export default async function AdminDashboard() {
   // eslint-disable-next-line react-hooks/purity
   const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
   const sessionsByUser = new Map<string, Set<string>>()
+  const sessionsAllTimeByUser = new Map<string, Set<string>>()
   const timeMsByUser = new Map<string, number>()
   const pagePathCounts = new Map<string, number>()
   const anonymousVisitorsByDay = new Map<string, Set<string>>()
+  // Users who clicked through on an alert: visited /company/* OR clicked an outbound article link.
+  // The page tracker writes outbound clicks as page_view events with `page_path = "outbound:<url>"`.
+  const clickedAlertByUser = new Set<string>()
   for (const e of events) {
     const t = new Date(e.created_at).getTime()
+    if (e.user_id) {
+      if (!sessionsAllTimeByUser.has(e.user_id)) sessionsAllTimeByUser.set(e.user_id, new Set())
+      sessionsAllTimeByUser.get(e.user_id)!.add(e.session_id)
+    }
     if (e.user_id && t >= sevenDaysAgo) {
       if (!sessionsByUser.has(e.user_id)) sessionsByUser.set(e.user_id, new Set())
       sessionsByUser.get(e.user_id)!.add(e.session_id)
@@ -200,6 +208,9 @@ export default async function AdminDashboard() {
     }
     if (e.event_type === 'page_view' && e.user_id) {
       pagePathCounts.set(e.page_path, (pagePathCounts.get(e.page_path) || 0) + 1)
+      if (e.page_path?.startsWith('/company/') || e.page_path?.startsWith('outbound:')) {
+        clickedAlertByUser.add(e.user_id)
+      }
     }
     if (e.event_type === 'page_view' && !e.user_id && e.visitor_id) {
       const day = e.created_at.slice(0, 10)
@@ -210,10 +221,15 @@ export default async function AdminDashboard() {
 
   const engagementRows = profiles.map(p => {
     const lastSignIn = lastSignInByUser.get(p.id) ?? null
-    const alertsRead = readByUser.get(p.id) || 0
+    const alertsReadRaw = readByUser.get(p.id) || 0
+    const clickedAlert = clickedAlertByUser.has(p.id)
+    // Broader "read an alert" = explicit mark-as-read OR clicked through to /company/* OR clicked outbound article link.
+    // We surface the broader signal as alerts_read so the table column shows real engagement, not the rarely-set raw count.
+    const engagedWithAlert = alertsReadRaw > 0 || clickedAlert
     const bookmarks = bookmarksByUser.get(p.id) || 0
     const channels = channelsConfigured(prefsByUser.get(p.id))
     const sessions7d = sessionsByUser.get(p.id)?.size || 0
+    const sessionsAllTime = sessionsAllTimeByUser.get(p.id)?.size || 0
     const timeOnSite7dMin = Math.round((timeMsByUser.get(p.id) || 0) / 60000)
     return {
       id: p.id,
@@ -222,10 +238,12 @@ export default async function AdminDashboard() {
       plan: p.plan as 'free' | 'pro',
       created_at: p.created_at,
       last_sign_in_at: lastSignIn,
-      alerts_read: alertsRead,
+      alerts_read: alertsReadRaw,
+      engaged_with_alert: engagedWithAlert,
       bookmarks,
       channels_configured: channels,
       sessions_7d: sessions7d,
+      sessions_all_time: sessionsAllTime,
       time_on_site_7d_min: timeOnSite7dMin,
     }
   })
@@ -241,18 +259,19 @@ export default async function AdminDashboard() {
     active30d: engagementRows.filter(r => within(r.last_sign_in_at, 30)).length,
     neverLoggedIn: engagementRows.filter(r => r.last_sign_in_at === null).length,
     zombie: engagementRows.filter(
-      r => r.last_sign_in_at !== null && r.alerts_read === 0 && r.channels_configured === 0
+      r => r.last_sign_in_at !== null && !r.engaged_with_alert && r.channels_configured === 0
     ).length,
     activated: engagementRows.filter(
-      r => r.last_sign_in_at !== null && r.alerts_read > 0 && r.channels_configured > 0
+      r => r.last_sign_in_at !== null && r.engaged_with_alert && r.channels_configured > 0
     ).length,
   }
 
-  // Activation funnel — Signed up → Logged in → Read alert → Bookmarked → Channel
+  // Activation funnel — Signed up → Logged in → Logged in 3+× → Engaged with alert → Bookmarked → Channel
   const funnel = {
     signedUp: engagementRows.length,
     loggedIn: engagementRows.filter(r => r.last_sign_in_at !== null).length,
-    readAlert: engagementRows.filter(r => r.alerts_read > 0).length,
+    loggedIn3Plus: engagementRows.filter(r => r.sessions_all_time >= 3).length,
+    readAlert: engagementRows.filter(r => r.engaged_with_alert).length,
     bookmarked: engagementRows.filter(r => r.bookmarks > 0).length,
     configuredChannel: engagementRows.filter(r => r.channels_configured > 0).length,
   }

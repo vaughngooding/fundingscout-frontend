@@ -11,9 +11,9 @@ const free = c.plans[0]
 const pro = c.plans[1]
 
 export default function PricingSection() {
-  // Default to monthly so the headline price visitors see is $89/mo,
-  // matching the rest of the marketing site. Annual is one click away.
-  const [billing, setBilling] = useState<BillingCycle>('monthly')
+  // Default to annual so the headline price visitors see is $49/mo —
+  // the cheaper option, what we actually want to anchor on. Monthly is one click away.
+  const [billing, setBilling] = useState<BillingCycle>('annual')
 
   // Pull the right values for the Pro card based on the toggle.
   // The Pro plan has both Monthly + Annual fields (see src/content/landing.ts).

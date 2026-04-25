@@ -56,6 +56,23 @@ function send(payload: Record<string, unknown>, useBeacon = false): void {
   }
 }
 
+// Public helper: fire a one-shot tracking event from anywhere in the app.
+// Currently used to mark outbound article clicks as `page_view` events with
+// a synthetic `outbound:<url>` path — no schema change needed, the existing
+// page_view event_type covers it.
+export function trackOutboundClick(url: string): void {
+  if (typeof window === 'undefined') return
+  let sessionId = ''
+  try { sessionId = sessionStorage.getItem('fs_session_id') || '' } catch { /* ignore */ }
+  if (!sessionId) sessionId = crypto.randomUUID()
+  send({
+    event_type: 'page_view',
+    page_path: `outbound:${url}`.slice(0, 500),
+    session_id: sessionId,
+    referrer: typeof window !== 'undefined' ? window.location.pathname : null,
+  }, /* useBeacon */ true)
+}
+
 export default function PageTracker() {
   const pathname = usePathname()
   // Tracks how much "visible time" the user has accrued on the current page.

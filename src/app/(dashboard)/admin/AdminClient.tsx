@@ -95,9 +95,11 @@ interface EngagementRow {
   created_at: string
   last_sign_in_at: string | null
   alerts_read: number
+  engaged_with_alert: boolean
   bookmarks: number
   channels_configured: number
   sessions_7d: number
+  sessions_all_time: number
   time_on_site_7d_min: number
 }
 
@@ -113,6 +115,7 @@ interface EngagementStats {
 interface Funnel {
   signedUp: number
   loggedIn: number
+  loggedIn3Plus: number
   readAlert: number
   bookmarked: number
   configuredChannel: number
@@ -1151,10 +1154,10 @@ function engagementScore(r: EngagementRow): number {
     ? (now - new Date(r.last_sign_in_at).getTime()) / (24 * 60 * 60 * 1000)
     : Infinity
   const loginPts = ageDays <= 7 ? 30 : ageDays <= 30 ? 15 : 0
-  const readPts = Math.min(r.alerts_read * 2, 25)
+  const engagedPts = r.engaged_with_alert ? 25 : 0
   const bookmarkPts = Math.min(r.bookmarks * 5, 20)
   const channelPts = Math.min(r.channels_configured * 5, 25)
-  return loginPts + readPts + bookmarkPts + channelPts
+  return loginPts + engagedPts + bookmarkPts + channelPts
 }
 
 function scoreColor(score: number): string {
@@ -1200,8 +1203,8 @@ function EngagementTab({
       if (filter === 'active7d') return within(r.last_sign_in_at, 7)
       if (filter === 'active30d') return within(r.last_sign_in_at, 30)
       if (filter === 'neverLoggedIn') return r.last_sign_in_at === null
-      if (filter === 'zombie') return r.last_sign_in_at !== null && r.alerts_read === 0 && r.channels_configured === 0
-      if (filter === 'activated') return r.last_sign_in_at !== null && r.alerts_read > 0 && r.channels_configured > 0
+      if (filter === 'zombie') return r.last_sign_in_at !== null && !r.engaged_with_alert && r.channels_configured === 0
+      if (filter === 'activated') return r.last_sign_in_at !== null && r.engaged_with_alert && r.channels_configured > 0
       return true
     })
   }, [rows, filter])
@@ -1217,7 +1220,7 @@ function EngagementTab({
         return bt - at
       })
     } else if (sortKey === 'reads') {
-      copy.sort((a, b) => b.alerts_read - a.alerts_read)
+      copy.sort((a, b) => Number(b.engaged_with_alert) - Number(a.engaged_with_alert))
     } else if (sortKey === 'bookmarks') {
       copy.sort((a, b) => b.bookmarks - a.bookmarks)
     } else if (sortKey === 'time') {
@@ -1239,7 +1242,8 @@ function EngagementTab({
   const funnelSteps = [
     { label: 'Signed up', count: funnel.signedUp },
     { label: 'Logged in ≥1×', count: funnel.loggedIn },
-    { label: 'Read an alert', count: funnel.readAlert },
+    { label: 'Logged in 3+×', count: funnel.loggedIn3Plus },
+    { label: 'Engaged with alert', count: funnel.readAlert },
     { label: 'Bookmarked', count: funnel.bookmarked },
     { label: 'Set up channel', count: funnel.configuredChannel },
   ]
@@ -1377,7 +1381,8 @@ function EngagementTab({
                 <th
                   onClick={() => setSortKey('reads')}
                   className={`px-3 py-3 text-right font-semibold cursor-pointer hover:text-slate-200 ${sortKey === 'reads' ? 'text-white' : ''}`}
-                >Reads {sortKey === 'reads' && '↓'}</th>
+                  title="Clicked through to a company page or article"
+                >Engaged {sortKey === 'reads' && '↓'}</th>
                 <th
                   onClick={() => setSortKey('bookmarks')}
                   className={`px-3 py-3 text-right font-semibold cursor-pointer hover:text-slate-200 ${sortKey === 'bookmarks' ? 'text-white' : ''}`}
@@ -1412,7 +1417,7 @@ function EngagementTab({
                     </td>
                     <td className="px-3 py-3 text-right text-slate-300 tabular-nums">{formatTimeOnSite(r.time_on_site_7d_min)}</td>
                     <td className="px-3 py-3 text-right text-slate-300 tabular-nums">{r.sessions_7d || '—'}</td>
-                    <td className="px-3 py-3 text-right text-slate-300 tabular-nums">{r.alerts_read || '—'}</td>
+                    <td className={`px-3 py-3 text-right tabular-nums ${r.engaged_with_alert ? 'text-emerald-400' : 'text-slate-500'}`}>{r.engaged_with_alert ? '✓' : '—'}</td>
                     <td className="px-3 py-3 text-right text-slate-300 tabular-nums">{r.bookmarks || '—'}</td>
                     <td className="px-3 py-3 text-right text-slate-300 tabular-nums">{r.channels_configured || '—'}</td>
                     <td className={`px-3 py-3 text-right font-semibold tabular-nums ${scoreColor(score)}`}>{score}</td>
