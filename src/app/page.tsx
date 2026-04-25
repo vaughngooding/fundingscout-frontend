@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { landingContent as c } from '@/content/landing'
 import PricingSection from '@/components/PricingSection'
 import { createClient } from '@/lib/supabase/server'
@@ -13,13 +14,17 @@ const MOCK_ROUNDS = [
 ]
 
 export default async function Home() {
-  // Check auth so the nav shows "Dashboard" instead of "Login / Sign up" when
-  // the visitor is already signed in. Without this, returning users see the
-  // logged-out CTAs and assume their session expired.
+  // Logged-in users skip the marketing landing entirely and go straight to
+  // the dashboard. Without this redirect, returning users see the public
+  // landing on every visit, which feels like a logged-out state.
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
+
+  if (user) {
+    redirect('/dashboard')
+  }
 
   return (
     <div className="min-h-screen bg-slate-900 text-white antialiased selection:bg-emerald-500/15">
