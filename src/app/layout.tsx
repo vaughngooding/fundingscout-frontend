@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import RefCapture from "@/components/RefCapture";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -30,6 +31,7 @@ export default function RootLayout({
         className={`${jakarta.variable} font-sans antialiased bg-slate-950 text-white`}
         style={{ fontFamily: 'var(--font-jakarta), -apple-system, BlinkMacSystemFont, sans-serif' }}
       >
+        <RefCapture />
         {children}
       </body>
     </html>

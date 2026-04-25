@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { readStoredRef } from '@/components/RefCapture'
 
 // useSearchParams must be inside a Suspense boundary during static prerender.
 // Wrapper at the bottom of the file provides it.
@@ -26,12 +27,16 @@ function SignupPageInner() {
     setError(null)
     setLoading(true)
 
+    // Capture marketing attribution: ?ref= from URL first, then 30-day localStorage fallback.
+    const ref = searchParams.get('ref') ?? readStoredRef()
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
           full_name: fullName,
+          ...(ref ? { ref } : {}),
         },
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
