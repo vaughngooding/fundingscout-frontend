@@ -17,9 +17,20 @@ export async function updateSession(request: NextRequest) {
             request.cookies.set(name, value)
           )
           supabaseResponse = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
+          cookiesToSet.forEach(({ name, value, options }) => {
+            // Force durable, cross-tab-friendly cookie attributes regardless
+            // of @supabase/ssr defaults. Fixes "logged out across tabs and
+            // navigation" symptom in browsers like Brave / Firefox / Arc that
+            // can be inconsistent with cookies missing explicit attributes.
+            const persistentOptions = {
+              ...options,
+              maxAge: options?.maxAge ?? 60 * 60 * 24 * 400, // 400 days (RFC max)
+              sameSite: 'lax' as const,
+              secure: process.env.NODE_ENV === 'production',
+              path: '/',
+            }
+            supabaseResponse.cookies.set(name, value, persistentOptions)
+          })
         },
       },
     }

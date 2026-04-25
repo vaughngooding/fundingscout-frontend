@@ -13,9 +13,19 @@ export async function createClient() {
         },
         setAll(cookiesToSet) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
+            cookiesToSet.forEach(({ name, value, options }) => {
+              // Mirror middleware's persistent cookie attributes so Server
+              // Actions / Route Handlers that mutate the session also write
+              // long-lived, cross-tab-durable cookies.
+              const persistentOptions = {
+                ...options,
+                maxAge: options?.maxAge ?? 60 * 60 * 24 * 400,
+                sameSite: 'lax' as const,
+                secure: process.env.NODE_ENV === 'production',
+                path: '/',
+              }
+              cookieStore.set(name, value, persistentOptions)
+            })
           } catch {
             // The `setAll` method was called from a Server Component.
             // This can be ignored if you have middleware refreshing sessions.
