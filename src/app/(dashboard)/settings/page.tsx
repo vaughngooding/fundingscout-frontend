@@ -68,7 +68,7 @@ export default async function SettingsPage() {
     company: null,
     role: null,
     plan: 'free',
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    timezone: 'America/New_York',
     stripe_customer_id: null,
   }
 

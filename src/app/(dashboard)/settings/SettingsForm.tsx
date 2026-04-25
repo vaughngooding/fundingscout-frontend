@@ -72,6 +72,7 @@ export default function SettingsForm({
   const [profile, setProfile] = useState({
     full_name: initialProfile.full_name || '',
     company: initialProfile.company || '',
+    timezone: initialProfile.timezone || 'America/New_York',
   })
   const [prefs, setPrefs] = useState({
     min_amount: initialPreferences.min_amount,
@@ -375,6 +376,7 @@ export default function SettingsForm({
       .update({
         full_name: profile.full_name || null,
         company: profile.company || null,
+        timezone: profile.timezone || 'America/New_York',
       })
       .eq('id', initialProfile.id)
 
@@ -643,24 +645,39 @@ export default function SettingsForm({
             </div>
           </div>
 
-          {/* Digest Hour */}
+          {/* Digest Time + Timezone */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1.5">
-              Digest Time (hour, 24h format)
+              Digest Time
             </label>
-            <select
-              value={prefs.digest_hour}
-              onChange={(e) =>
-                setPrefs({ ...prefs, digest_hour: Number(e.target.value) })
-              }
-              className="w-full max-w-xs rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
-            >
-              {Array.from({ length: 24 }, (_, i) => (
-                <option key={i} value={i}>
-                  {i.toString().padStart(2, '0')}:00
-                </option>
-              ))}
-            </select>
+            <p className="text-xs text-slate-500 mb-2">
+              When you want your daily/weekly digest delivered, in your local time.
+            </p>
+            <div className="flex gap-3 flex-wrap">
+              <select
+                value={prefs.digest_hour}
+                onChange={(e) =>
+                  setPrefs({ ...prefs, digest_hour: Number(e.target.value) })
+                }
+                className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
+              >
+                {Array.from({ length: 24 }, (_, i) => {
+                  const label = i === 0 ? '12:00 AM' : i < 12 ? `${i}:00 AM` : i === 12 ? '12:00 PM' : `${i - 12}:00 PM`
+                  return <option key={i} value={i}>{label}</option>
+                })}
+              </select>
+              <select
+                value={profile.timezone}
+                onChange={(e) =>
+                  setProfile({ ...profile, timezone: e.target.value })
+                }
+                className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
+              >
+                <option value="America/New_York">Eastern (ET)</option>
+                <option value="America/Chicago">Central (CT)</option>
+                <option value="America/Los_Angeles">Pacific (PT)</option>
+              </select>
+            </div>
           </div>
 
           {/* ---- Real-time alerts header ---- */}
