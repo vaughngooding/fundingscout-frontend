@@ -101,6 +101,30 @@ interface EngagementRow {
   sessions_7d: number
   sessions_all_time: number
   time_on_site_7d_min: number
+  ttfe_min: number | null
+  alerts_received_30d: number
+  alerts_engaged_30d: number
+  engagement_rate_30d: number | null
+  last_email_opened_at: string | null
+  email_opens_total: number
+}
+
+interface Stickiness {
+  dau: number
+  wau: number
+  mau: number
+  dauWauRatio: number
+  wauMauRatio: number
+  ttfeMedianMin: number | null
+  ttfeBuckets: {
+    under1h: number
+    under24h: number
+    under7d: number
+    over7d: number
+    neverEngaged: number
+  }
+  emailOpened30dCount: number
+  emailOpened7dCount: number
 }
 
 interface EngagementStats {
@@ -138,6 +162,7 @@ interface Props {
   funnel: Funnel
   topPages: [string, number][]
   anonymousDaily: AnonymousDay[]
+  stickiness: Stickiness
   eventsTableMissing: boolean
 }
 
@@ -413,6 +438,7 @@ export default function AdminClient({
   funnel,
   topPages,
   anonymousDaily,
+  stickiness,
   eventsTableMissing,
 }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('users')
@@ -468,6 +494,7 @@ export default function AdminClient({
           funnel={funnel}
           topPages={topPages}
           anonymousDaily={anonymousDaily}
+          stickiness={stickiness}
           eventsTableMissing={eventsTableMissing}
         />
       )}
@@ -1173,12 +1200,22 @@ function formatTimeOnSite(min: number): string {
   return `${(min / 60).toFixed(1)}h`
 }
 
+function formatTtfeMin(min: number | null): string {
+  if (min === null) return 'Never'
+  if (min < 60) return `${min}m`
+  const h = min / 60
+  if (h < 24) return `${h.toFixed(1)}h`
+  const d = h / 24
+  return `${d.toFixed(1)}d`
+}
+
 function EngagementTab({
   rows,
   stats,
   funnel,
   topPages,
   anonymousDaily,
+  stickiness,
   eventsTableMissing,
 }: {
   rows: EngagementRow[]
@@ -1186,6 +1223,7 @@ function EngagementTab({
   funnel: Funnel
   topPages: [string, number][]
   anonymousDaily: AnonymousDay[]
+  stickiness: Stickiness
   eventsTableMissing: boolean
 }) {
   type SortKey = 'score' | 'lastLogin' | 'reads' | 'bookmarks' | 'time'
@@ -1267,6 +1305,67 @@ function EngagementTab({
           will populate after the <code className="text-xs bg-slate-900 px-1.5 py-0.5 rounded">user_events</code> migration is applied.
         </div>
       )}
+
+      {/* Stickiness + Time-to-first-engagement */}
+      <section className="rounded-xl border border-slate-700/50 bg-slate-900 overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-700/50">
+          <h2 className="text-base font-semibold text-white">Stickiness & first-engagement</h2>
+          <p className="text-xs text-slate-400">
+            DAU/WAU is the single best summary of product stickiness — &gt;30% is excellent for B2B SaaS.
+            Time-to-first-engagement measures how fast users get to the &quot;aha&quot; moment.
+          </p>
+        </div>
+        <div className="p-4 space-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            <SummaryCard label="DAU" value={stickiness.dau.toString()} sub="active in last 24h" />
+            <SummaryCard label="WAU" value={stickiness.wau.toString()} sub="active in last 7d" />
+            <SummaryCard label="MAU" value={stickiness.mau.toString()} sub="active in last 30d" />
+            <SummaryCard
+              label="DAU / WAU"
+              value={`${(stickiness.dauWauRatio * 100).toFixed(0)}%`}
+              sub={stickiness.dauWauRatio >= 0.5 ? 'world-class' : stickiness.dauWauRatio >= 0.3 ? 'excellent' : stickiness.dauWauRatio >= 0.15 ? 'building' : 'low'}
+              color={stickiness.dauWauRatio >= 0.3 ? 'emerald' : stickiness.dauWauRatio >= 0.15 ? 'amber' : 'red'}
+            />
+            <SummaryCard
+              label="Median TTFE"
+              value={formatTtfeMin(stickiness.ttfeMedianMin)}
+              sub="signup → 1st alert click"
+              color={stickiness.ttfeMedianMin === null ? undefined : stickiness.ttfeMedianMin < 60 ? 'emerald' : stickiness.ttfeMedianMin < 24 * 60 ? 'amber' : 'red'}
+            />
+            <SummaryCard
+              label="Email opens 7d"
+              value={stickiness.emailOpened7dCount.toString()}
+              sub={`${stickiness.emailOpened30dCount} in 30d`}
+              color={stickiness.emailOpened7dCount > 0 ? 'emerald' : undefined}
+            />
+          </div>
+          <div>
+            <div className="text-xs text-slate-400 mb-2">Time-to-first-engagement distribution</div>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+              <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2">
+                <div className="text-slate-400">&lt; 1 hour</div>
+                <div className="text-emerald-300 text-lg font-bold">{stickiness.ttfeBuckets.under1h}</div>
+              </div>
+              <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 px-3 py-2">
+                <div className="text-slate-400">1–24 hours</div>
+                <div className="text-blue-300 text-lg font-bold">{stickiness.ttfeBuckets.under24h}</div>
+              </div>
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2">
+                <div className="text-slate-400">1–7 days</div>
+                <div className="text-amber-300 text-lg font-bold">{stickiness.ttfeBuckets.under7d}</div>
+              </div>
+              <div className="rounded-lg border border-red-500/30 bg-red-500/5 px-3 py-2">
+                <div className="text-slate-400">&gt; 7 days</div>
+                <div className="text-red-300 text-lg font-bold">{stickiness.ttfeBuckets.over7d}</div>
+              </div>
+              <div className="rounded-lg border border-slate-700/50 bg-slate-950 px-3 py-2">
+                <div className="text-slate-400">Never engaged</div>
+                <div className="text-slate-300 text-lg font-bold">{stickiness.ttfeBuckets.neverEngaged}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Activation funnel */}
       <section className="rounded-xl border border-slate-700/50 bg-slate-900 overflow-hidden">
@@ -1384,6 +1483,14 @@ function EngagementTab({
                   title="Clicked through to a company page or article"
                 >Engaged {sortKey === 'reads' && '↓'}</th>
                 <th
+                  className="px-3 py-3 text-right font-semibold"
+                  title="Time from signup to first /company/* or outbound article click"
+                >TTFE</th>
+                <th
+                  className="px-3 py-3 text-right font-semibold"
+                  title="Engagement rate over last 30 days: distinct companies clicked / alerts received"
+                >Eng. rate 30d</th>
+                <th
                   onClick={() => setSortKey('bookmarks')}
                   className={`px-3 py-3 text-right font-semibold cursor-pointer hover:text-slate-200 ${sortKey === 'bookmarks' ? 'text-white' : ''}`}
                 >Bookmarks {sortKey === 'bookmarks' && '↓'}</th>
@@ -1418,6 +1525,18 @@ function EngagementTab({
                     <td className="px-3 py-3 text-right text-slate-300 tabular-nums">{formatTimeOnSite(r.time_on_site_7d_min)}</td>
                     <td className="px-3 py-3 text-right text-slate-300 tabular-nums">{r.sessions_7d || '—'}</td>
                     <td className={`px-3 py-3 text-right tabular-nums ${r.engaged_with_alert ? 'text-emerald-400' : 'text-slate-500'}`}>{r.engaged_with_alert ? '✓' : '—'}</td>
+                    <td className={`px-3 py-3 text-right text-xs tabular-nums ${r.ttfe_min === null ? 'text-slate-500' : r.ttfe_min < 60 ? 'text-emerald-400' : r.ttfe_min < 24 * 60 ? 'text-amber-400' : 'text-slate-300'}`}>
+                      {formatTtfeMin(r.ttfe_min)}
+                    </td>
+                    <td className="px-3 py-3 text-right text-xs tabular-nums">
+                      {r.alerts_received_30d === 0 ? (
+                        <span className="text-slate-500">no alerts</span>
+                      ) : (
+                        <span className={r.engagement_rate_30d! >= 0.2 ? 'text-emerald-400' : r.engagement_rate_30d! >= 0.05 ? 'text-amber-400' : 'text-red-400'}>
+                          {(r.engagement_rate_30d! * 100).toFixed(0)}% <span className="text-slate-500 ml-1">({r.alerts_engaged_30d}/{r.alerts_received_30d})</span>
+                        </span>
+                      )}
+                    </td>
                     <td className="px-3 py-3 text-right text-slate-300 tabular-nums">{r.bookmarks || '—'}</td>
                     <td className="px-3 py-3 text-right text-slate-300 tabular-nums">{r.channels_configured || '—'}</td>
                     <td className={`px-3 py-3 text-right font-semibold tabular-nums ${scoreColor(score)}`}>{score}</td>
@@ -1425,7 +1544,7 @@ function EngagementTab({
                 )
               })}
               {sorted.length === 0 && (
-                <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-500">No users found.</td></tr>
+                <tr><td colSpan={12} className="px-4 py-8 text-center text-slate-500">No users found.</td></tr>
               )}
             </tbody>
           </table>

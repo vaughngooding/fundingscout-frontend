@@ -41,13 +41,13 @@ export default async function AdminDashboard() {
     // Used for user flags (quality), alert counts (users), and engagement (read/bookmark)
     supabase
       .from('user_alerts')
-      .select('id, user_id, user_flag, user_flag_at, read_at, is_bookmarked, funding_round:funding_rounds(company_name)')
+      .select('id, user_id, user_flag, user_flag_at, read_at, is_bookmarked, created_at, funding_round:funding_rounds(company_name)')
       .order('user_flag_at', { ascending: false })
       .limit(50000),
     // Users + Engagement tabs
     supabase
       .from('profiles')
-      .select('id, email, full_name, company, plan, stripe_customer_id, created_at')
+      .select('id, email, full_name, company, plan, stripe_customer_id, created_at, last_email_opened_at, email_opens_total')
       .order('created_at', { ascending: false }),
     supabase
       .from('user_preferences')
@@ -184,7 +184,10 @@ export default async function AdminDashboard() {
   const events = (eventsRes.data || []) as any[]
   const eventsTableMissing = !!eventsRes.error
   // eslint-disable-next-line react-hooks/purity
-  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+  const nowMs = Date.now()
+  const oneDayAgo = nowMs - 24 * 60 * 60 * 1000
+  const sevenDaysAgo = nowMs - 7 * 24 * 60 * 60 * 1000
+  const thirtyDaysAgo = nowMs - 30 * 24 * 60 * 60 * 1000
   const sessionsByUser = new Map<string, Set<string>>()
   const sessionsAllTimeByUser = new Map<string, Set<string>>()
   const timeMsByUser = new Map<string, number>()
@@ -193,11 +196,22 @@ export default async function AdminDashboard() {
   // Users who clicked through on an alert: visited /company/* OR clicked an outbound article link.
   // The page tracker writes outbound clicks as page_view events with `page_path = "outbound:<url>"`.
   const clickedAlertByUser = new Set<string>()
+  // Earliest "engaged" timestamp per user (for time-to-first-engagement metric).
+  const firstEngagementByUser = new Map<string, number>()
+  // Distinct company pages visited in last 30d per user (for filter-quality signal).
+  const companiesViewed30dByUser = new Map<string, Set<string>>()
+  // Stickiness: distinct user_ids active in 1d / 7d / 30d windows.
+  const dauUsers = new Set<string>()
+  const wauUsers = new Set<string>()
+  const mauUsers = new Set<string>()
   for (const e of events) {
     const t = new Date(e.created_at).getTime()
     if (e.user_id) {
       if (!sessionsAllTimeByUser.has(e.user_id)) sessionsAllTimeByUser.set(e.user_id, new Set())
       sessionsAllTimeByUser.get(e.user_id)!.add(e.session_id)
+      if (t >= oneDayAgo) dauUsers.add(e.user_id)
+      if (t >= sevenDaysAgo) wauUsers.add(e.user_id)
+      if (t >= thirtyDaysAgo) mauUsers.add(e.user_id)
     }
     if (e.user_id && t >= sevenDaysAgo) {
       if (!sessionsByUser.has(e.user_id)) sessionsByUser.set(e.user_id, new Set())
@@ -208,8 +222,17 @@ export default async function AdminDashboard() {
     }
     if (e.event_type === 'page_view' && e.user_id) {
       pagePathCounts.set(e.page_path, (pagePathCounts.get(e.page_path) || 0) + 1)
-      if (e.page_path?.startsWith('/company/') || e.page_path?.startsWith('outbound:')) {
+      const isAlertEngagement = e.page_path?.startsWith('/company/') || e.page_path?.startsWith('outbound:')
+      if (isAlertEngagement) {
         clickedAlertByUser.add(e.user_id)
+        const existing = firstEngagementByUser.get(e.user_id)
+        if (existing === undefined || t < existing) {
+          firstEngagementByUser.set(e.user_id, t)
+        }
+        if (t >= thirtyDaysAgo && e.page_path?.startsWith('/company/')) {
+          if (!companiesViewed30dByUser.has(e.user_id)) companiesViewed30dByUser.set(e.user_id, new Set())
+          companiesViewed30dByUser.get(e.user_id)!.add(e.page_path)
+        }
       }
     }
     if (e.event_type === 'page_view' && !e.user_id && e.visitor_id) {
@@ -219,18 +242,35 @@ export default async function AdminDashboard() {
     }
   }
 
+  // Alerts received per user in last 30 days (for filter-quality signal).
+  const alertsReceived30dByUser = new Map<string, number>()
+  for (const a of allAlerts) {
+    const ts = a.created_at ? new Date(a.created_at).getTime() : 0
+    if (ts >= thirtyDaysAgo) {
+      alertsReceived30dByUser.set(a.user_id, (alertsReceived30dByUser.get(a.user_id) || 0) + 1)
+    }
+  }
+
   const engagementRows = profiles.map(p => {
     const lastSignIn = lastSignInByUser.get(p.id) ?? null
     const alertsReadRaw = readByUser.get(p.id) || 0
     const clickedAlert = clickedAlertByUser.has(p.id)
     // Broader "read an alert" = explicit mark-as-read OR clicked through to /company/* OR clicked outbound article link.
-    // We surface the broader signal as alerts_read so the table column shows real engagement, not the rarely-set raw count.
     const engagedWithAlert = alertsReadRaw > 0 || clickedAlert
     const bookmarks = bookmarksByUser.get(p.id) || 0
     const channels = channelsConfigured(prefsByUser.get(p.id))
     const sessions7d = sessionsByUser.get(p.id)?.size || 0
     const sessionsAllTime = sessionsAllTimeByUser.get(p.id)?.size || 0
     const timeOnSite7dMin = Math.round((timeMsByUser.get(p.id) || 0) / 60000)
+    // Time-to-first-engagement: ms between signup and earliest /company/* or outbound click.
+    // null = never engaged (yet). Capped at the user's account age so it's not wildly misleading.
+    const firstEngagementMs = firstEngagementByUser.get(p.id)
+    const signupMs = new Date(p.created_at).getTime()
+    const ttfeMin = firstEngagementMs ? Math.max(0, Math.round((firstEngagementMs - signupMs) / 60000)) : null
+    // Filter quality: alerts received vs companies clicked through on (in last 30d).
+    const alertsReceived30d = alertsReceived30dByUser.get(p.id) || 0
+    const alertsEngaged30d = companiesViewed30dByUser.get(p.id)?.size || 0
+    const engagementRate30d = alertsReceived30d > 0 ? alertsEngaged30d / alertsReceived30d : null
     return {
       id: p.id,
       email: p.email,
@@ -245,6 +285,14 @@ export default async function AdminDashboard() {
       sessions_7d: sessions7d,
       sessions_all_time: sessionsAllTime,
       time_on_site_7d_min: timeOnSite7dMin,
+      ttfe_min: ttfeMin,
+      alerts_received_30d: alertsReceived30d,
+      alerts_engaged_30d: alertsEngaged30d,
+      engagement_rate_30d: engagementRate30d,
+      // Email opens (Resend webhook). Will be undefined/null until the migration
+      // is applied and the webhook fires; we surface what's available.
+      last_email_opened_at: (p as { last_email_opened_at?: string | null }).last_email_opened_at ?? null,
+      email_opens_total: (p as { email_opens_total?: number }).email_opens_total ?? 0,
     }
   })
 
@@ -285,6 +333,44 @@ export default async function AdminDashboard() {
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 14)
 
+  // Stickiness: DAU / WAU / MAU + ratios.
+  const dau = dauUsers.size
+  const wau = wauUsers.size
+  const mau = mauUsers.size
+  const dauWauRatio = wau > 0 ? dau / wau : 0
+  const wauMauRatio = mau > 0 ? wau / mau : 0
+
+  // Time-to-first-engagement: distribution + median (across users who DID engage).
+  const ttfeMinsEngaged = engagementRows
+    .map(r => r.ttfe_min)
+    .filter((v): v is number => v !== null)
+    .sort((a, b) => a - b)
+  const ttfeMedianMin = ttfeMinsEngaged.length > 0
+    ? ttfeMinsEngaged[Math.floor(ttfeMinsEngaged.length / 2)]
+    : null
+  const ttfeBuckets = {
+    under1h: ttfeMinsEngaged.filter(m => m < 60).length,
+    under24h: ttfeMinsEngaged.filter(m => m >= 60 && m < 24 * 60).length,
+    under7d: ttfeMinsEngaged.filter(m => m >= 24 * 60 && m < 7 * 24 * 60).length,
+    over7d: ttfeMinsEngaged.filter(m => m >= 7 * 24 * 60).length,
+    neverEngaged: engagementRows.filter(r => r.ttfe_min === null).length,
+  }
+
+  const emailOpened30dCount = engagementRows.filter(r => within(r.last_email_opened_at, 30)).length
+  const emailOpened7dCount = engagementRows.filter(r => within(r.last_email_opened_at, 7)).length
+
+  const stickiness = {
+    dau,
+    wau,
+    mau,
+    dauWauRatio,
+    wauMauRatio,
+    ttfeMedianMin,
+    ttfeBuckets,
+    emailOpened30dCount,
+    emailOpened7dCount,
+  }
+
   return (
     <AdminClient
       agentRuns={agentRuns}
@@ -306,6 +392,7 @@ export default async function AdminDashboard() {
       funnel={funnel}
       topPages={topPages}
       anonymousDaily={anonymousDaily}
+      stickiness={stickiness}
       eventsTableMissing={eventsTableMissing}
     />
   )
