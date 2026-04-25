@@ -360,7 +360,14 @@ function aggregateUsageByDay(agentRuns: AgentRun[]): DailyUsage[] {
 // Shared components
 // ---------------------------------------------------------------------------
 
-function SummaryCard({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) {
+function SummaryCard({ label, value, sub, color, onClick, active }: {
+  label: string
+  value: string
+  sub?: string
+  color?: string
+  onClick?: () => void
+  active?: boolean
+}) {
   const borderClass = color === 'emerald' ? 'border-emerald-500/30 bg-emerald-500/5' :
                       color === 'red' ? 'border-red-500/30 bg-red-500/5' :
                       color === 'amber' ? 'border-amber-500/30 bg-amber-500/5' :
@@ -371,12 +378,19 @@ function SummaryCard({ label, value, sub, color }: { label: string; value: strin
                     color === 'amber' ? 'text-amber-400' :
                     color === 'blue' ? 'text-blue-300' :
                     'text-white'
+  const interactive = typeof onClick === 'function'
+  const ringClass = active ? 'ring-2 ring-emerald-400/60' : ''
+  const hoverClass = interactive ? 'cursor-pointer hover:bg-slate-800/40 transition-colors' : ''
+  const Wrapper = interactive ? 'button' : 'div'
   return (
-    <div className={`rounded-xl border px-4 py-3 ${borderClass}`}>
+    <Wrapper
+      onClick={onClick}
+      className={`rounded-xl border px-4 py-3 text-left w-full ${borderClass} ${ringClass} ${hoverClass}`}
+    >
       <div className="text-xs text-slate-400">{label}</div>
       <div className={`text-2xl font-bold mt-1 ${textClass}`}>{value}</div>
       {sub && <div className="text-[10px] text-slate-500 mt-0.5">{sub}</div>}
-    </div>
+    </Wrapper>
   )
 }
 
@@ -1172,10 +1186,28 @@ function EngagementTab({
   eventsTableMissing: boolean
 }) {
   type SortKey = 'score' | 'lastLogin' | 'reads' | 'bookmarks' | 'time'
+  type Filter = 'all' | 'active7d' | 'active30d' | 'neverLoggedIn' | 'zombie' | 'activated'
   const [sortKey, setSortKey] = useState<SortKey>('lastLogin')
+  const [filter, setFilter] = useState<Filter>('all')
+
+  const filtered = useMemo(() => {
+    if (filter === 'all') return rows
+    // eslint-disable-next-line react-hooks/purity
+    const now = Date.now()
+    const within = (iso: string | null, days: number) =>
+      iso !== null && now - new Date(iso).getTime() <= days * 24 * 60 * 60 * 1000
+    return rows.filter(r => {
+      if (filter === 'active7d') return within(r.last_sign_in_at, 7)
+      if (filter === 'active30d') return within(r.last_sign_in_at, 30)
+      if (filter === 'neverLoggedIn') return r.last_sign_in_at === null
+      if (filter === 'zombie') return r.last_sign_in_at !== null && r.alerts_read === 0 && r.channels_configured === 0
+      if (filter === 'activated') return r.last_sign_in_at !== null && r.alerts_read > 0 && r.channels_configured > 0
+      return true
+    })
+  }, [rows, filter])
 
   const sorted = useMemo(() => {
-    const copy = [...rows]
+    const copy = [...filtered]
     if (sortKey === 'score') {
       copy.sort((a, b) => engagementScore(b) - engagementScore(a))
     } else if (sortKey === 'lastLogin') {
@@ -1192,7 +1224,17 @@ function EngagementTab({
       copy.sort((a, b) => b.time_on_site_7d_min - a.time_on_site_7d_min)
     }
     return copy
-  }, [rows, sortKey])
+  }, [filtered, sortKey])
+
+  const toggleFilter = (next: Filter) => setFilter(prev => prev === next ? 'all' : next)
+  const filterLabel: Record<Filter, string> = {
+    all: 'all users',
+    active7d: 'active in last 7 days',
+    active30d: 'active in last 30 days',
+    neverLoggedIn: 'never logged in',
+    zombie: 'zombies (logged in, no engagement)',
+    activated: 'activated (login + read + channel)',
+  }
 
   const funnelSteps = [
     { label: 'Signed up', count: funnel.signedUp },
@@ -1205,14 +1247,14 @@ function EngagementTab({
 
   return (
     <>
-      {/* Stats */}
+      {/* Stats — clickable to filter the table below */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <SummaryCard label="Total users" value={stats.total.toString()} />
-        <SummaryCard label="Active 7d" value={stats.active7d.toString()} color="emerald" />
-        <SummaryCard label="Active 30d" value={stats.active30d.toString()} color="blue" />
-        <SummaryCard label="Never logged in" value={stats.neverLoggedIn.toString()} color={stats.neverLoggedIn > 0 ? 'red' : undefined} />
-        <SummaryCard label="Zombie" value={stats.zombie.toString()} sub="logged in, no engagement" color={stats.zombie > 0 ? 'amber' : undefined} />
-        <SummaryCard label="Activated" value={stats.activated.toString()} sub="login + read + channel" color="emerald" />
+        <SummaryCard label="Total users" value={stats.total.toString()} onClick={() => toggleFilter('all')} active={filter === 'all'} />
+        <SummaryCard label="Active 7d" value={stats.active7d.toString()} color="emerald" onClick={() => toggleFilter('active7d')} active={filter === 'active7d'} />
+        <SummaryCard label="Active 30d" value={stats.active30d.toString()} color="blue" onClick={() => toggleFilter('active30d')} active={filter === 'active30d'} />
+        <SummaryCard label="Never logged in" value={stats.neverLoggedIn.toString()} color={stats.neverLoggedIn > 0 ? 'red' : undefined} onClick={() => toggleFilter('neverLoggedIn')} active={filter === 'neverLoggedIn'} />
+        <SummaryCard label="Zombie" value={stats.zombie.toString()} sub="logged in, no engagement" color={stats.zombie > 0 ? 'amber' : undefined} onClick={() => toggleFilter('zombie')} active={filter === 'zombie'} />
+        <SummaryCard label="Activated" value={stats.activated.toString()} sub="login + read + channel" color="emerald" onClick={() => toggleFilter('activated')} active={filter === 'activated'} />
       </div>
 
       {eventsTableMissing && (
@@ -1299,19 +1341,21 @@ function EngagementTab({
 
       {/* Per-user table */}
       <div className="rounded-xl border border-slate-700/50 overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-700/50 bg-slate-900 flex items-center justify-between">
+        <div className="px-4 py-3 border-b border-slate-700/50 bg-slate-900 flex items-center justify-between flex-wrap gap-2">
           <div>
             <h2 className="text-base font-semibold text-white">Per-user engagement</h2>
-            <p className="text-xs text-slate-400">Click a column header to sort</p>
+            <p className="text-xs text-slate-400">Click a stat card above to filter; click a column header to sort</p>
           </div>
-          <div className="text-xs text-slate-500">
-            Sorted by <span className="text-slate-300">{
-              sortKey === 'score' ? 'engagement score'
-              : sortKey === 'lastLogin' ? 'last login'
-              : sortKey === 'reads' ? 'alerts read'
-              : sortKey === 'bookmarks' ? 'bookmarks'
-              : 'time on site'
-            }</span>
+          <div className="flex items-center gap-3 text-xs text-slate-500">
+            <span>
+              Showing <span className="text-slate-300">{filterLabel[filter]}</span> ({sorted.length})
+            </span>
+            {filter !== 'all' && (
+              <button
+                onClick={() => setFilter('all')}
+                className="px-2 py-1 rounded-md border border-slate-700 hover:border-slate-500 hover:text-slate-200 transition-colors"
+              >Clear filter</button>
+            )}
           </div>
         </div>
         <div className="overflow-x-auto">
