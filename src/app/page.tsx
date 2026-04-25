@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { landingContent as c } from '@/content/landing'
 import PricingSection from '@/components/PricingSection'
+import { createClient } from '@/lib/supabase/server'
 
 // Sample funding rounds for the dashboard mockup (illustrative, not real data)
 const MOCK_ROUNDS = [
@@ -11,7 +12,15 @@ const MOCK_ROUNDS = [
   { company: 'Ledger Forge', amount: '$3M', stage: 'Pre-seed', location: 'Singapore', when: '2h ago', industry: 'FinTech' },
 ]
 
-export default function Home() {
+export default async function Home() {
+  // Check auth so the nav shows "Dashboard" instead of "Login / Sign up" when
+  // the visitor is already signed in. Without this, returning users see the
+  // logged-out CTAs and assume their session expired.
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
   return (
     <div className="min-h-screen bg-slate-900 text-white antialiased selection:bg-emerald-500/15">
       {/* ─────────────────── Nav ─────────────────── */}
@@ -22,18 +31,29 @@ export default function Home() {
             <span className="text-white">{c.nav.brandScout}</span>
           </Link>
           <div className="flex items-center gap-1 sm:gap-3">
-            <Link
-              href="/login"
-              className="rounded-full px-4 py-2 text-sm font-semibold text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
-            >
-              {c.nav.loginLabel}
-            </Link>
-            <Link
-              href="/signup"
-              className="rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white transition-all hover:bg-emerald-500"
-            >
-              {c.nav.signupLabel}
-            </Link>
+            {user ? (
+              <Link
+                href="/dashboard"
+                className="rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white transition-all hover:bg-emerald-500"
+              >
+                Go to dashboard
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="rounded-full px-4 py-2 text-sm font-semibold text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+                >
+                  {c.nav.loginLabel}
+                </Link>
+                <Link
+                  href="/signup"
+                  className="rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white transition-all hover:bg-emerald-500"
+                >
+                  {c.nav.signupLabel}
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </nav>
