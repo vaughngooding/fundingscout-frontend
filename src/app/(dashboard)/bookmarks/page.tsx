@@ -4,6 +4,7 @@ import Link from 'next/link'
 import AlertCard from '@/components/AlertCard'
 import ExportButton from './ExportButton'
 import type { UserAlert, Profile, FundingRound } from '@/lib/types'
+import { canUseProFeatures } from '@/lib/access'
 
 // Always fetch fresh — never serve a cached version. The plan status drives
 // whether the Pro upgrade prompt or the bookmarks list is shown.
@@ -30,8 +31,9 @@ export default async function BookmarksPage() {
 
   const typedProfile = profile as Profile | null
 
-  // Free users see an upgrade prompt
-  if (typedProfile?.plan === 'free') {
+  // Bookmarks is a Pro-only feature. Anyone not on Pro (basic, legacy_free,
+  // paywalled) sees the upgrade prompt. Behavior for plan='pro' is unchanged.
+  if (!canUseProFeatures(typedProfile)) {
     return (
       <div className="max-w-xl mx-auto text-center py-20">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-500/10 mb-6">

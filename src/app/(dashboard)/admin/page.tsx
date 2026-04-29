@@ -47,7 +47,7 @@ export default async function AdminDashboard() {
     // Users + Engagement tabs
     supabase
       .from('profiles')
-      .select('id, email, full_name, company, plan, stripe_customer_id, created_at, last_email_opened_at, email_opens_total')
+      .select('id, email, full_name, company, plan, legacy_free, stripe_customer_id, created_at, last_email_opened_at, email_opens_total')
       .order('created_at', { ascending: false }),
     supabase
       .from('user_preferences')
@@ -125,7 +125,8 @@ export default async function AdminDashboard() {
       email: p.email,
       full_name: p.full_name,
       company: p.company,
-      plan: p.plan as 'free' | 'pro',
+      plan: p.plan as 'free' | 'basic' | 'pro',
+      legacy_free: (p as { legacy_free?: boolean }).legacy_free ?? false,
       stripe_customer_id: p.stripe_customer_id,
       created_at: p.created_at,
       linkedin_url: up?.linkedin_url ?? null,
@@ -149,9 +150,23 @@ export default async function AdminDashboard() {
 
   const totalUsers = userRows.length
   const totalPro = userRows.filter(r => r.plan === 'pro').length
-  const totalFree = userRows.filter(r => r.plan === 'free').length
-  const totalPaying = userRows.filter(r => r.plan === 'pro' && r.stripe_customer_id).length
-  const mrr = totalPaying * 89
+  const totalBasic = userRows.filter(r => r.plan === 'basic').length
+  const totalLegacyFree = userRows.filter(r => r.plan === 'free' && r.legacy_free).length
+  const totalPaywalled = userRows.filter(r => r.plan === 'free' && !r.legacy_free).length
+  const totalPaying = userRows.filter(
+    r => (r.plan === 'pro' || r.plan === 'basic') && r.stripe_customer_id,
+  ).length
+
+  // MRR estimate. Without per-row Stripe price IDs, we conservatively assume
+  // every Pro is on the $89/mo Pro Monthly plan and every Basic is on the
+  // $19.99/mo Basic Monthly plan. Annual subscribers will be over-counted in
+  // a given month (we'd need to /12 their billing) — fix is to backfill
+  // `profiles.stripe_price_id` in a follow-up so we can compute precisely.
+  const proMrrPerUser = 89
+  const basicMrrPerUser = 19.99
+  const proPaying = userRows.filter(r => r.plan === 'pro' && r.stripe_customer_id).length
+  const basicPaying = userRows.filter(r => r.plan === 'basic' && r.stripe_customer_id).length
+  const mrr = Math.round(proPaying * proMrrPerUser + basicPaying * basicMrrPerUser)
 
   // --- Engagement stats (server-computed) ---
   const authUsers = authUsersRes.data?.users || []
@@ -275,7 +290,7 @@ export default async function AdminDashboard() {
       id: p.id,
       email: p.email,
       full_name: p.full_name,
-      plan: p.plan as 'free' | 'pro',
+      plan: p.plan as 'free' | 'basic' | 'pro',
       created_at: p.created_at,
       last_sign_in_at: lastSignIn,
       alerts_read: alertsReadRaw,
@@ -386,7 +401,7 @@ export default async function AdminDashboard() {
         sortedSources,
       }}
       userRows={userRows}
-      userStats={{ totalUsers, totalPro, totalFree, totalPaying, mrr }}
+      userStats={{ totalUsers, totalPro, totalBasic, totalLegacyFree, totalPaywalled, totalPaying, mrr }}
       engagementRows={engagementRows}
       engagementStats={engagementStats}
       funnel={funnel}

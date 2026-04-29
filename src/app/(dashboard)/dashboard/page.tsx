@@ -55,6 +55,7 @@ export default async function DashboardPage() {
       alerts={(alertsResult.data as UserAlert[]) || []}
       allRounds={(roundsResult.data as FundingRound[]) || []}
       plan={profile?.plan || 'free'}
+      legacyFree={profile?.legacy_free ?? false}
     />
   )
 }

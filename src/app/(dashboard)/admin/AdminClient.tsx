@@ -48,7 +48,8 @@ interface UserRow {
   email: string
   full_name: string | null
   company: string | null
-  plan: 'free' | 'pro'
+  plan: 'free' | 'basic' | 'pro'
+  legacy_free: boolean
   stripe_customer_id: string | null
   created_at: string
   linkedin_url: string | null
@@ -82,7 +83,9 @@ interface QualityStats {
 interface UserStats {
   totalUsers: number
   totalPro: number
-  totalFree: number
+  totalBasic: number
+  totalLegacyFree: number
+  totalPaywalled: number
   totalPaying: number
   mrr: number
 }
@@ -91,7 +94,7 @@ interface EngagementRow {
   id: string
   email: string
   full_name: string | null
-  plan: 'free' | 'pro'
+  plan: 'free' | 'basic' | 'pro'
   created_at: string
   last_sign_in_at: string | null
   alerts_read: number
@@ -531,11 +534,18 @@ function UsersTab({ rows, stats }: { rows: UserRow[]; stats: UserStats }) {
   return (
     <>
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <SummaryCard label="Total" value={stats.totalUsers.toString()} />
         <SummaryCard label="Pro" value={stats.totalPro.toString()} color="emerald" />
-        <SummaryCard label="Free" value={stats.totalFree.toString()} />
-        <SummaryCard label="MRR (paid)" value={`$${stats.mrr}`} sub={`${stats.totalPaying} × $89`} color="blue" />
+        <SummaryCard label="Basic" value={stats.totalBasic.toString()} color="blue" />
+        <SummaryCard label="Legacy Free" value={stats.totalLegacyFree.toString()} />
+        <SummaryCard label="Paywalled" value={stats.totalPaywalled.toString()} />
+        <SummaryCard
+          label="MRR (paid)"
+          value={`$${stats.mrr}`}
+          sub={`${stats.totalPaying} paying`}
+          color="blue"
+        />
       </div>
 
       {/* Table */}
@@ -586,14 +596,16 @@ function UsersTab({ rows, stats }: { rows: UserRow[]; stats: UserStats }) {
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
                         row.plan === 'pro'
                           ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                          : 'bg-slate-700 text-slate-300 border border-slate-600'
+                          : row.plan === 'basic'
+                            ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
+                            : 'bg-slate-700 text-slate-300 border border-slate-600'
                       }`}>
                         {row.plan.toUpperCase()}
                       </span>
-                      {row.plan === 'pro' && row.stripe_customer_id && (
+                      {(row.plan === 'pro' || row.plan === 'basic') && row.stripe_customer_id && (
                         <div className="text-[9px] text-slate-500 mt-1">paid</div>
                       )}
-                      {row.plan === 'pro' && !row.stripe_customer_id && (
+                      {(row.plan === 'pro' || row.plan === 'basic') && !row.stripe_customer_id && (
                         <div className="text-[9px] text-amber-400 mt-1">manual</div>
                       )}
                     </td>
@@ -1515,7 +1527,9 @@ function EngagementTab({
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border ${
                         r.plan === 'pro'
                           ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                          : 'bg-slate-700/40 text-slate-300 border-slate-600/40'
+                          : r.plan === 'basic'
+                            ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                            : 'bg-slate-700/40 text-slate-300 border-slate-600/40'
                       }`}>{r.plan}</span>
                     </td>
                     <td className="px-3 py-3 text-slate-400 text-xs">{formatDate(r.created_at)}</td>

@@ -4,9 +4,13 @@
  * Edit this file to change ANY text on the home page (https://fundingscout.io).
  * After editing: commit + push to git, Vercel auto-deploys in ~1 min.
  *
- * In v1.1 we'll wire this up to a Notion-backed CMS so non-technical edits
- * don't require a git commit. The shape of this object is stable so the
- * migration is just changing the data source.
+ * Pricing model (effective 2026-04-29):
+ *   - Trial:   $2.99 for 7 days, auto-converts to Basic Monthly
+ *   - Basic:   $19.99/mo or $99/yr — digest + dashboard + filters
+ *   - Pro:     $89/mo or $588/yr — everything (real-time, SMS, integrations)
+ *
+ * No free signup option exists for new users. Existing free users are
+ * grandfathered indefinitely on `legacy_free=true`.
  */
 
 export const landingContent = {
@@ -24,8 +28,8 @@ export const landingContent = {
     headline: 'Real-time funding alerts',
     subheadline:
       'Delivered instantly via SMS, Teams, Slack, Telegram, WhatsApp, or email.',
-    primaryCta: 'Start free',
-    primaryCtaHref: '/signup',
+    primaryCta: 'Try 7 days for $2.99',
+    primaryCtaHref: '/signup?plan=trial',
     secondaryCta: 'See pricing',
     secondaryCtaHref: '#pricing',
     socialProof: '',
@@ -65,7 +69,7 @@ export const landingContent = {
     description:
       'Every funding round in one place. Filter by anything. Bookmark the ones that matter. Export to CSV. Built for sales teams that need to move fast.',
     cta: 'Try the dashboard',
-    ctaHref: '/signup',
+    ctaHref: '/signup?plan=trial',
   },
 
   // ─── Competitor comparison ───
@@ -82,7 +86,7 @@ export const landingContent = {
           { label: 'Yes', tone: 'good' as const },
           { label: 'Low', tone: 'good' as const },
           { label: 'Yes', tone: 'good' as const },
-          { label: '$49–89', tone: 'price-highlight' as const },
+          { label: 'From $19.99', tone: 'price-highlight' as const },
         ],
       },
       {
@@ -133,32 +137,51 @@ export const landingContent = {
   },
 
   // ─── Pricing ───
+  // Two paid tiers (Basic + Pro), each with monthly/annual toggle.
+  // The Trial banner above the cards offers a low-friction $2.99 entry.
   pricing: {
     eyebrow: 'Pricing',
     headline: 'One deal pays for the year.',
-    subheadline: 'Start free. Upgrade when you need real-time alerts.',
+    subheadline: 'Start with a 7-day trial for $2.99. Upgrade anytime.',
+
+    // Trial CTA banner — shown above the two paid cards.
+    trial: {
+      eyebrow: 'Start small',
+      headline: 'Try FundingScout for 7 days — $2.99',
+      description:
+        'Full Basic access for a week. Auto-converts to Basic Monthly ($19.99/mo) at day 8. Cancel anytime.',
+      cta: 'Try 7 days for $2.99',
+      ctaHref: '/signup?plan=trial',
+    },
+
     plans: [
       {
-        name: 'Free',
-        price: '$0',
+        id: 'basic',
+        name: 'Basic',
+        // Two prices the toggle switches between. Annual saves you ~59%.
+        priceMonthly: '$19.99',
+        priceAnnual: '$8.25',
         period: '/month',
-        description: 'Perfect for evaluating funding signals without commitment.',
-        cta: 'Start free',
-        ctaHref: '/signup',
+        annualBilledNote: 'Billed $99 once a year — save $140 vs monthly.',
+        monthlyBilledNote: 'Billed monthly. Cancel anytime.',
+        description: 'Daily intelligence delivered to your inbox.',
+        cta: 'Get Basic',
+        ctaHrefMonthly: '/signup?plan=basic',
+        ctaHrefAnnual: '/signup?plan=basic-annual',
         ctaStyle: 'secondary' as const,
         recommended: false,
         features: [
           { text: 'Daily or weekly email digest', included: true },
           { text: 'Web dashboard access', included: true },
-          { text: 'Custom filters', included: true },
-          { text: 'Real-time alerts', included: false },
-          { text: 'SMS / Slack / Telegram delivery', included: false },
-          { text: 'Bookmarks & CSV export', included: false },
+          { text: 'Custom filters (industry, stage, geography, deal size)', included: true },
+          { text: 'Real-time alerts within 60 sec', included: false },
+          { text: 'SMS / Slack / Teams / Telegram delivery', included: false },
+          { text: 'Bookmarks, notes, CSV export', included: false },
         ],
       },
       {
+        id: 'pro',
         name: 'Pro',
-        // Two prices the toggle switches between. Annual is the default.
         priceMonthly: '$89',
         priceAnnual: '$49',
         period: '/month',
@@ -166,12 +189,12 @@ export const landingContent = {
         monthlyBilledNote: 'Billed monthly. Cancel anytime.',
         description: 'For founders, reps, and VCs who need to act on signals fast.',
         cta: 'Go Pro',
-        ctaHrefMonthly: '/signup?plan=monthly',
-        ctaHrefAnnual: '/signup?plan=annual',
+        ctaHrefMonthly: '/signup?plan=pro',
+        ctaHrefAnnual: '/signup?plan=pro-annual',
         ctaStyle: 'primary' as const,
         recommended: true,
         features: [
-          { text: 'Everything in Free', included: true },
+          { text: 'Everything in Basic', included: true },
           { text: 'Real-time alerts (within 60 sec)', included: true },
           { text: 'SMS to your phone', included: true },
           { text: 'Slack, Teams, Telegram delivery', included: true },
@@ -190,7 +213,17 @@ export const landingContent = {
       {
         question: 'How fast are the real-time alerts?',
         answer:
-          'Within 60 seconds of a matching round being published. We poll our sources every minute, our AI extracts the details, and we push to your phone immediately if it matches your filters.',
+          'Within 60 seconds of a matching round being published. We poll our sources every minute, our AI extracts the details, and we push to your phone immediately if it matches your filters. (Pro tier only — Basic gets the daily/weekly digest.)',
+      },
+      {
+        question: "What's the difference between Basic and Pro?",
+        answer:
+          'Basic ($19.99/mo) gets you the daily or weekly email digest, the full web dashboard with filters, and bookmarking — perfect if you just want to stay informed. Pro ($89/mo) adds real-time alerts within 60 seconds, plus SMS, Slack, Teams, Telegram delivery, and CSV export — built for sales teams and investors who need to act before competitors do.',
+      },
+      {
+        question: 'What happens after the 7-day trial?',
+        answer:
+          'On day 8 your card is charged $19.99 and you continue on the Basic plan month-to-month. You can cancel anytime from Settings before day 8 (no further charge) or after (keeps access until the end of the billing period). Want Pro instead of Basic at conversion? Upgrade in one click from your dashboard.',
       },
       {
         question: 'Which sources do you monitor?',
@@ -200,12 +233,7 @@ export const landingContent = {
       {
         question: 'Can I cancel anytime?',
         answer:
-          'Yes. Pro is month-to-month, no contracts. Cancel from your Settings page in one click and you keep access until the end of your billing period.',
-      },
-      {
-        question: 'What if I want to stay on the Free plan forever?',
-        answer:
-          'You can. Free includes the daily digest, web dashboard, and custom filters. You only need Pro if you want real-time delivery to your phone or other channels.',
+          'Yes. Both Basic and Pro are month-to-month, no contracts. Cancel from your Settings page in one click and you keep access until the end of your billing period.',
       },
       {
         question: 'Do you offer a team plan?',
@@ -218,9 +246,9 @@ export const landingContent = {
   // ─── Final CTA banner ───
   finalCta: {
     headline: 'Ready to find your next customer?',
-    subheadline: 'Set up takes 2 minutes. No credit card required for the free plan.',
-    primaryCta: 'Start free',
-    primaryCtaHref: '/signup',
+    subheadline: 'Set up takes 2 minutes. 7-day trial for $2.99 — cancel anytime.',
+    primaryCta: 'Try 7 days for $2.99',
+    primaryCtaHref: '/signup?plan=trial',
   },
 
   // ─── Footer ───

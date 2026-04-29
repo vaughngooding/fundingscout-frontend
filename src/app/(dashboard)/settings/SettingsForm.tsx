@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Profile, UserPreferences } from '@/lib/types'
+import { canUseProFeatures } from '@/lib/access'
 
 const FUNDING_TYPES = [
   'pre-seed',
@@ -67,7 +68,10 @@ export default function SettingsForm({
   profile: initialProfile,
   preferences: initialPreferences,
 }: SettingsFormProps) {
-  const isPro = initialProfile.plan === 'pro'
+  // Routed through canUseProFeatures to keep all Pro gates consistent across
+  // the codebase. Semantically identical to `plan === 'pro'`.
+  const isPro = canUseProFeatures(initialProfile)
+  const isLegacyFree = initialProfile.plan === 'free' && initialProfile.legacy_free === true
 
   const [profile, setProfile] = useState({
     full_name: initialProfile.full_name || '',
@@ -994,44 +998,96 @@ export default function SettingsForm({
               className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
                 initialProfile.plan === 'pro'
                   ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                  : 'bg-slate-700 text-slate-300 border border-slate-600'
+                  : initialProfile.plan === 'basic'
+                    ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                    : 'bg-slate-700 text-slate-300 border border-slate-600'
               }`}
             >
-              {initialProfile.plan === 'pro' ? 'Pro' : 'Free'}
+              {initialProfile.plan === 'pro'
+                ? 'Pro'
+                : initialProfile.plan === 'basic'
+                  ? 'Basic'
+                  : isLegacyFree
+                    ? 'Free (legacy)'
+                    : 'Free'}
             </span>
             <p className="text-sm text-slate-400 mt-1">
               {initialProfile.plan === 'pro'
                 ? 'Unlimited alerts, bookmarks, and integrations.'
-                : 'Limited to basic alerts. Upgrade for full access.'}
+                : initialProfile.plan === 'basic'
+                  ? 'Daily/weekly digest, dashboard, and saved filters. Upgrade to Pro for real-time alerts.'
+                  : isLegacyFree
+                    ? "You're on our legacy free plan. Thanks for being an early user!"
+                    : 'Subscribe to access funding alerts.'}
             </p>
           </div>
-          {initialProfile.plan !== 'pro' && (
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  const res = await fetch('/api/create-checkout', { method: 'POST' })
-                  const data = await res.json()
-                  if (data.url) {
-                    window.location.href = data.url
-                  } else {
+
+          <div className="flex flex-shrink-0 ml-4 gap-2">
+            {/* Pro users + paying Basic users go to the Stripe Customer Portal
+                to manage their subscription (cancel, update card, switch plan).
+                Legacy free + paywalled users go to the upgrade flow instead. */}
+            {(initialProfile.plan === 'pro' || initialProfile.plan === 'basic') && (
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/portal', { method: 'POST' })
+                    const data = await res.json()
+                    if (data.url) {
+                      window.location.href = data.url
+                    } else if (data.redirect) {
+                      window.location.href = data.redirect
+                    } else {
+                      setToast({
+                        type: 'error',
+                        message: data.error || 'Failed to open billing portal.',
+                      })
+                    }
+                  } catch {
                     setToast({
                       type: 'error',
-                      message: data.error || 'Failed to start checkout. Please try again.',
+                      message: 'Network error. Please try again.',
                     })
                   }
-                } catch {
-                  setToast({
-                    type: 'error',
-                    message: 'Network error. Please try again.',
-                  })
-                }
-              }}
-              className="flex-shrink-0 ml-4 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors"
-            >
-              Upgrade to Pro
-            </button>
-          )}
+                }}
+                className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium transition-colors"
+              >
+                Manage subscription
+              </button>
+            )}
+            {initialProfile.plan !== 'pro' && (
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const planId = initialProfile.plan === 'basic' ? 'pro' : 'trial'
+                    const res = await fetch('/api/create-checkout', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ plan: planId }),
+                    })
+                    const data = await res.json()
+                    if (data.url) {
+                      window.location.href = data.url
+                    } else {
+                      setToast({
+                        type: 'error',
+                        message: data.error || 'Failed to start checkout. Please try again.',
+                      })
+                    }
+                  } catch {
+                    setToast({
+                      type: 'error',
+                      message: 'Network error. Please try again.',
+                    })
+                  }
+                }}
+                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors"
+              >
+                {initialProfile.plan === 'basic' ? 'Upgrade to Pro' : isLegacyFree ? 'Upgrade' : 'Subscribe'}
+              </button>
+            )}
+          </div>
         </div>
       </section>
 

@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { shouldSendDigest, digestAlertLimit } from './digest-policy.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,6 +29,7 @@ interface UserPreference {
     email: string
     full_name: string | null
     plan: string
+    legacy_free: boolean | null
     timezone: string | null
   }
 }
@@ -226,6 +228,7 @@ Deno.serve(async (req: Request) => {
           email,
           full_name,
           plan,
+          legacy_free,
           timezone
         )
       `)
@@ -285,8 +288,17 @@ Deno.serve(async (req: Request) => {
 
     for (const user of eligibleUsers) {
       try {
-        const isFreeUser = user.profiles.plan === 'free'
-        const alertLimit = isFreeUser ? 10 : 50
+        const plan = user.profiles.plan
+        const legacyFree = user.profiles.legacy_free === true
+
+        // Paywalled users (plan='free' AND legacy_free=false) lost access
+        // when their subscription cancelled — never send them a digest.
+        // Pro keeps the 50-alert cap. Basic and legacy_free both get the
+        // historical 10-alert cap (matches the old "free user" behaviour).
+        if (!shouldSendDigest(plan, legacyFree)) {
+          continue
+        }
+        const alertLimit = digestAlertLimit(plan)
         const cadence: 'daily' | 'weekly' =
           user.digest_frequency === 'weekly' ? 'weekly' : 'daily'
 

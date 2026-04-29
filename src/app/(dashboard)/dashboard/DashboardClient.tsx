@@ -4,14 +4,16 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import AlertCard from '@/components/AlertCard'
 import FilterSidebar, { type FilterState } from '@/components/FilterSidebar'
-import type { UserAlert, FundingRound } from '@/lib/types'
+import type { UserAlert, FundingRound, Plan } from '@/lib/types'
+import { canUseProFeatures } from '@/lib/access'
 
 type ViewMode = 'matches' | 'all'
 
 interface DashboardClientProps {
   alerts: UserAlert[]
   allRounds: FundingRound[]
-  plan: 'free' | 'pro'
+  plan: Plan
+  legacyFree: boolean
 }
 
 // Wrap a raw FundingRound as a synthetic UserAlert so the rest of the
@@ -72,6 +74,7 @@ export default function DashboardClient({
   alerts,
   allRounds,
   plan,
+  legacyFree,
 }: DashboardClientProps) {
   const [search, setSearch] = useState('')
   // 'matches' = user_alerts (pre-filtered by saved preferences)
@@ -151,7 +154,12 @@ export default function DashboardClient({
     })
   }, [activeAlerts, search, filters])
 
-  const showUpgradeBanner = plan === 'free' && alerts.length > 3
+  // Show the "Upgrade to Pro" banner to anyone who's NOT on Pro and has more
+  // than 3 alerts to look at. Same triggering threshold as before; we just
+  // generalised the gate so basic + legacy_free both see the upsell.
+  // (Pro users never see it. Paywalled users wouldn't reach this page —
+  // they're redirected by the dashboard layout guard.)
+  const showUpgradeBanner = !canUseProFeatures({ plan, legacy_free: legacyFree }) && alerts.length > 3
 
   return (
     <div className="flex gap-6">
@@ -229,8 +237,8 @@ export default function DashboardClient({
                 Upgrade to Pro
               </h3>
               <p className="text-xs text-slate-300 mt-0.5">
-                You have {alerts.length} alerts. Free plan is limited. Unlock
-                unlimited alerts, bookmarks, and Slack/Teams integrations.
+                You have {alerts.length} alerts. Unlock real-time delivery,
+                SMS, Slack/Teams/Telegram integrations, bookmarks, and CSV export.
               </p>
             </div>
             <Link

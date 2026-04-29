@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import Navbar from '@/components/Navbar'
+import { isPaywalled } from '@/lib/access'
+import type { Profile } from '@/lib/types'
 
 // Force fresh server render on every request — never serve a cached layout.
 // Without this, Next.js can serve a stale layout that shows the user as Free
@@ -29,6 +31,14 @@ export default async function DashboardLayout({
     .select('*')
     .eq('id', user.id)
     .single()
+
+  // Paywall guard: a user with plan='free' AND legacy_free=false has no
+  // entitlement (cancelled new signup, never grandfathered). Bounce them
+  // back to the onboarding plan picker (Step 4) so they can resubscribe.
+  // Pro and legacy_free users pass through unchanged.
+  if (isPaywalled(profile as Profile | null)) {
+    redirect('/onboarding?step=plan')
+  }
 
   return (
     <div className="min-h-screen bg-slate-950">

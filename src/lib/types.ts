@@ -46,13 +46,32 @@ export interface UserAlert {
   funding_round?: FundingRound
 }
 
+/**
+ * Subscription tier.
+ *
+ * - `free`: legacy users (created before 2026-04-29). Distinguished from
+ *   "paywalled" via the `legacy_free` flag. Cannot be created new.
+ * - `basic`: paid entry tier ($19.99/mo or $99/yr, also the post-trial state).
+ *   Same feature set as legacy free; we are charging for what was free.
+ * - `pro`: unchanged from before this commit. $89/mo or $588/yr. All
+ *   real-time + integration features.
+ */
+export type Plan = 'free' | 'basic' | 'pro'
+
 export interface Profile {
   id: string
   email: string
   full_name: string | null
   company: string | null
   role: string | null
-  plan: 'free' | 'pro'
+  plan: Plan
+  /**
+   * True ONLY for users created before the 2026-04-29 free-tier elimination,
+   * grandfathered onto the legacy free experience. New signups never get this
+   * flag, so a cancelled subscriber lands on `plan='free' && legacy_free=false`
+   * → paywalled.
+   */
+  legacy_free: boolean
   timezone: string
   stripe_customer_id: string | null
 }

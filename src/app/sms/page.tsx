@@ -71,9 +71,9 @@ export default function SmsOptInPage() {
                   Create a FundingScout account
                 </h3>
                 <p className="mt-1 text-sm text-slate-400">
-                  Sign up for free at{' '}
+                  Start your 7-day trial for $2.99 at{' '}
                   <Link
-                    href="/signup"
+                    href="/signup?plan=trial"
                     className="text-emerald-400 underline-offset-2 hover:underline"
                   >
                     fundingscout.io/signup
@@ -291,10 +291,10 @@ export default function SmsOptInPage() {
           <div className="mt-6 space-y-5 rounded-2xl border border-slate-700 bg-slate-800/60 p-6 text-sm leading-relaxed text-slate-400">
             <p>
               <span className="font-semibold text-slate-200">1. Program description.</span>{' '}
-              The FundingScout SMS alert program ("Program") delivers automated text
+              The FundingScout SMS alert program (&ldquo;Program&rdquo;) delivers automated text
               message notifications about startup funding rounds that match the alert
               filters you save in your FundingScout account. The Program is operated by
-              FundingScout ("we," "us," "our").
+              FundingScout (&ldquo;we,&rdquo; &ldquo;us,&rdquo; &ldquo;our&rdquo;).
             </p>
             <p>
               <span className="font-semibold text-slate-200">2. Eligibility.</span>{' '}
@@ -350,7 +350,7 @@ export default function SmsOptInPage() {
             </p>
             <p>
               <span className="font-semibold text-slate-200">9. No warranty.</span>{' '}
-              FundingScout alerts are provided on an "as-is" basis for informational
+              FundingScout alerts are provided on an &ldquo;as-is&rdquo; basis for informational
               purposes only. We do not guarantee the accuracy, timeliness, or delivery
               of any message, and we are not responsible for investment, business, or
               other decisions made based on the content of any alert. Nothing in an
@@ -397,13 +397,13 @@ export default function SmsOptInPage() {
             Ready to start receiving funding alerts?
           </h2>
           <p className="mt-3 text-sm text-slate-400">
-            Sign up for free, save your filters, and verify your phone in Settings.
+            Start your 7-day trial for $2.99, save your filters, and verify your phone in Settings.
           </p>
           <Link
-            href="/signup"
+            href="/signup?plan=trial"
             className="mt-6 inline-flex items-center justify-center gap-2 rounded-full bg-emerald-600 px-7 py-3.5 text-base font-semibold text-white shadow-[0_8px_24px_-8px_rgba(16,185,129,0.5)] transition-all hover:bg-emerald-500"
           >
-            Create your free account
+            Try 7 days for $2.99
           </Link>
         </div>
       </section>

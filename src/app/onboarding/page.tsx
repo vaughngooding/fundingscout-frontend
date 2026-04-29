@@ -1,7 +1,7 @@
 'use client'
 
 import { Suspense, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 const ROLES = [
@@ -50,18 +50,49 @@ function formatAmountLabel(value: number): string {
 
 const TOTAL_STEPS = 5
 
-// useSearchParams must be inside a Suspense boundary during static prerender.
-// Wrapper at the bottom of the file provides it.
-function OnboardingPageInner() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  // ?plan=annual or ?plan=monthly carries through from the landing pricing CTAs
-  // via signup. If present, we pre-select Pro and the right billing cycle so
-  // the user can confirm and pay without re-picking.
-  const planFromUrl = searchParams.get('plan') // 'annual' | 'monthly' | null
+// ─────────────────────────────────────────────────────────────────────────────
+// Plan selection types — must mirror src/app/api/create-checkout/route.ts.
+// 'free' is intentionally absent: the free signup path is eliminated.
+// ─────────────────────────────────────────────────────────────────────────────
+type PlanTier = 'trial' | 'basic' | 'pro'
+type BillingCycle = 'monthly' | 'annual'
 
-  const [step, setStep] = useState(1)
-  const [saving, setSaving] = useState(false)
+/** URL ?plan= → ({tier, billingCycle}) for pre-selection from landing CTAs. */
+function parseUrlPlan(planParam: string | null): { tier: PlanTier; billing: BillingCycle } {
+  switch (planParam) {
+    case 'trial':
+      return { tier: 'trial', billing: 'monthly' } // billing N/A for trial
+    case 'basic':
+      return { tier: 'basic', billing: 'monthly' }
+    case 'basic-annual':
+    case 'basic_annual':
+      return { tier: 'basic', billing: 'annual' }
+    case 'pro':
+    case 'monthly': // legacy alias
+      return { tier: 'pro', billing: 'monthly' }
+    case 'pro-annual':
+    case 'pro_annual':
+    case 'annual': // legacy alias
+      return { tier: 'pro', billing: 'annual' }
+    default:
+      return { tier: 'trial', billing: 'monthly' } // safest low-friction default
+  }
+}
+
+/** Convert (tier, billing) into the canonical plan ID the checkout API expects. */
+function checkoutPlanId(tier: PlanTier, billing: BillingCycle): string {
+  if (tier === 'trial') return 'trial'
+  if (tier === 'basic') return billing === 'annual' ? 'basic-annual' : 'basic'
+  return billing === 'annual' ? 'pro-annual' : 'pro'
+}
+
+function OnboardingPageInner() {
+  const searchParams = useSearchParams()
+  const initial = parseUrlPlan(searchParams.get('plan'))
+  // Allow ?step=plan to deep-link straight into the plan selector after signup.
+  const initialStep = searchParams.get('step') === 'plan' ? 4 : 1
+
+  const [step, setStep] = useState(initialStep)
   const [upgrading, setUpgrading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -77,20 +108,13 @@ function OnboardingPageInner() {
   const [maxAmount, setMaxAmount] = useState(100_000_000)
   const [fundingTypes, setFundingTypes] = useState<string[]>([])
 
-  // Step 4: Plan choice — pre-selected from URL if present, else free
-  const [chosenPlan, setChosenPlan] = useState<'free' | 'pro'>(
-    planFromUrl === 'annual' || planFromUrl === 'monthly' ? 'pro' : 'free',
-  )
-  // Monthly is the default for Pro so the displayed price ($89/mo) matches
-  // the headline pricing on the landing page. Users can still toggle to
-  // Annual ($49/mo billed yearly) if they want the discount.
-  const [billingCycle, setBillingCycle] = useState<'annual' | 'monthly'>(
-    planFromUrl === 'annual' ? 'annual' : 'monthly',
-  )
+  // Step 4: Plan selection.
+  // Note: there is NO free option. Every path leads to Stripe Checkout —
+  // the cheapest entry is the $2.99 trial which auto-converts to Basic.
+  const [chosenTier, setChosenTier] = useState<PlanTier>(initial.tier)
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>(initial.billing)
 
-  // Step 5: Telegram connect (optional, last step). Same pattern as
-  // SettingsForm.tsx — generate a token, open the deep link, poll for
-  // telegram_chat_id to be set by the webhook.
+  // Step 5: Telegram connect (optional)
   const [telegramConnected, setTelegramConnected] = useState(false)
   const [telegramConnecting, setTelegramConnecting] = useState(false)
 
@@ -115,9 +139,9 @@ function OnboardingPageInner() {
       case 3:
         return fundingTypes.length > 0
       case 4:
-        return true
+        return true // plan always has a default
       case 5:
-        return true // Telegram step is always skippable
+        return true // Telegram is optional
       default:
         return false
     }
@@ -150,10 +174,8 @@ function OnboardingPageInner() {
       return
     }
 
-    // Open deep link in a new tab so the user lands in Telegram
     window.open(`https://t.me/FundingScoutAlerts_Bot?start=${token}`, '_blank')
 
-    // Poll for telegram_chat_id every 2s for up to 60s
     let attempts = 0
     const maxAttempts = 30
     const interval = setInterval(async () => {
@@ -174,7 +196,7 @@ function OnboardingPageInner() {
     }, 2000)
   }
 
-  // Persist preferences. If `goPro` is true, also redirect to Stripe Checkout.
+  /** Persist role + filter preferences. Called before kicking off Stripe checkout. */
   async function savePrefs(): Promise<boolean> {
     setError(null)
     const supabase = createClient()
@@ -224,17 +246,8 @@ function OnboardingPageInner() {
     return true
   }
 
-  async function handleFreeContinue() {
-    setSaving(true)
-    const ok = await savePrefs()
-    setSaving(false)
-    if (ok) {
-      router.push('/dashboard')
-      router.refresh()
-    }
-  }
-
-  async function handleGoPro() {
+  /** Save prefs then redirect to Stripe Checkout — every onboarding finish goes through Stripe. */
+  async function handleCheckout() {
     setUpgrading(true)
     const ok = await savePrefs()
     if (!ok) {
@@ -242,10 +255,11 @@ function OnboardingPageInner() {
       return
     }
     try {
+      const planId = checkoutPlanId(chosenTier, billingCycle)
       const res = await fetch('/api/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: billingCycle }),
+        body: JSON.stringify({ plan: planId }),
       })
       const data = await res.json()
       if (data.url) {
@@ -453,93 +467,138 @@ function OnboardingPageInner() {
           </div>
         )}
 
-        {/* Step 4: Choose Free vs Pro */}
+        {/* Step 4: Choose plan — Trial / Basic / Pro. No free option. */}
         {step === 4 && (
           <div>
             <h2 className="text-xl font-semibold text-white mb-1">
-              Choose how you want alerts
+              Choose your plan
             </h2>
             <p className="text-sm text-slate-400 mb-6">
-              You can change this anytime in Settings.
+              Try us for $2.99 / 7 days, or jump straight to Basic or Pro. Cancel anytime.
             </p>
 
-            <div className="grid gap-4">
-              {/* Free plan card */}
+            <div className="grid gap-3">
+              {/* Trial card — recommended */}
               <button
                 type="button"
-                onClick={() => setChosenPlan('free')}
-                className={`text-left p-5 rounded-xl border-2 transition-all ${
-                  chosenPlan === 'free'
-                    ? 'bg-slate-800 border-slate-500 ring-1 ring-slate-400/30'
-                    : 'bg-slate-800/40 border-slate-700 hover:border-slate-600'
+                onClick={() => setChosenTier('trial')}
+                className={`text-left p-5 rounded-xl border-2 transition-all relative ${
+                  chosenTier === 'trial'
+                    ? 'bg-gradient-to-br from-emerald-500/15 to-blue-500/10 border-emerald-400 ring-2 ring-emerald-400/30'
+                    : 'bg-slate-800/40 border-slate-700 hover:border-emerald-500/40'
                 }`}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-base font-bold text-white">Free</span>
-                  <span className="text-sm font-semibold text-slate-300">$0/mo</span>
+                <div className="absolute -top-2.5 right-4 px-2 py-0.5 rounded-full bg-emerald-500 text-xs font-bold text-slate-900">
+                  RECOMMENDED
                 </div>
-                <p className="text-xs text-slate-400 mb-3">
-                  Get a daily or weekly funding digest delivered to your email inbox.
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-base font-bold text-white">7-day trial</span>
+                  <span className="text-sm font-semibold text-emerald-300">$2.99</span>
+                </div>
+                <p className="text-[11px] text-slate-400 mb-2">
+                  Auto-converts to Basic ($19.99/mo) on day 8 unless cancelled.
                 </p>
                 <ul className="space-y-1.5">
                   <li className="flex items-start gap-2 text-xs text-slate-300">
                     <span className="text-emerald-400">✓</span>
-                    Daily or weekly email digest
+                    Daily/weekly email digest
                   </li>
                   <li className="flex items-start gap-2 text-xs text-slate-300">
                     <span className="text-emerald-400">✓</span>
-                    Web dashboard access
+                    Web dashboard + custom filters
                   </li>
-                  <li className="flex items-start gap-2 text-xs text-slate-500">
-                    <span className="text-slate-600">✗</span>
-                    Real-time alerts
-                  </li>
-                  <li className="flex items-start gap-2 text-xs text-slate-500">
-                    <span className="text-slate-600">✗</span>
-                    SMS / Slack / Telegram delivery
+                  <li className="flex items-start gap-2 text-xs text-slate-300">
+                    <span className="text-emerald-400">✓</span>
+                    Cancel anytime — one click
                   </li>
                 </ul>
               </button>
 
-              {/* Pro plan card */}
-              <div
-                className={`text-left p-5 rounded-xl border-2 transition-all relative ${
-                  chosenPlan === 'pro'
+              {/* Basic card */}
+              <button
+                type="button"
+                onClick={() => setChosenTier('basic')}
+                className={`text-left p-5 rounded-xl border-2 transition-all ${
+                  chosenTier === 'basic'
+                    ? 'bg-slate-800 border-slate-400 ring-1 ring-slate-300/30'
+                    : 'bg-slate-800/40 border-slate-700 hover:border-slate-500'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-base font-bold text-white">Basic</span>
+                  <span className="text-sm font-semibold text-slate-200">
+                    {billingCycle === 'annual' ? '$8.25/mo' : '$19.99/mo'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 mb-2">
+                  {billingCycle === 'annual'
+                    ? 'Billed $99 once a year — save $140 vs monthly.'
+                    : 'Billed monthly. Cancel anytime.'}
+                </p>
+                <ul className="space-y-1.5">
+                  <li className="flex items-start gap-2 text-xs text-slate-300">
+                    <span className="text-emerald-400">✓</span>
+                    Daily/weekly email digest
+                  </li>
+                  <li className="flex items-start gap-2 text-xs text-slate-300">
+                    <span className="text-emerald-400">✓</span>
+                    Web dashboard + custom filters
+                  </li>
+                  <li className="flex items-start gap-2 text-xs text-slate-500">
+                    <span className="text-slate-600">✗</span>
+                    Real-time alerts (Pro only)
+                  </li>
+                  <li className="flex items-start gap-2 text-xs text-slate-500">
+                    <span className="text-slate-600">✗</span>
+                    SMS / Slack / Telegram (Pro only)
+                  </li>
+                </ul>
+              </button>
+
+              {/* Pro card */}
+              <button
+                type="button"
+                onClick={() => setChosenTier('pro')}
+                className={`text-left p-5 rounded-xl border-2 transition-all ${
+                  chosenTier === 'pro'
                     ? 'bg-gradient-to-br from-emerald-500/10 to-blue-500/10 border-emerald-400 ring-2 ring-emerald-400/30'
                     : 'bg-slate-800/40 border-slate-700 hover:border-emerald-500/40'
                 }`}
               >
-                <button
-                  type="button"
-                  onClick={() => setChosenPlan('pro')}
-                  className="w-full text-left"
-                >
-                  <div className="absolute -top-2.5 right-4 px-2 py-0.5 rounded-full bg-emerald-500 text-xs font-bold text-slate-900">
-                    RECOMMENDED
-                  </div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-base font-bold text-white">Pro</span>
-                    <span className="text-sm font-semibold text-emerald-300">
-                      {billingCycle === 'annual' ? '$49/mo' : '$89/mo'}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-400 mb-2">
-                    {billingCycle === 'annual'
-                      ? 'Billed $588 once a year — save $480 vs monthly'
-                      : 'Billed monthly. Cancel anytime.'}
-                  </p>
-                </button>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-base font-bold text-white">Pro</span>
+                  <span className="text-sm font-semibold text-emerald-300">
+                    {billingCycle === 'annual' ? '$49/mo' : '$89/mo'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 mb-2">
+                  {billingCycle === 'annual'
+                    ? 'Billed $588 once a year — save $480 vs monthly.'
+                    : 'Billed monthly. Cancel anytime.'}
+                </p>
+                <ul className="space-y-1.5">
+                  <li className="flex items-start gap-2 text-xs text-slate-200">
+                    <span className="text-emerald-400">✓</span>
+                    <strong className="text-white">Real-time</strong> alerts (within 1 min)
+                  </li>
+                  <li className="flex items-start gap-2 text-xs text-slate-200">
+                    <span className="text-emerald-400">✓</span>
+                    <strong className="text-white">SMS</strong>, <strong className="text-white">Slack</strong>, Telegram, Teams
+                  </li>
+                  <li className="flex items-start gap-2 text-xs text-slate-200">
+                    <span className="text-emerald-400">✓</span>
+                    Email digest + dashboard + bookmarks + CSV export
+                  </li>
+                </ul>
+              </button>
 
-                {/* Annual / Monthly toggle inside the Pro card */}
-                <div className="mb-3 mt-1 inline-flex rounded-full bg-slate-900/70 p-0.5 ring-1 ring-slate-700">
+              {/* Annual / Monthly toggle — applies to Basic + Pro */}
+              {chosenTier !== 'trial' && (
+                <div className="mt-2 inline-flex self-center rounded-full bg-slate-900/70 p-0.5 ring-1 ring-slate-700">
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setBillingCycle('annual')
-                      setChosenPlan('pro')
-                    }}
-                    className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider transition-all ${
+                    onClick={() => setBillingCycle('annual')}
+                    className={`rounded-full px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-all ${
                       billingCycle === 'annual'
                         ? 'bg-emerald-600 text-white shadow'
                         : 'text-slate-400 hover:text-white'
@@ -549,12 +608,8 @@ function OnboardingPageInner() {
                   </button>
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setBillingCycle('monthly')
-                      setChosenPlan('pro')
-                    }}
-                    className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider transition-all ${
+                    onClick={() => setBillingCycle('monthly')}
+                    className={`rounded-full px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-all ${
                       billingCycle === 'monthly'
                         ? 'bg-emerald-600 text-white shadow'
                         : 'text-slate-400 hover:text-white'
@@ -563,36 +618,11 @@ function OnboardingPageInner() {
                     Monthly
                   </button>
                 </div>
-                <p className="text-xs text-slate-400 mb-3">
-                  Real-time funding alerts pushed to your phone, Slack, Teams, Telegram, or WhatsApp the moment a round is announced.
-                </p>
-                <ul className="space-y-1.5">
-                  <li className="flex items-start gap-2 text-xs text-slate-200">
-                    <span className="text-emerald-400">✓</span>
-                    <strong className="text-white">Real-time</strong> alerts (within 1 min of news breaking)
-                  </li>
-                  <li className="flex items-start gap-2 text-xs text-slate-200">
-                    <span className="text-emerald-400">✓</span>
-                    <strong className="text-white">SMS</strong> to your phone
-                  </li>
-                  <li className="flex items-start gap-2 text-xs text-slate-200">
-                    <span className="text-emerald-400">✓</span>
-                    <strong className="text-white">Slack</strong>, <strong className="text-white">Telegram</strong>, Teams
-                  </li>
-                  <li className="flex items-start gap-2 text-xs text-slate-200">
-                    <span className="text-emerald-400">✓</span>
-                    <strong className="text-white">WhatsApp</strong> <span className="text-slate-500">(coming soon)</span>
-                  </li>
-                  <li className="flex items-start gap-2 text-xs text-slate-200">
-                    <span className="text-emerald-400">✓</span>
-                    Email digest, dashboard, bookmarks, CSV export
-                  </li>
-                </ul>
-              </div>
+              )}
             </div>
 
             <p className="text-xs text-slate-500 mt-4 text-center">
-              Want to add an integration like Slack or Telegram later? Find them in <strong className="text-slate-400">Settings → Integrations</strong>.
+              Want to add Slack or Telegram later? Find them in <strong className="text-slate-400">Settings → Integrations</strong> after onboarding.
             </p>
           </div>
         )}
@@ -604,7 +634,7 @@ function OnboardingPageInner() {
               Want instant alerts on Telegram?
             </h2>
             <p className="text-sm text-slate-400 mb-6">
-              Free, instant, works on every device. Connect now in 30 seconds —
+              Quick to connect and works on every device. Connect now in 30 seconds —
               or skip and add it later from Settings.
             </p>
 
@@ -680,38 +710,27 @@ function OnboardingPageInner() {
             >
               Continue
             </button>
-          ) : chosenPlan === 'pro' ? (
+          ) : (
+            // Final step (5): always go through Stripe Checkout. The free
+            // signup escape hatch was removed 2026-04-29.
             <button
-              onClick={handleGoPro}
+              onClick={handleCheckout}
               disabled={upgrading}
               className="px-6 py-2.5 rounded-lg bg-gradient-to-r from-emerald-500 to-blue-500 hover:from-emerald-400 hover:to-blue-400 text-white text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/30"
             >
-              {upgrading ? 'Loading checkout…' : telegramConnected ? 'Continue to Pro Checkout →' : 'Skip & continue to Pro →'}
-            </button>
-          ) : (
-            <button
-              onClick={handleFreeContinue}
-              disabled={saving}
-              className="px-6 py-2.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {saving ? 'Setting up...' : telegramConnected ? 'Finish →' : 'Skip & finish →'}
+              {upgrading
+                ? 'Loading checkout…'
+                : chosenTier === 'trial'
+                  ? telegramConnected
+                    ? 'Continue to checkout (start trial) →'
+                    : 'Skip & start 7-day trial →'
+                  : telegramConnected
+                    ? `Continue to ${chosenTier === 'pro' ? 'Pro' : 'Basic'} checkout →`
+                    : `Skip & continue to ${chosenTier === 'pro' ? 'Pro' : 'Basic'} →`}
             </button>
           )}
         </div>
       </div>
-
-      {/* Skip link */}
-      {step < TOTAL_STEPS && (
-        <button
-          onClick={() => {
-            router.push('/dashboard')
-            router.refresh()
-          }}
-          className="mt-4 text-xs text-slate-500 hover:text-slate-400 transition-colors"
-        >
-          Skip for now
-        </button>
-      )}
     </div>
   )
 }

@@ -68,6 +68,7 @@ export default async function SettingsPage() {
     company: null,
     role: null,
     plan: 'free',
+    legacy_free: false,
     timezone: 'America/New_York',
     stripe_customer_id: null,
   }

@@ -8,7 +8,7 @@ import type { User } from '@supabase/supabase-js'
 
 export default function Navbar() {
   const [user, setUser] = useState<User | null>(null)
-  const [plan, setPlan] = useState<'free' | 'pro' | null>(null)
+  const [plan, setPlan] = useState<'free' | 'basic' | 'pro' | null>(null)
   const [upgrading, setUpgrading] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const router = useRouter()
@@ -27,7 +27,7 @@ export default function Navbar() {
           .select('plan')
           .eq('id', user.id)
           .single()
-        setPlan((profile?.plan as 'free' | 'pro') || 'free')
+        setPlan((profile?.plan as 'free' | 'basic' | 'pro') || 'free')
       }
     }
     loadUserAndPlan()
@@ -45,7 +45,15 @@ export default function Navbar() {
   async function handleUpgrade() {
     setUpgrading(true)
     try {
-      const res = await fetch('/api/create-checkout', { method: 'POST' })
+      // From the navbar, default to a Pro upgrade. Basic users clicking
+      // "Upgrade to Pro" go straight to Pro Monthly checkout. Legacy free
+      // users get a Pro checkout too — that's the upsell aligning with
+      // "Upgrade" copy.
+      const res = await fetch('/api/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: 'pro' }),
+      })
       const data = await res.json()
       if (data.url) {
         window.location.href = data.url
@@ -105,7 +113,7 @@ export default function Navbar() {
 
           {/* Right: Upgrade CTA + User info + logout */}
           <div className="hidden md:flex items-center gap-4">
-            {plan === 'free' && (
+            {plan !== 'pro' && (
               <button
                 onClick={handleUpgrade}
                 disabled={upgrading}
@@ -167,7 +175,7 @@ export default function Navbar() {
         {/* Mobile menu */}
         {menuOpen && (
           <div className="md:hidden border-t border-slate-700/50 py-3 space-y-1">
-            {plan === 'free' && (
+            {plan !== 'pro' && (
               <button
                 onClick={() => {
                   setMenuOpen(false)
