@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 
@@ -34,8 +35,95 @@ export default function SmsOptInPage() {
         </div>
       </nav>
 
+      {/* ===== FOR SMS VERIFICATION REVIEWERS ===== */}
+      {/* This block exists so a Twilio (or other carrier) verification reviewer can
+          confirm the entire opt-in flow without creating a FundingScout account.
+          Everything required for verification — brand, use case, exact consent
+          language, screenshots of the live form, sample messages, opt-out — is
+          contained on this single page.
+      */}
+      <section id="reviewer-summary" className="px-6 pt-12 pb-4">
+        <div className="mx-auto max-w-3xl">
+          <div className="rounded-2xl border-2 border-emerald-500/40 bg-emerald-500/5 p-6">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-400">
+              For SMS verification reviewers
+            </p>
+            <h2 className="mt-2 text-xl font-bold text-white">
+              Brand, use case, opt-in proof — single page
+            </h2>
+            <dl className="mt-5 space-y-3 text-sm">
+              <div className="grid gap-1 sm:grid-cols-[160px_1fr]">
+                <dt className="font-semibold text-slate-400">Brand</dt>
+                <dd className="text-white">FundingScout (fundingscout.io)</dd>
+              </div>
+              <div className="grid gap-1 sm:grid-cols-[160px_1fr]">
+                <dt className="font-semibold text-slate-400">Use case</dt>
+                <dd className="text-white">
+                  Account Notifications — transactional, real-time SMS funding alerts
+                  matching the user&apos;s saved filters in their FundingScout account.
+                </dd>
+              </div>
+              <div className="grid gap-1 sm:grid-cols-[160px_1fr]">
+                <dt className="font-semibold text-slate-400">Opt-in type</dt>
+                <dd className="text-white">
+                  Web form, double opt-in — checkbox consent + SMS-delivered one-time
+                  verification code. The flow lives in the user&apos;s authenticated
+                  Settings page; the exact UI and consent language are reproduced
+                  verbatim below as live screenshots.
+                </dd>
+              </div>
+              <div className="grid gap-1 sm:grid-cols-[160px_1fr]">
+                <dt className="font-semibold text-slate-400">Exact consent text</dt>
+                <dd className="text-white">
+                  See the verbatim consent paragraph in the &quot;Live opt-in form&quot;
+                  section below. The checkbox label reads{' '}
+                  <em className="text-emerald-300">
+                    &quot;I agree to receive SMS text messages from FundingScout.&quot;
+                  </em>{' '}
+                  The &quot;Send Code&quot; button is disabled until the checkbox is checked.
+                </dd>
+              </div>
+              <div className="grid gap-1 sm:grid-cols-[160px_1fr]">
+                <dt className="font-semibold text-slate-400">Frequency</dt>
+                <dd className="text-white">Up to 10 messages per day.</dd>
+              </div>
+              <div className="grid gap-1 sm:grid-cols-[160px_1fr]">
+                <dt className="font-semibold text-slate-400">Opt-out</dt>
+                <dd className="text-white">
+                  Reply <span className="font-mono text-slate-300">STOP</span> to any
+                  message. Help: reply{' '}
+                  <span className="font-mono text-slate-300">HELP</span>.
+                </dd>
+              </div>
+              <div className="grid gap-1 sm:grid-cols-[160px_1fr]">
+                <dt className="font-semibold text-slate-400">Sample messages</dt>
+                <dd className="text-white">
+                  See the &quot;Sample messages&quot; section below — both the welcome
+                  confirmation message (sent immediately after verification) and the
+                  recurring alert message format.
+                </dd>
+              </div>
+              <div className="grid gap-1 sm:grid-cols-[160px_1fr]">
+                <dt className="font-semibold text-slate-400">Privacy &amp; terms</dt>
+                <dd className="text-white">
+                  <Link href="/privacy" className="text-emerald-400 hover:underline">
+                    Privacy Policy
+                  </Link>{' '}
+                  and the SMS Program Terms (anchored on this page) are linked from the
+                  live opt-in form.
+                </dd>
+              </div>
+            </dl>
+            <p className="mt-5 text-xs leading-relaxed text-slate-400">
+              All proof of consent is on this single page. No login is required to
+              verify the opt-in workflow.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Hero */}
-      <section className="px-6 pt-16 pb-8">
+      <section className="px-6 pt-8 pb-8">
         <div className="mx-auto max-w-3xl">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-400">
             SMS Notifications
@@ -48,6 +136,79 @@ export default function SmsOptInPage() {
             moment a startup raises capital that matches your saved alert filters
             (industry, funding stage, deal size, geography).
           </p>
+        </div>
+      </section>
+
+      {/* ===== Live opt-in form (screenshots of the actual /settings UI) ===== */}
+      <section id="live-form" className="px-6 py-12">
+        <div className="mx-auto max-w-3xl">
+          <h2 className="text-2xl font-bold tracking-tight">Live opt-in form</h2>
+          <p className="mt-3 text-sm text-slate-400">
+            Below are unedited screenshots of the actual opt-in form users see when they
+            visit{' '}
+            <span className="font-mono text-slate-300">fundingscout.io/settings</span>{' '}
+            after creating an account. The consent paragraph, checkbox label, and
+            disabled-button behavior visible in these screenshots are exactly what every
+            user sees and interacts with — no marketing replicas, no rephrasing.
+          </p>
+
+          {/* Screenshot 1 — empty form state */}
+          <figure className="mt-8">
+            <div className="rounded-xl border border-slate-700 bg-slate-800 p-3">
+              <Image
+                src="/screenshots/sms-optin-empty.png"
+                alt="Live FundingScout SMS opt-in form on the Settings page, empty state — phone number field blank, consent checkbox unchecked, Send Code button disabled."
+                width={1200}
+                height={900}
+                className="rounded-md"
+                priority
+              />
+            </div>
+            <figcaption className="mt-3 text-xs text-slate-500">
+              Step A — Empty state. The user has navigated to Settings → Phone
+              Notifications. The &quot;Send Code&quot; button is disabled until both a phone
+              number is entered AND the SMS consent checkbox is checked.
+            </figcaption>
+          </figure>
+
+          {/* Screenshot 2 — filled form state */}
+          <figure className="mt-8">
+            <div className="rounded-xl border border-slate-700 bg-slate-800 p-3">
+              <Image
+                src="/screenshots/sms-optin-active.png"
+                alt="Live FundingScout SMS opt-in form on the Settings page, filled state — phone number entered, consent checkbox checked, Send Code button enabled."
+                width={1200}
+                height={900}
+                className="rounded-md"
+              />
+            </div>
+            <figcaption className="mt-3 text-xs text-slate-500">
+              Step B — Filled state. Phone number entered, consent checkbox checked. The
+              &quot;Send Code&quot; button becomes active. Clicking it triggers Twilio Verify to
+              send a one-time code via SMS to the entered number; the user must enter
+              that code to complete double opt-in.
+            </figcaption>
+          </figure>
+
+          {/* Verbatim consent text block — accessibility + reviewer convenience */}
+          <div className="mt-10 rounded-2xl border border-slate-600 bg-slate-800/60 p-6">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              Verbatim consent paragraph shown above the checkbox
+            </p>
+            <blockquote className="mt-4 border-l-2 border-emerald-500/60 pl-4 text-sm leading-relaxed text-slate-200">
+              By checking the box below and clicking &quot;Send Code,&quot; I agree to receive
+              recurring automated SMS text messages from FundingScout containing
+              real-time funding alerts matching my saved filters. Up to 10 messages per
+              day. Message and data rates may apply. Consent is not a condition of any
+              purchase. Reply STOP at any time to unsubscribe, or HELP for help.
+            </blockquote>
+            <p className="mt-4 text-xs font-bold uppercase tracking-wider text-slate-400">
+              Verbatim checkbox label
+            </p>
+            <blockquote className="mt-2 border-l-2 border-emerald-500/60 pl-4 text-sm leading-relaxed text-slate-200">
+              I agree to receive SMS text messages from FundingScout
+            </blockquote>
+          </div>
         </div>
       </section>
 
@@ -164,21 +325,47 @@ export default function SmsOptInPage() {
         </div>
       </section>
 
-      {/* Sample message */}
-      <section className="px-6 py-12">
+      {/* Sample messages — welcome confirmation + recurring alert */}
+      <section id="sample-messages" className="px-6 py-12">
         <div className="mx-auto max-w-3xl">
-          <h2 className="text-2xl font-bold tracking-tight">Sample message</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Sample messages</h2>
           <p className="mt-3 text-sm text-slate-400">
-            Every FundingScout SMS follows the same short format. Here is a real
-            example of what an alert looks like on your phone:
+            Two message types are sent to subscribers. The first is the welcome
+            confirmation immediately after a user completes double opt-in; the second
+            is the recurring transactional alert that fires when a funding event
+            matches the user&apos;s saved filters.
           </p>
-          <div className="mt-6 rounded-2xl border border-slate-700 bg-slate-800 p-6">
-            <p className="font-mono text-sm text-slate-200">
-              FundingScout: HexemBio raised $10.4M (seed). https://www.finsmes.com/2026/04/hexembio-raises-10-4m-in-seed-funding/
+
+          {/* Welcome / confirmation SMS */}
+          <div className="mt-6">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              1. Welcome confirmation (sent immediately after verification)
             </p>
+            <div className="mt-3 rounded-2xl border border-slate-700 bg-slate-800 p-6">
+              <p className="font-mono text-sm text-slate-200">
+                FundingScout: You&apos;re subscribed to SMS funding alerts. Up to 10
+                msgs/day. Msg &amp; data rates may apply. Reply STOP to cancel, HELP for
+                help.
+              </p>
+            </div>
           </div>
-          <p className="mt-3 text-xs text-slate-500">
-            From short code or toll-free number — sender ID may vary by carrier.
+
+          {/* Recurring alert SMS */}
+          <div className="mt-8">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              2. Recurring funding alert (sent when a saved filter matches)
+            </p>
+            <div className="mt-3 rounded-2xl border border-slate-700 bg-slate-800 p-6">
+              <p className="font-mono text-sm text-slate-200">
+                FundingScout: HexemBio raised $10.4M (seed).
+                https://www.finsmes.com/2026/04/hexembio-raises-10-4m-in-seed-funding/
+              </p>
+            </div>
+          </div>
+
+          <p className="mt-4 text-xs text-slate-500">
+            Sent from FundingScout&apos;s verified toll-free number — sender ID may vary
+            by carrier.
           </p>
         </div>
       </section>
