@@ -7,8 +7,10 @@ import {
   type PriceIdMap,
   type Plan,
 } from './plan-resolver.ts'
+import { createTrialSubscriptionFromPayment } from './trial-subscription.ts'
 
 const STRIPE_WEBHOOK_SECRET = Deno.env.get('STRIPE_WEBHOOK_SECRET')!
+const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
@@ -102,6 +104,28 @@ async function handleCheckoutCompleted(session: Record<string, unknown>) {
   const metadata = session.metadata as Record<string, string> | null
   const userIdFromMetadata = metadata?.user_id || null
   const intendedPlan = metadata?.intended_plan || null
+
+  // Two-step trial flow: a mode=payment session with checkout_plan=trial
+  // means the user just paid $2.99 to start a 7-day Basic trial. Create the
+  // subscription before continuing — that way the customer.subscription.*
+  // events fire with the right metadata and the profile-update step below
+  // will set plan='basic'. Throws on any Stripe error → Stripe retries the
+  // webhook (idempotency key on the subscription create makes that safe).
+  if (
+    (session.mode as string) === 'payment' &&
+    metadata?.checkout_plan === 'trial'
+  ) {
+    const subId = await createTrialSubscriptionFromPayment(
+      { stripeSecretKey: STRIPE_SECRET_KEY, basicMonthlyPriceId: PRICES.basicMonthly },
+      {
+        id: session.id as string,
+        customer: session.customer as string | null,
+        payment_intent: session.payment_intent as string | null,
+        metadata,
+      },
+    )
+    console.log(`trial: created subscription ${subId} for session ${session.id}`)
+  }
 
   const customerEmail =
     (session.customer_email as string | null) ??

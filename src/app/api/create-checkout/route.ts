@@ -115,9 +115,6 @@ export async function POST(request: NextRequest) {
       'http://localhost:3000'
 
     const params = new URLSearchParams()
-    params.append('mode', 'subscription')
-    params.append('line_items[0][price]', priceId)
-    params.append('line_items[0][quantity]', '1')
     params.append('success_url', `${origin}/dashboard?upgraded=true&plan=${plan}`)
     params.append('cancel_url', `${origin}/onboarding?step=plan`)
     params.append('customer_email', user.email!)
@@ -125,27 +122,47 @@ export async function POST(request: NextRequest) {
     params.append('metadata[intended_plan]', intendedTierFor(plan))
     params.append('metadata[checkout_plan]', plan)
     params.append('allow_promotion_codes', 'true')
-    // Always require a card on the trial — that's the whole point of the
-    // $2.99 charge: prove they're real and have payment ready for day 8.
-    params.append('payment_method_collection', 'always')
 
     if (plan === 'trial') {
-      // 7-day Stripe trial defers the first $19.99 invoice to day 8.
-      params.append('subscription_data[trial_period_days]', '7')
-      // The $2.99 fee at signup is implemented as a one-time invoice item
-      // (not a Stripe coupon) — single source, fewer moving parts.
-      params.append('subscription_data[add_invoice_items][0][price_data][currency]', 'usd')
-      params.append('subscription_data[add_invoice_items][0][price_data][unit_amount]', '299')
-      params.append('subscription_data[add_invoice_items][0][price_data][product_data][name]', 'FundingScout 7-day Trial')
-      params.append('subscription_data[add_invoice_items][0][quantity]', '1')
-      // Mirror metadata onto the subscription itself so trial-related events
-      // (trial_will_end, customer.subscription.updated) carry the same context.
-      params.append('subscription_data[metadata][user_id]', user.id)
-      params.append('subscription_data[metadata][intended_plan]', 'basic')
-      params.append('subscription_data[metadata][checkout_plan]', 'trial')
+      // Two-step "$2.99 today, 7-day access, then $19.99/mo" flow:
+      //   1. This Checkout Session uses mode=payment to charge $2.99 ONCE and
+      //      save the card via setup_future_usage. No subscription is created
+      //      here.
+      //   2. On checkout.session.completed (mode=payment + checkout_plan=trial),
+      //      the Stripe webhook creates the Basic Monthly subscription with
+      //      trial_period_days=7 and the saved payment method, so day 8 charges
+      //      $19.99 automatically.
+      //
+      // Why not a single mode=subscription session?
+      //   Stripe Checkout's subscription mode bills line items on the FIRST
+      //   invoice, which is at trial_end with trial_period_days. So an upfront
+      //   $2.99 charge on day 0 isn't expressible as a single Checkout call.
+      //   The previous attempt used subscription_data[add_invoice_items] —
+      //   that parameter exists on the Subscription API but NOT on Checkout
+      //   Session, and Stripe rejected the request with parameter_unknown.
+      params.append('mode', 'payment')
+      params.append('line_items[0][price_data][currency]', 'usd')
+      params.append('line_items[0][price_data][unit_amount]', '299')
+      params.append('line_items[0][price_data][product_data][name]', 'FundingScout 7-day Trial')
+      params.append('line_items[0][quantity]', '1')
+      // Save the card so the webhook can attach it to the subscription it
+      // creates after this session completes.
+      params.append('payment_intent_data[setup_future_usage]', 'off_session')
+      // Mirror identifying metadata onto the PaymentIntent so refund / dispute
+      // events carry user context even before the subscription exists.
+      params.append('payment_intent_data[metadata][user_id]', user.id)
+      params.append('payment_intent_data[metadata][checkout_plan]', 'trial')
+      // Force a Stripe Customer record — the webhook needs a customer_id to
+      // attach the Subscription it creates next.
+      params.append('customer_creation', 'always')
     } else {
-      // Pass the same identifying metadata onto the subscription for non-trial
-      // plans too — keeps webhook handlers consistent.
+      params.append('mode', 'subscription')
+      params.append('line_items[0][price]', priceId)
+      params.append('line_items[0][quantity]', '1')
+      // Card required upfront on every paid plan.
+      params.append('payment_method_collection', 'always')
+      // Pass the same identifying metadata onto the subscription so webhook
+      // handlers see it on every subscription lifecycle event.
       params.append('subscription_data[metadata][user_id]', user.id)
       params.append('subscription_data[metadata][intended_plan]', intendedTierFor(plan))
       params.append('subscription_data[metadata][checkout_plan]', plan)
