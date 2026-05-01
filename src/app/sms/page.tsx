@@ -158,8 +158,8 @@ export default function SmsOptInPage() {
               <Image
                 src="/screenshots/sms-optin-empty.png"
                 alt="Live FundingScout SMS opt-in form on the Settings page, empty state — phone number field blank, consent checkbox unchecked, Send Code button disabled."
-                width={1200}
-                height={900}
+                width={1216}
+                height={1216}
                 className="rounded-md"
                 priority
               />
@@ -177,8 +177,8 @@ export default function SmsOptInPage() {
               <Image
                 src="/screenshots/sms-optin-active.png"
                 alt="Live FundingScout SMS opt-in form on the Settings page, filled state — phone number entered, consent checkbox checked, Send Code button enabled."
-                width={1200}
-                height={900}
+                width={1216}
+                height={1216}
                 className="rounded-md"
               />
             </div>
