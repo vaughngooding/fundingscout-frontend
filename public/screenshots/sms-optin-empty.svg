@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1216" height="800" viewBox="0 0 1216 800" font-family="-apple-system, BlinkMacSystemFont, 'Inter', 'Helvetica Neue', sans-serif">
+  <!-- Page background -->
+  <rect width="1216" height="800" fill="#0f172a"/>
+
+  <!-- Top divider hint (parent section border-t) -->
+  <line x1="40" y1="20" x2="1176" y2="20" stroke="#1e293b" stroke-width="1"/>
+
+  <!-- Section header -->
+  <text x="40" y="80" font-size="22" font-weight="600" fill="#ffffff">Phone Notifications</text>
+
+  <!-- Subtitle line 1 -->
+  <text x="40" y="118" font-size="17" font-weight="400" fill="#94a3b8">Get instant funding alerts on your phone via SMS. Up to 10 messages per day. Msg &amp; data rates may apply.</text>
+
+  <!-- Subtitle line 2 with inline green links -->
+  <text x="40" y="146" font-size="17" font-weight="400" fill="#94a3b8">Reply STOP to unsubscribe, HELP for help. See <tspan fill="#34d399">SMS terms</tspan> and <tspan fill="#34d399">Privacy Policy</tspan>.</text>
+
+  <!-- Phone number input (empty, placeholder visible) -->
+  <rect x="40" y="180" width="1136" height="64" rx="10" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="68" y="222" font-size="22" font-weight="400" fill="#64748b">+1 (555) 123–4567</text>
+
+  <!-- Consent disclosure card -->
+  <rect x="40" y="276" width="1136" height="380" rx="12" fill="#1e293b" stroke="#475569" stroke-width="1" fill-opacity="0.6"/>
+
+  <!-- Consent paragraph (line by line — SVG text doesn't auto-wrap) -->
+  <text x="68" y="320" font-size="20" font-weight="400" fill="#cbd5e1">By checking the box below and clicking &quot;Send Code,&quot; I agree to receive recurring</text>
+  <text x="68" y="350" font-size="20" font-weight="400" fill="#cbd5e1">automated SMS text messages from FundingScout containing real-time funding alerts</text>
+  <text x="68" y="380" font-size="20" font-weight="400" fill="#cbd5e1">matching my saved filters. Up to 10 messages per day. Message and data rates may apply.</text>
+  <text x="68" y="410" font-size="20" font-weight="400" fill="#cbd5e1">Consent is not a condition of any purchase. Reply STOP at any time to unsubscribe, or</text>
+  <text x="68" y="440" font-size="20" font-weight="400" fill="#cbd5e1">HELP for help.</text>
+
+  <!-- Checkbox + label (UNCHECKED) -->
+  <rect x="68" y="478" width="22" height="22" rx="3" fill="#1e293b" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="108" y="497" font-size="20" font-weight="500" fill="#ffffff">I agree to receive SMS text messages from FundingScout</text>
+
+  <!-- Send Code button (faded — disabled state, checkbox is unchecked) -->
+  <rect x="68" y="528" width="1080" height="60" rx="10" fill="#3b3b8e"/>
+  <text x="608" y="567" text-anchor="middle" font-size="20" font-weight="500" fill="#cbd5e1">Send Code</text>
+
+  <!-- Footer terms reminder -->
+  <text x="68" y="618" font-size="15" font-weight="400" fill="#64748b">See our <tspan fill="#34d399">SMS terms</tspan> and <tspan fill="#34d399">Privacy Policy</tspan>.</text>
+</svg>
