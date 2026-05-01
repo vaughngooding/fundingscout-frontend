@@ -133,36 +133,27 @@ async function handleCheckoutCompleted(session: Record<string, unknown>) {
 
   const stripeCustomerId = session.customer as string | null
 
-  let profileId: string | null = null
+  // Resolve the target profile id. Prefer metadata.user_id (set by
+  // /api/create-checkout from supabase.auth.getUser() — guaranteed to be
+  // the auth.users.id). Fall back to email lookup only if metadata.user_id
+  // is missing for some reason.
+  let targetProfileId: string | null = userIdFromMetadata
 
-  if (userIdFromMetadata) {
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('id', userIdFromMetadata)
-      .single()
-    if (profile && !error) {
-      profileId = profile.id
-    } else {
-      console.warn('checkout.session.completed: metadata.user_id lookup failed', userIdFromMetadata, error)
-    }
-  }
-
-  if (!profileId && customerEmail) {
+  if (!targetProfileId && customerEmail) {
     const { data: profile, error } = await supabase
       .from('profiles')
       .select('id')
       .ilike('email', customerEmail)
       .single()
     if (profile && !error) {
-      profileId = profile.id
+      targetProfileId = profile.id
     } else {
       console.warn('checkout.session.completed: email lookup failed', customerEmail, error)
     }
   }
 
-  if (!profileId) {
-    console.error('checkout.session.completed: could not match session to any profile', {
+  if (!targetProfileId) {
+    console.error('checkout.session.completed: could not determine profile id from session', {
       userIdFromMetadata,
       customerEmail,
       stripeCustomerId,
@@ -176,23 +167,56 @@ async function handleCheckoutCompleted(session: Record<string, unknown>) {
   // real price ID a moment later.
   const newPlan = resolvePlan(null, intendedPlan, PRICES)
 
-  const { error: updateError } = await supabase
+  // Defensive UPDATE-then-INSERT: the original SELECT-then-UPDATE path
+  // silently no-op'd whenever the profile row didn't exist (handle_new_user
+  // trigger races, signups via paths that bypass the trigger, etc.) —
+  // returning 200 to Stripe while leaving the user paywalled. We instead
+  // try UPDATE first; if it affects zero rows, INSERT the row. profiles.id
+  // is a FK to auth.users.id, so the INSERT only succeeds for real auth
+  // users — guarding against orphan profiles.
+  const updatePayload = {
+    plan: newPlan,
+    stripe_customer_id: stripeCustomerId,
+    // legacy_free intentionally NOT touched — it should retain whatever
+    // value it had (false for new signups; true for grandfathered users
+    // who happen to upgrade).
+  }
+
+  const { data: updatedRows, error: updateError } = await supabase
     .from('profiles')
-    .update({
-      plan: newPlan,
-      stripe_customer_id: stripeCustomerId,
-      // legacy_free is intentionally NOT touched — it should retain whatever
-      // value it had (false for new signups; true for grandfathered users
-      // who happen to upgrade).
-    })
-    .eq('id', profileId)
+    .update(updatePayload)
+    .eq('id', targetProfileId)
+    .select('id')
 
   if (updateError) {
-    console.error('checkout.session.completed: failed to update profile', updateError)
+    console.error('checkout.session.completed: update failed', { targetProfileId, updateError })
+    return
+  }
+
+  if (!updatedRows || updatedRows.length === 0) {
+    // Profile row missing — most likely the handle_new_user trigger didn't
+    // fire (or hasn't yet). Create the row ourselves with the data we have.
+    console.warn(
+      `checkout.session.completed: profile ${targetProfileId} did not exist, inserting`,
+    )
+    const { error: insertError } = await supabase
+      .from('profiles')
+      .insert({
+        id: targetProfileId,
+        email: customerEmail,
+        ...updatePayload,
+      })
+    if (insertError) {
+      console.error('checkout.session.completed: insert failed', { targetProfileId, insertError })
+    } else {
+      console.log(
+        `checkout.session.completed: created profile + set plan=${newPlan} for ${targetProfileId}`,
+      )
+    }
   } else {
     console.log(
-      `checkout.session.completed: set plan=${newPlan} for profile ${profileId} ` +
-        `(matched via ${userIdFromMetadata ? 'metadata' : 'email'}, intended=${intendedPlan})`,
+      `checkout.session.completed: set plan=${newPlan} for profile ${targetProfileId} ` +
+        `(intended=${intendedPlan})`,
     )
   }
 }
