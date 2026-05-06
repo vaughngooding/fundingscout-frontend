@@ -140,3 +140,51 @@ export interface ExploreStats {
   unique_companies: number
   top_industries: { tag: string; cnt: number }[]
 }
+
+// Mirrors the early_alerts table created in 20260504_early_alerts.sql.
+// Populated by populate_early_alerts.py (read the comment block in that file
+// for the producer-side contract).
+export type EarlyAlertStageCategory =
+  | 'no_prior'
+  | 'seed_prior'
+  | 'series_a_prior'
+  | 'later_stage'
+  | 'ambiguous'
+
+export type EarlyAlertStatus = 'active' | 'confirmed' | 'stale'
+
+export interface EarlyAlert {
+  id: string
+  cik: string
+  accession: string
+  entity_name: string
+  normalized_name: string
+  form_d_filing_date: string
+  form_d_url: string
+  form_d_xml_url: string
+  industry: string | null
+  state_of_business: string | null
+  entity_type: string | null
+  amount_usd: number | null
+  v5_bin: 'high' | 'medium'
+  v5_score: number
+  verifier_is_real: boolean | null
+  verifier_confidence: 'high' | 'medium' | 'low' | null
+  verifier_evidence: string | null
+  verifier_article_url: string | null
+  website_url: string | null
+  stage_category: EarlyAlertStageCategory
+  stage_source: 'haiku' | 'db' | 'default'
+  prior_stage: string | null
+  prior_amount_usd: number | null
+  prior_year: number | null
+  prior_evidence: string | null
+  status: EarlyAlertStatus
+  confirmed_at: string | null
+  confirmed_funding_round_id: string | null
+  lead_time_days: number | null
+  staled_at: string | null
+  diagnostic_notes: string | null
+  created_at: string
+  updated_at: string
+}
