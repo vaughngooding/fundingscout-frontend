@@ -3,15 +3,17 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import AlertCard from '@/components/AlertCard'
+import EarlyAlertCard from '@/components/EarlyAlertCard'
 import FilterSidebar, { type FilterState } from '@/components/FilterSidebar'
-import type { UserAlert, FundingRound, Plan } from '@/lib/types'
+import type { UserAlert, FundingRound, EarlyAlert, Plan } from '@/lib/types'
 import { canUseProFeatures } from '@/lib/access'
 
-type ViewMode = 'matches' | 'all'
+type ViewMode = 'matches' | 'all' | 'early-alerts'
 
 interface DashboardClientProps {
   alerts: UserAlert[]
   allRounds: FundingRound[]
+  earlyAlerts: EarlyAlert[]
   plan: Plan
   legacyFree: boolean
 }
@@ -73,6 +75,7 @@ function isWithinDateRange(
 export default function DashboardClient({
   alerts,
   allRounds,
+  earlyAlerts,
   plan,
   legacyFree,
 }: DashboardClientProps) {
@@ -95,10 +98,23 @@ export default function DashboardClient({
 
   // The active dataset depends on the view mode. Rounds in 'all' mode are
   // wrapped as synthetic alerts so the same filter + render pipeline works.
+  // 'early-alerts' uses its own dataset + render path (different schema).
   const activeAlerts = useMemo(
     () => (viewMode === 'matches' ? alerts : allRounds.map(roundToSyntheticAlert)),
     [viewMode, alerts, allRounds],
   )
+
+  // Early alerts filter: server already applies status + stage_category.
+  // Client adds search by entity name. Sidebar filters don't apply here —
+  // early alerts have different schema (no funding_type, no normalized
+  // industry tags); a future iteration can wire industry/amount to them.
+  const filteredEarlyAlerts = useMemo(() => {
+    if (!search) return earlyAlerts
+    const q = search.toLowerCase()
+    return earlyAlerts.filter((ea) =>
+      ea.entity_name.toLowerCase().includes(q)
+    )
+  }, [earlyAlerts, search])
 
   const filteredAlerts = useMemo(() => {
     return activeAlerts.filter((alert) => {
@@ -173,12 +189,13 @@ export default function DashboardClient({
           <div>
             <h1 className="text-2xl font-bold text-white">Dashboard</h1>
             <p className="text-sm text-slate-400 mt-1">
-              {filteredAlerts.length} funding round{filteredAlerts.length !== 1 ? 's' : ''}
-              {viewMode === 'matches' ? ' matching your alert settings' : ' in the database'}
+              {viewMode === 'early-alerts'
+                ? `${filteredEarlyAlerts.length} early alert${filteredEarlyAlerts.length !== 1 ? 's' : ''} from Form D filings in the last 14 days`
+                : `${filteredAlerts.length} funding round${filteredAlerts.length !== 1 ? 's' : ''}${viewMode === 'matches' ? ' matching your alert settings' : ' in the database'}`}
             </p>
           </div>
 
-          {/* Matches / All toggle */}
+          {/* My matches / All rounds / Early Alerts toggle */}
           <div className="inline-flex items-center gap-1 rounded-full bg-slate-900 p-1 ring-1 ring-slate-700">
             <button
               type="button"
@@ -201,6 +218,20 @@ export default function DashboardClient({
               }`}
             >
               All rounds
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('early-alerts')}
+              className={`flex items-center gap-1 rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
+                viewMode === 'early-alerts'
+                  ? 'bg-emerald-600 text-white shadow-[0_4px_12px_-4px_rgba(16,185,129,0.5)]'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Early Alerts
+              <span className="text-[8px] font-bold uppercase tracking-wider px-1 py-px rounded bg-emerald-500 text-slate-900">
+                New
+              </span>
             </button>
           </div>
 
@@ -250,8 +281,15 @@ export default function DashboardClient({
           </div>
         )}
 
-        {/* Alert feed */}
-        {filteredAlerts.length > 0 ? (
+        {/* Feed: Early Alerts gets its own render path (different schema +
+            description copy + Pro gate); matches/all share AlertCard. */}
+        {viewMode === 'early-alerts' ? (
+          <EarlyAlertsView
+            alerts={filteredEarlyAlerts}
+            isPro={canUseProFeatures({ plan, legacy_free: legacyFree })}
+            hasSearch={!!search}
+          />
+        ) : filteredAlerts.length > 0 ? (
           <div className="grid gap-4">
             {filteredAlerts.map((alert) => (
               <AlertCard key={alert.id} alert={alert} />
@@ -305,5 +343,93 @@ export default function DashboardClient({
         )}
       </div>
     </div>
+  )
+}
+
+// ---- Early Alerts inline view ----
+//
+// Description copy + disclaimer + list (or Pro upsell). Lives inside the
+// dashboard rather than a separate page per Vaughn's request — it's a third
+// toggle, not a new screen at the head of the app.
+function EarlyAlertsView({
+  alerts,
+  isPro,
+  hasSearch,
+}: {
+  alerts: EarlyAlert[]
+  isPro: boolean
+  hasSearch: boolean
+}) {
+  return (
+    <>
+      <div className="mb-6 rounded-lg border border-slate-700/50 bg-slate-900/50 px-5 py-4 text-sm text-slate-300 leading-relaxed">
+        <p>
+          <strong className="text-white">
+            Companies that have quietly filed a Form D
+          </strong>{' '}
+          with the SEC, signaling a funding round is in motion. Most announce
+          publicly within 14 days. FundingScout catches these filings within
+          hours and flags the ones matching our funding-round pattern.
+        </p>
+        <p className="mt-2">
+          Form D is a regulatory filing companies submit when raising private
+          capital — by law it goes up before any public announcement, which is
+          why it&rsquo;s a leading indicator.
+        </p>
+        <p className="mt-3 text-amber-300/90">
+          <strong>Disclaimer:</strong> This is a forward-looking signal, not a
+          guarantee. Some flagged companies delay their announcement, withdraw
+          the round, or never announce publicly. Use this list for speculative
+          leads only — not commitments.
+        </p>
+      </div>
+
+      {!isPro ? (
+        <div className="rounded-xl border border-emerald-500/30 bg-gradient-to-br from-emerald-600/10 to-blue-600/10 p-8 text-center">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-500/15 mb-4">
+            <svg
+              className="w-6 h-6 text-emerald-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M13 10V3L4 14h7v7l9-11h-7z"
+              />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-white mb-1">
+            Early Alerts is a Pro feature
+          </h3>
+          <p className="text-sm text-slate-300 max-w-md mx-auto mb-5">
+            See companies likely to announce funding within 14 days, before
+            the press release hits. Upgrade to Pro to unlock the list.
+          </p>
+          <Link
+            href="/settings"
+            className="inline-flex items-center px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors"
+          >
+            Upgrade to Pro
+          </Link>
+        </div>
+      ) : alerts.length > 0 ? (
+        <div className="grid gap-3">
+          {alerts.map((a) => (
+            <EarlyAlertCard key={a.id} alert={a} />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-12 rounded-lg border border-dashed border-slate-700">
+          <p className="text-sm text-slate-400">
+            {hasSearch
+              ? 'No early alerts match your search.'
+              : 'No early alerts in the rolling 14-day window. Check back tomorrow — the list refreshes daily at 6am PT.'}
+          </p>
+        </div>
+      )}
+    </>
   )
 }

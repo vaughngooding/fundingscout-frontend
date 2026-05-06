@@ -75,7 +75,6 @@ export default function Navbar() {
 
   const navLinks = [
     { href: '/dashboard', label: 'Dashboard' },
-    { href: '/early-alerts', label: 'Early Alerts', isNew: true },
     { href: '/bookmarks', label: 'Bookmarks' },
     { href: '/settings', label: 'Alert Settings' },
     { href: '/contact', label: 'Contact' },
@@ -100,18 +99,13 @@ export default function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     isActive(link.href)
                       ? 'bg-slate-800 text-white'
                       : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                   }`}
                 >
                   {link.label}
-                  {('isNew' in link && link.isNew) && (
-                    <span className="text-[9px] font-bold uppercase tracking-wider px-1 py-px rounded bg-emerald-500 text-slate-900">
-                      New
-                    </span>
-                  )}
                 </Link>
               ))}
             </div>
@@ -198,18 +192,13 @@ export default function Navbar() {
                 key={link.href}
                 href={link.href}
                 onClick={() => setMenuOpen(false)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`block px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   isActive(link.href)
                     ? 'bg-slate-800 text-white'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                 }`}
               >
                 {link.label}
-                {('isNew' in link && link.isNew) && (
-                  <span className="text-[9px] font-bold uppercase tracking-wider px-1 py-px rounded bg-emerald-500 text-slate-900">
-                    New
-                  </span>
-                )}
               </Link>
             ))}
 
