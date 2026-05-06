@@ -196,11 +196,11 @@ export default function DashboardClient({
           </div>
 
           {/* My matches / All rounds / Early Alerts toggle */}
-          <div className="inline-flex items-center gap-1 rounded-full bg-slate-900 p-1 ring-1 ring-slate-700">
+          <div className="inline-flex items-center gap-0.5 rounded-full bg-slate-900 p-1 ring-1 ring-slate-700 shrink-0">
             <button
               type="button"
               onClick={() => setViewMode('matches')}
-              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
+              className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all ${
                 viewMode === 'matches'
                   ? 'bg-emerald-600 text-white shadow-[0_4px_12px_-4px_rgba(16,185,129,0.5)]'
                   : 'text-slate-400 hover:text-white'
@@ -211,7 +211,7 @@ export default function DashboardClient({
             <button
               type="button"
               onClick={() => setViewMode('all')}
-              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
+              className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all ${
                 viewMode === 'all'
                   ? 'bg-emerald-600 text-white shadow-[0_4px_12px_-4px_rgba(16,185,129,0.5)]'
                   : 'text-slate-400 hover:text-white'
@@ -222,14 +222,17 @@ export default function DashboardClient({
             <button
               type="button"
               onClick={() => setViewMode('early-alerts')}
-              className={`flex items-center gap-1 rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
+              className={`relative whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all ${
                 viewMode === 'early-alerts'
                   ? 'bg-emerald-600 text-white shadow-[0_4px_12px_-4px_rgba(16,185,129,0.5)]'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
               Early Alerts
-              <span className="text-[8px] font-bold uppercase tracking-wider px-1 py-px rounded bg-emerald-500 text-slate-900">
+              <span
+                aria-hidden
+                className="absolute -top-1 -right-1 text-[8px] leading-none font-bold uppercase tracking-wider px-1 py-0.5 rounded-full bg-emerald-400 text-slate-900 ring-2 ring-slate-900"
+              >
                 New
               </span>
             </button>
