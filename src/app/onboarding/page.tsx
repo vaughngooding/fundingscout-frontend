@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -117,6 +117,55 @@ function OnboardingPageInner() {
   // Step 5: Telegram connect (optional)
   const [telegramConnected, setTelegramConnected] = useState(false)
   const [telegramConnecting, setTelegramConnecting] = useState(false)
+
+  // Lapsed-subscriber state: if user already has a Stripe customer record,
+  // show an "Update payment method" CTA on Step 4. Past-Pro users whose card
+  // failed (plan='free', legacy_free=false → paywalled) land here via the
+  // dashboard layout guard; their fastest path back is fixing the card, not
+  // re-doing checkout. Only set true when the profile row is loaded AND has
+  // a non-null stripe_customer_id.
+  const [hasStripeCustomer, setHasStripeCustomer] = useState(false)
+  const [openingPortal, setOpeningPortal] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadProfile() {
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) return
+      const { data } = await supabase
+        .from('profiles')
+        .select('stripe_customer_id')
+        .eq('id', user.id)
+        .single()
+      if (cancelled) return
+      setHasStripeCustomer(Boolean(data?.stripe_customer_id))
+    }
+    loadProfile()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  async function openCustomerPortal() {
+    setOpeningPortal(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/portal', { method: 'POST' })
+      const body = await res.json()
+      if (!res.ok || !body.url) {
+        setError(body.error ?? 'Could not open the Stripe customer portal.')
+        setOpeningPortal(false)
+        return
+      }
+      window.location.href = body.url
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Network error opening portal.')
+      setOpeningPortal(false)
+    }
+  }
 
   function toggleCountry(country: string) {
     setCountries((prev) =>
@@ -476,6 +525,29 @@ function OnboardingPageInner() {
             <p className="text-sm text-slate-400 mb-6">
               Try us for $2.99 / 7 days, or jump straight to Basic or Pro. Cancel anytime.
             </p>
+
+            {/* Lapsed-subscriber shortcut: if the user already paid in the past
+                (stripe_customer_id is set), their fastest path back to access
+                is updating the card on their existing subscription via the
+                Stripe Customer Portal — not running a fresh checkout. */}
+            {hasStripeCustomer && (
+              <div className="mb-6 rounded-xl border border-blue-500/30 bg-blue-500/5 p-4">
+                <p className="text-sm font-semibold text-white mb-1">
+                  Already had a card on file?
+                </p>
+                <p className="text-xs text-slate-400 mb-3">
+                  Update your payment method to restore your previous plan instead of starting over.
+                </p>
+                <button
+                  type="button"
+                  onClick={openCustomerPortal}
+                  disabled={openingPortal}
+                  className="inline-flex items-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 text-sm font-semibold text-white transition-colors"
+                >
+                  {openingPortal ? 'Opening portal…' : 'Update payment method →'}
+                </button>
+              </div>
+            )}
 
             <div className="grid gap-3">
               {/* Trial card — recommended */}
