@@ -167,9 +167,30 @@ interface Props {
   anonymousDaily: AnonymousDay[]
   stickiness: Stickiness
   eventsTableMissing: boolean
+  enrichmentStats: EnrichmentStats
+  apiStats: ApiStats
 }
 
-type Tab = 'users' | 'engagement' | 'quality' | 'usage'
+interface EnrichmentStats {
+  total: number
+  withEmail: number
+  withLinkedin: number
+  addressableByNewFlow: number
+  emailFillPct: number
+  linkedinFillPct: number
+}
+
+interface ApiStats {
+  activeKeys: number
+  revokedKeys: number
+  keysUsedLast7d: number
+  contactRevealsLast30d: number
+  contactRevealsLast7d: number
+  contactRevealsLast24h: number
+  tableMissing: boolean
+}
+
+type Tab = 'users' | 'engagement' | 'quality' | 'usage' | 'api'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -443,6 +464,8 @@ export default function AdminClient({
   anonymousDaily,
   stickiness,
   eventsTableMissing,
+  enrichmentStats,
+  apiStats,
 }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('users')
   const [runsExpanded, setRunsExpanded] = useState(false)
@@ -458,6 +481,7 @@ export default function AdminClient({
     { key: 'engagement', label: 'Engagement' },
     { key: 'quality', label: 'Quality' },
     { key: 'usage', label: 'Usage' },
+    { key: 'api', label: 'API / MCP' },
   ]
 
   return (
@@ -522,6 +546,93 @@ export default function AdminClient({
           setPeriod={setUsagePeriod}
         />
       )}
+      {activeTab === 'api' && (
+        <ApiTab enrichmentStats={enrichmentStats} apiStats={apiStats} />
+      )}
+    </div>
+  )
+}
+
+// ===========================================================================
+// API / MCP tab
+// ===========================================================================
+
+function ApiTab({
+  enrichmentStats,
+  apiStats,
+}: {
+  enrichmentStats: EnrichmentStats
+  apiStats: ApiStats
+}) {
+  return (
+    <div className="space-y-6">
+      {/* Enrichment fill rate */}
+      <section>
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400">
+          CEO email enrichment — last 30 days
+        </h3>
+        <p className="text-xs text-slate-500 mt-1 mb-3">
+          Direct readout of <code className="font-mono">funding_rounds.ceo_email</code> / <code className="font-mono">.ceo_linkedin_url</code>{' '}
+          population. <strong>addressable</strong> = NULL email + NULL name + non-NULL website — the rounds the new{' '}
+          <code className="font-mono">discover_ceo_for_domain</code> path can rescue.
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <SummaryCard label="Rounds" value={enrichmentStats.total.toLocaleString()} />
+          <SummaryCard
+            label="With email"
+            value={`${enrichmentStats.withEmail.toLocaleString()}`}
+            sub={`${enrichmentStats.emailFillPct}%`}
+            color={enrichmentStats.emailFillPct >= 40 ? 'emerald' : 'blue'}
+          />
+          <SummaryCard
+            label="With LinkedIn"
+            value={`${enrichmentStats.withLinkedin.toLocaleString()}`}
+            sub={`${enrichmentStats.linkedinFillPct}%`}
+            color={enrichmentStats.linkedinFillPct >= 40 ? 'emerald' : 'blue'}
+          />
+          <SummaryCard
+            label="Addressable"
+            value={enrichmentStats.addressableByNewFlow.toLocaleString()}
+            sub="missing name+email, has website"
+          />
+        </div>
+      </section>
+
+      {/* MCP API stats */}
+      <section>
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400">
+          MCP / API usage — last 30 days
+        </h3>
+        {apiStats.tableMissing ? (
+          <p className="mt-3 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-sm text-amber-300">
+            <strong>fs_api_keys / fs_contact_reveals tables not found.</strong> Apply the{' '}
+            <code className="font-mono text-xs">20260511_mcp_api_keys</code> migration in Supabase to populate.
+          </p>
+        ) : (
+          <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <SummaryCard label="Active keys" value={apiStats.activeKeys.toString()} color="emerald" />
+            <SummaryCard label="Revoked" value={apiStats.revokedKeys.toString()} />
+            <SummaryCard label="Used last 7d" value={apiStats.keysUsedLast7d.toString()} />
+            <SummaryCard
+              label="Reveals 24h"
+              value={apiStats.contactRevealsLast24h.toLocaleString()}
+              color={apiStats.contactRevealsLast24h > 100 ? 'red' : 'emerald'}
+            />
+            <SummaryCard
+              label="Reveals 7d"
+              value={apiStats.contactRevealsLast7d.toLocaleString()}
+            />
+            <SummaryCard
+              label="Reveals 30d"
+              value={apiStats.contactRevealsLast30d.toLocaleString()}
+            />
+          </div>
+        )}
+        <p className="mt-3 text-xs text-slate-500">
+          High reveal counts in a 24h window may indicate scraping. If a single key drives the spike,
+          revoke it manually via <code className="font-mono">fs_api_keys.revoked_at</code>.
+        </p>
+      </section>
     </div>
   )
 }

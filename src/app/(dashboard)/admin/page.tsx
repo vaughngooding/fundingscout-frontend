@@ -25,8 +25,18 @@ export default async function AdminDashboard() {
     { auth: { autoRefreshToken: false, persistSession: false } },
   )
 
-  // Fetch ALL data for all 4 tabs in parallel
-  const [agentRunsRes, auditsRes, alertsRes, profilesRes, prefsRes, authUsersRes, eventsRes] = await Promise.all([
+  // Fetch ALL data for all tabs in parallel.
+  // ENRICHMENT FILL-RATE QUERIES (added 2026-05-11 for the MCP launch):
+  //   - 30-day rolling fill rate by funding_rounds.ceo_email
+  //   - Rounds addressable by the new discover_ceo_for_domain path
+  //   - Recent contact reveals from the new MCP audit log
+  // eslint-disable-next-line react-hooks/purity
+  const enrichmentSince = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+  const [
+    agentRunsRes, auditsRes, alertsRes, profilesRes, prefsRes, authUsersRes, eventsRes,
+    enrichTotalRes, enrichEmailRes, enrichLinkedinRes, enrichAddressableRes,
+    apiKeysRes, contactRevealsRes,
+  ] = await Promise.all([
     // Quality + Usage tabs
     supabase
       .from('agent_runs')
@@ -64,6 +74,47 @@ export default async function AdminDashboard() {
       // eslint-disable-next-line react-hooks/purity
       .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
       .limit(200000),
+
+    // CEO email enrichment baseline (30-day rolling)
+    supabase
+      .from('funding_rounds')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', enrichmentSince),
+    supabase
+      .from('funding_rounds')
+      .select('id', { count: 'exact', head: true })
+      .not('ceo_email', 'is', null)
+      .gte('created_at', enrichmentSince),
+    supabase
+      .from('funding_rounds')
+      .select('id', { count: 'exact', head: true })
+      .not('ceo_linkedin_url', 'is', null)
+      .gte('created_at', enrichmentSince),
+    // Rounds the new discover_ceo_for_domain flow could rescue: NULL email +
+    // NULL ceo_name + non-NULL website. If this count keeps shrinking after
+    // the gate change, the expansion is working.
+    supabase
+      .from('funding_rounds')
+      .select('id', { count: 'exact', head: true })
+      .is('ceo_email', null)
+      .is('ceo_name', null)
+      .not('website', 'is', null)
+      .gte('created_at', enrichmentSince),
+
+    // MCP API: active keys + recent contact reveals.
+    // These tables may not exist yet if the 20260511_mcp_api_keys migration
+    // hasn't run — wrap in try/empty via the catch fallback below.
+    supabase
+      .from('fs_api_keys')
+      .select('id, user_id, name, prefix, created_at, last_used_at, revoked_at')
+      .order('created_at', { ascending: false })
+      .limit(500),
+    supabase
+      .from('fs_contact_reveals')
+      .select('id, key_id, user_id, funding_round_id, revealed_at')
+      .gte('revealed_at', enrichmentSince)
+      .order('revealed_at', { ascending: false })
+      .limit(2000),
   ])
 
   const agentRuns = agentRunsRes.data || []
@@ -386,6 +437,34 @@ export default async function AdminDashboard() {
     emailOpened7dCount,
   }
 
+  // --- Enrichment fill rate (30-day rolling) ---
+  const enrichTotal = enrichTotalRes.count ?? 0
+  const enrichEmail = enrichEmailRes.count ?? 0
+  const enrichLinkedin = enrichLinkedinRes.count ?? 0
+  const enrichAddressable = enrichAddressableRes.count ?? 0
+  const enrichmentStats = {
+    total: enrichTotal,
+    withEmail: enrichEmail,
+    withLinkedin: enrichLinkedin,
+    addressableByNewFlow: enrichAddressable,
+    emailFillPct: enrichTotal ? Math.round((enrichEmail / enrichTotal) * 1000) / 10 : 0,
+    linkedinFillPct: enrichTotal ? Math.round((enrichLinkedin / enrichTotal) * 1000) / 10 : 0,
+  }
+
+  // --- MCP API stats. If the tables don't exist yet (migration not applied),
+  // both fall back to empty arrays so the admin page doesn't crash. ---
+  const apiKeysAll = (apiKeysRes.data as Array<{ id: string; user_id: string; name: string; prefix: string; created_at: string; last_used_at: string | null; revoked_at: string | null }> | null) ?? []
+  const contactReveals = (contactRevealsRes.data as Array<{ id: string; key_id: string; user_id: string; revealed_at: string }> | null) ?? []
+  const apiStats = {
+    activeKeys: apiKeysAll.filter(k => !k.revoked_at).length,
+    revokedKeys: apiKeysAll.filter(k => k.revoked_at).length,
+    keysUsedLast7d: apiKeysAll.filter(k => k.last_used_at && within(k.last_used_at, 7)).length,
+    contactRevealsLast30d: contactReveals.length,
+    contactRevealsLast7d: contactReveals.filter(r => within(r.revealed_at, 7)).length,
+    contactRevealsLast24h: contactReveals.filter(r => within(r.revealed_at, 1)).length,
+    tableMissing: apiKeysRes.error?.code === '42P01' || contactRevealsRes.error?.code === '42P01',
+  }
+
   return (
     <AdminClient
       agentRuns={agentRuns}
@@ -409,6 +488,8 @@ export default async function AdminDashboard() {
       anonymousDaily={anonymousDaily}
       stickiness={stickiness}
       eventsTableMissing={eventsTableMissing}
+      enrichmentStats={enrichmentStats}
+      apiStats={apiStats}
     />
   )
 }

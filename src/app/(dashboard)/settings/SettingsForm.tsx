@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Profile, UserPreferences } from '@/lib/types'
 import { canUseProFeatures } from '@/lib/access'
+import ApiKeysSection from '@/components/ApiKeysSection'
 
 const FUNDING_TYPES = [
   'pre-seed',
@@ -1090,6 +1091,9 @@ export default function SettingsForm({
           </div>
         </div>
       </section>
+
+      {/* API Keys (Pro feature) */}
+      <ApiKeysSection isPro={isPro} />
 
       {/* Save button */}
       <div className="flex justify-end pb-8">
