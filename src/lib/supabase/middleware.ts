@@ -52,6 +52,9 @@ export async function updateSession(request: NextRequest) {
     path.startsWith('/auth') ||
     path.startsWith('/sms') ||
     path.startsWith('/privacy') ||
+    // Public docs — must be readable without a session so we can share URLs
+    // with prospects, partners, and search engines.
+    path.startsWith('/docs') ||
     // Bearer-token endpoints — auth runs inside the route handler, not via
     // session cookie. Without this skip, middleware 307s them to /login and
     // MCP clients / API consumers fail with confusing errors.
