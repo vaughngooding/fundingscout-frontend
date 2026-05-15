@@ -45,8 +45,8 @@ interface MatchRow {
   webhook_response_code: number | null
   delivered_at: string | null
   created_at: string
-  crm_account: { external_id: string } | null
-  crm_contact: { external_id: string } | null
+  crm_account: { external_id: string; metadata: Record<string, unknown> | null } | null
+  crm_contact: { external_id: string; metadata: Record<string, unknown> | null } | null
   funding_round: Record<string, unknown> | null
 }
 
@@ -74,8 +74,8 @@ export async function GET(req: NextRequest) {
         webhook_response_code,
         delivered_at,
         created_at,
-        crm_account:crm_accounts(external_id),
-        crm_contact:crm_contacts(external_id),
+        crm_account:crm_accounts(external_id, metadata),
+        crm_contact:crm_contacts(external_id, metadata),
         funding_round:funding_rounds(
           id,
           company_name,
@@ -123,6 +123,8 @@ export async function GET(req: NextRequest) {
     matched: {
       account_external_id: r.crm_account?.external_id ?? null,
       contact_external_id: r.crm_contact?.external_id ?? null,
+      account_metadata: r.crm_account?.metadata ?? null,
+      contact_metadata: r.crm_contact?.metadata ?? null,
     },
     webhook_status: r.webhook_status,
     webhook_response_code: r.webhook_response_code,

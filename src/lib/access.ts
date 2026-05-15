@@ -14,7 +14,7 @@
 
 import type { Profile } from './types'
 
-export type AccessLevel = 'pro' | 'basic' | 'legacy_free' | 'paywalled'
+export type AccessLevel = 'wholesale' | 'pro' | 'basic' | 'legacy_free' | 'paywalled'
 
 /**
  * Categorise a profile into one of the four access levels.
@@ -36,6 +36,7 @@ export function getAccessLevel(
   profile: Pick<Profile, 'plan' | 'legacy_free'> | null | undefined,
 ): AccessLevel {
   if (!profile) return 'paywalled'
+  if (profile.plan === 'wholesale') return 'wholesale'
   if (profile.plan === 'pro') return 'pro'
   if (profile.plan === 'basic') return 'basic'
   // plan === 'free'
@@ -44,14 +45,23 @@ export function getAccessLevel(
 }
 
 /**
- * Pro-only features: real-time alerts, SMS, Slack/Teams/Telegram/Push,
- * bookmarks, CSV export. Identical semantics to the previous
- * `plan === 'pro'` check — preserved bit-for-bit.
+ * Pro-or-higher features: real-time alerts, SMS, Slack/Teams/Telegram/Push,
+ * bookmarks, CSV export, API key management. Wholesale partners (resellers
+ * like Alphaflow) get the same feature surface — their tier is about pricing
+ * + quota, not feature gating.
  */
 export function canUseProFeatures(
   profile: Pick<Profile, 'plan' | 'legacy_free'> | null | undefined,
 ): boolean {
-  return getAccessLevel(profile) === 'pro'
+  const lvl = getAccessLevel(profile)
+  return lvl === 'pro' || lvl === 'wholesale'
+}
+
+/** True if this profile is a wholesale reseller (manually-provisioned tier). */
+export function isWholesale(
+  profile: Pick<Profile, 'plan' | 'legacy_free'> | null | undefined,
+): boolean {
+  return getAccessLevel(profile) === 'wholesale'
 }
 
 /**
@@ -64,7 +74,7 @@ export function canUseBasicFeatures(
   profile: Pick<Profile, 'plan' | 'legacy_free'> | null | undefined,
 ): boolean {
   const lvl = getAccessLevel(profile)
-  return lvl === 'pro' || lvl === 'basic' || lvl === 'legacy_free'
+  return lvl === 'pro' || lvl === 'wholesale' || lvl === 'basic' || lvl === 'legacy_free'
 }
 
 /**
@@ -96,6 +106,8 @@ export function upgradeCtaLabel(
     case 'basic':
       return 'Upgrade to Pro'
     case 'pro':
+      return null
+    case 'wholesale':
       return null
   }
 }

@@ -56,7 +56,7 @@ export interface UserAlert {
  * - `pro`: unchanged from before this commit. $89/mo or $588/yr. All
  *   real-time + integration features.
  */
-export type Plan = 'free' | 'basic' | 'pro'
+export type Plan = 'free' | 'basic' | 'pro' | 'wholesale'
 
 export interface Profile {
   id: string

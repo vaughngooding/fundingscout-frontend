@@ -49,10 +49,23 @@ export type QuotaResult = QuotaOk | QuotaDenied
 export async function checkAndIncrementQuota(
   keyId: string,
   tool: string,
-  limit: number,
+  defaultLimit: number,
 ): Promise<QuotaResult> {
   const day = TODAY_UTC()
   const sb = createServiceClient()
+
+  // Per-key override lookup: wholesale partners (Alphaflow, etc.) have
+  // bespoke daily_quota_overrides set in Supabase Studio. Format:
+  //   {"crm_accounts_upsert": 50000, "mcp_request": 10000}
+  // An override of 0 disables that tool for this key — useful for revoking
+  // a specific capability without revoking the whole key.
+  const { data: keyRow } = await sb
+    .from('fs_api_keys')
+    .select('daily_quota_overrides')
+    .eq('id', keyId)
+    .maybeSingle()
+  const overrides = (keyRow?.daily_quota_overrides as Record<string, number> | null) || {}
+  const limit = typeof overrides[tool] === 'number' ? overrides[tool] : defaultLimit
 
   // Read current count
   const { data: existing, error: readErr } = await sb
@@ -120,8 +133,9 @@ export async function getQuotaUsage(
   return { used: data?.count ?? 0, day }
 }
 
-/** Per-tool quota defaults. Override per-key in fs_api_keys.daily_quota if
- *  we ever add that column. */
+/** Per-tool quota defaults. Override per-key via the
+ *  fs_api_keys.daily_quota_overrides JSONB column (consulted in
+ *  checkAndIncrementQuota above). Wholesale partners get bumped there. */
 export const DEFAULT_QUOTAS: Record<string, number> = {
   list_funding_rounds: 1000,
   get_funding_round: 1000,

@@ -785,19 +785,62 @@ async function dispatchApiMatches(
   }
   if (!recentRounds || recentRounds.length === 0) return stats
 
-  // Cache webhook URLs per user so we don't refetch user_preferences over
-  // and over within a single dispatch run.
-  const webhookCache = new Map<string, string | null>()
-  async function getWebhook(userId: string): Promise<string | null> {
-    if (webhookCache.has(userId)) return webhookCache.get(userId) ?? null
-    const { data } = await supabase
+  // Cache webhook URLs + signing secrets per user. One refetch per user per
+  // dispatch tick. The signing secret comes from the user's most-recently-
+  // created active API key (in practice each user has one key — we pick the
+  // newest if multiple, as a stable heuristic).
+  interface WebhookConfig {
+    url: string | null
+    secret: string | null
+  }
+  const webhookCache = new Map<string, WebhookConfig>()
+  async function getWebhookConfig(userId: string): Promise<WebhookConfig> {
+    const cached = webhookCache.get(userId)
+    if (cached) return cached
+    const { data: prefs } = await supabase
       .from('user_preferences')
       .select('crm_webhook_url')
       .eq('user_id', userId)
       .maybeSingle()
-    const url = (data?.crm_webhook_url as string | null) || null
-    webhookCache.set(userId, url)
-    return url
+    const url = (prefs?.crm_webhook_url as string | null) || null
+    let secret: string | null = null
+    if (url) {
+      const { data: keyRow } = await supabase
+        .from('fs_api_keys')
+        .select('webhook_secret')
+        .eq('user_id', userId)
+        .is('revoked_at', null)
+        .not('webhook_secret', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      secret = (keyRow?.webhook_secret as string | null) || null
+    }
+    const cfg = { url, secret }
+    webhookCache.set(userId, cfg)
+    return cfg
+  }
+
+  // HMAC-SHA256 signer using Deno's Web Crypto API (no Node crypto in Edge
+  // Functions). Returns "sha256=<hex>" to match the format documented at
+  // /docs/api/webhooks.
+  async function signPayload(secret: string, body: string): Promise<string> {
+    const key = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign'],
+    )
+    const sigBuf = await crypto.subtle.sign(
+      'HMAC',
+      key,
+      new TextEncoder().encode(body),
+    )
+    const hex = Array.from(new Uint8Array(sigBuf))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('')
+    return `sha256=${hex}`
   }
 
   for (const round of recentRounds) {
@@ -891,7 +934,7 @@ async function dispatchApiMatches(
       if (!inserted) continue
 
       stats.matched++
-      const webhookUrl = await getWebhook(m.user_id)
+      const { url: webhookUrl, secret: webhookSecret } = await getWebhookConfig(m.user_id)
 
       if (!webhookUrl) {
         await supabase
@@ -909,6 +952,8 @@ async function dispatchApiMatches(
         matched: {
           account_external_id: null as string | null,
           contact_external_id: null as string | null,
+          account_metadata: null as Record<string, unknown> | null,
+          contact_metadata: null as Record<string, unknown> | null,
         },
         funding_round: {
           id: round.id,
@@ -935,18 +980,35 @@ async function dispatchApiMatches(
       if (m.account_id) {
         const { data: a } = await supabase
           .from('crm_accounts')
-          .select('external_id')
+          .select('external_id, metadata')
           .eq('id', m.account_id)
           .single()
-        if (a) payload.matched.account_external_id = a.external_id as string
+        if (a) {
+          payload.matched.account_external_id = a.external_id as string
+          payload.matched.account_metadata = (a.metadata as Record<string, unknown>) ?? null
+        }
       }
       if (m.contact_id) {
         const { data: c } = await supabase
           .from('crm_contacts')
-          .select('external_id')
+          .select('external_id, metadata')
           .eq('id', m.contact_id)
           .single()
-        if (c) payload.matched.contact_external_id = c.external_id as string
+        if (c) {
+          payload.matched.contact_external_id = c.external_id as string
+          payload.matched.contact_metadata = (c.metadata as Record<string, unknown>) ?? null
+        }
+      }
+
+      // Serialize once — the signature MUST be computed over the exact bytes
+      // we send, so the receiver can recompute and compare.
+      const bodyString = JSON.stringify(payload)
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'User-Agent': 'FundingScout-Webhook/1.0',
+      }
+      if (webhookSecret) {
+        headers['X-FundingScout-Signature'] = await signPayload(webhookSecret, bodyString)
       }
 
       let webhookStatus: 'delivered' | 'failed' = 'failed'
@@ -957,11 +1019,8 @@ async function dispatchApiMatches(
         const timer = setTimeout(() => controller.abort(), 5000)
         const res = await fetch(webhookUrl, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'User-Agent': 'FundingScout-Webhook/1.0',
-          },
-          body: JSON.stringify(payload),
+          headers,
+          body: bodyString,
           signal: controller.signal,
         })
         clearTimeout(timer)

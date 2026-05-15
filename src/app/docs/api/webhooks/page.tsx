@@ -69,6 +69,7 @@ export default function Webhooks() {
 {`POST https://yourapp.example.com/hooks/fundingscout
 Content-Type: application/json
 User-Agent: FundingScout-Webhook/1.0
+X-FundingScout-Signature: sha256=<hex>      // see "Verifying signatures" below
 
 {
   "event": "funding_match",
@@ -76,7 +77,11 @@ User-Agent: FundingScout-Webhook/1.0
   "match_type": "account_domain",        // "account_domain" | "email_domain" | "account_name"
   "matched": {
     "account_external_id": "0014x000007xY3oAAE",
-    "contact_external_id": null          // populated when match_type is "email_domain"
+    "contact_external_id": null,          // populated when match_type is "email_domain"
+    "account_metadata": {                 // verbatim JSONB you sent on POST /accounts
+      "alphaflow_customer_id": "vc_42"
+    },
+    "contact_metadata": null              // verbatim JSONB from POST /contacts (or null)
   },
   "funding_round": {
     "id": "9e34cb64-...",
@@ -109,6 +114,80 @@ User-Agent: FundingScout-Webhook/1.0
         and we consider the delivery failed.
       </p>
 
+      <h2 className="mt-12 text-2xl font-bold">Verifying signatures (HMAC)</h2>
+      <p className="mt-3 text-slate-300">
+        Every webhook is signed with HMAC-SHA256 using the webhook secret
+        (<InlineCode>fs_whsec_...</InlineCode>) shown to you once when your
+        API key was created. The signature is sent in the{' '}
+        <InlineCode>X-FundingScout-Signature</InlineCode> header as{' '}
+        <InlineCode>sha256=&lt;hex&gt;</InlineCode>. Recompute the same value
+        on your side and compare to confirm the request is from us and the
+        body wasn&apos;t tampered with.
+      </p>
+      <p className="mt-3 text-sm text-slate-400">
+        Lost your secret? Rotate it under{' '}
+        <Link href="/settings" className="text-emerald-400 underline">Settings → API Keys</Link>{' '}
+        — the old one stops working immediately, so coordinate with your
+        webhook receiver before rotating in production.
+      </p>
+
+      <h3 className="mt-6 text-lg font-semibold">Node.js / Express</h3>
+      <CodeBlock>
+{`import crypto from 'node:crypto'
+import express from 'express'
+
+const app = express()
+const WEBHOOK_SECRET = process.env.FS_WEBHOOK_SECRET  // fs_whsec_...
+
+// IMPORTANT: capture the RAW body — JSON.parse() loses whitespace which
+// invalidates the signature.
+app.post('/hooks/fundingscout',
+  express.raw({ type: 'application/json' }),
+  (req, res) => {
+    const expected = 'sha256=' + crypto
+      .createHmac('sha256', WEBHOOK_SECRET)
+      .update(req.body)                                 // Buffer of raw body
+      .digest('hex')
+
+    const got = req.header('X-FundingScout-Signature') || ''
+    if (
+      got.length !== expected.length ||
+      !crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(got))
+    ) {
+      return res.status(401).send('invalid signature')
+    }
+
+    const payload = JSON.parse(req.body.toString('utf8'))
+    // ...process the funding_match event
+    res.status(200).send('ok')
+  })`}
+      </CodeBlock>
+
+      <h3 className="mt-6 text-lg font-semibold">Python / FastAPI</h3>
+      <CodeBlock>
+{`import hmac, hashlib, os
+from fastapi import FastAPI, Request, HTTPException
+
+app = FastAPI()
+WEBHOOK_SECRET = os.environ['FS_WEBHOOK_SECRET']  # fs_whsec_...
+
+@app.post('/hooks/fundingscout')
+async def fundingscout(request: Request):
+    raw_body = await request.body()                  # bytes
+    expected = 'sha256=' + hmac.new(
+        WEBHOOK_SECRET.encode(),
+        raw_body,
+        hashlib.sha256,
+    ).hexdigest()
+    got = request.headers.get('X-FundingScout-Signature', '')
+    if not hmac.compare_digest(expected, got):
+        raise HTTPException(status_code=401, detail='invalid signature')
+
+    payload = await request.json()
+    # ...process the funding_match event
+    return {'ok': True}`}
+      </CodeBlock>
+
       <h2 className="mt-12 text-2xl font-bold">Delivery semantics</h2>
       <ul className="mt-3 list-disc space-y-2 pl-6 text-slate-300">
         <li>
@@ -123,7 +202,8 @@ User-Agent: FundingScout-Webhook/1.0
           <strong className="text-white">~60 second latency.</strong> Our press-monitoring pipeline runs every minute. From the moment a funding article hits the wire to your webhook firing: usually under 60 seconds.
         </li>
         <li>
-          <strong className="text-white">No signature verification yet.</strong> v2 will add HMAC signing. For now, treat the source IP as authoritative; we publish ours on request.
+          <strong className="text-white">HMAC-SHA256 signed.</strong> Verify via the{' '}
+          <InlineCode>X-FundingScout-Signature</InlineCode> header using the secret shown at key creation. See the snippets above.
         </li>
       </ul>
 

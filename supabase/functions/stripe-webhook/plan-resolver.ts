@@ -6,7 +6,11 @@
  * The webhook calls this with Stripe price IDs from env vars.
  */
 
-export type Plan = 'free' | 'basic' | 'pro'
+// 'wholesale' is for reseller partners (e.g. Alphaflow). It's never produced
+// by Stripe checkout — wholesale customers are manually provisioned via
+// direct UPDATE in Supabase Studio + invoiced outside of Stripe Recurring.
+// We include it here so types stay consistent with the profiles.plan CHECK.
+export type Plan = 'free' | 'basic' | 'pro' | 'wholesale'
 
 export interface PriceIdMap {
   basicMonthly: string

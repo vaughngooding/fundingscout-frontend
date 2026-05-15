@@ -15,6 +15,7 @@
 
 import { createHash, randomBytes } from 'node:crypto'
 import { createServiceClient } from '@/lib/supabase/service'
+import { generateWebhookSecret } from '@/lib/api/webhook-signing'
 
 export const KEY_PREFIX = 'fs_live_'
 const TOKEN_RANDOM_BYTES = 32 // 32 base62 chars after encoding; ~190 bits entropy
@@ -65,13 +66,16 @@ export interface KeyRow {
   created_at: string
   last_used_at: string | null
   revoked_at: string | null
+  /** First 16 chars of the webhook secret, for UI display. Null on keys
+   *  created before HMAC signing landed — those keys can rotate to get one. */
+  webhook_secret_prefix: string | null
 }
 
 export async function listKeysForUser(userId: string): Promise<KeyRow[]> {
   const sb = createServiceClient()
   const { data, error } = await sb
     .from('fs_api_keys')
-    .select('id, user_id, name, prefix, created_at, last_used_at, revoked_at')
+    .select('id, user_id, name, prefix, created_at, last_used_at, revoked_at, webhook_secret_prefix')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
   if (error) throw new Error(`listKeysForUser: ${error.message}`)
@@ -79,19 +83,49 @@ export async function listKeysForUser(userId: string): Promise<KeyRow[]> {
 }
 
 export interface CreatedKey extends KeyRow {
-  full_key: string  // ONLY returned at creation
+  full_key: string         // ONLY returned at creation
+  webhook_secret: string   // ONLY returned at creation (or rotate)
 }
 
 export async function createKey(userId: string, name: string): Promise<CreatedKey> {
   const { fullKey, keyHash, prefix } = generateApiKey()
+  const { fullSecret, prefix: webhookPrefix } = generateWebhookSecret()
   const sb = createServiceClient()
   const { data, error } = await sb
     .from('fs_api_keys')
-    .insert({ user_id: userId, name, prefix, key_hash: keyHash })
-    .select('id, user_id, name, prefix, created_at, last_used_at, revoked_at')
+    .insert({
+      user_id: userId,
+      name,
+      prefix,
+      key_hash: keyHash,
+      webhook_secret: fullSecret,
+      webhook_secret_prefix: webhookPrefix,
+    })
+    .select('id, user_id, name, prefix, created_at, last_used_at, revoked_at, webhook_secret_prefix')
     .single()
   if (error) throw new Error(`createKey: ${error.message}`)
-  return { ...(data as KeyRow), full_key: fullKey }
+  return { ...(data as KeyRow), full_key: fullKey, webhook_secret: fullSecret }
+}
+
+/**
+ * Rotate the webhook secret for a key. Returns the new plaintext secret
+ * once. The old secret is irrecoverable after this call — any customer
+ * verifying webhooks must update their stored secret immediately.
+ */
+export async function rotateWebhookSecret(
+  userId: string,
+  keyId: string,
+): Promise<{ webhook_secret: string; webhook_secret_prefix: string }> {
+  const { fullSecret, prefix } = generateWebhookSecret()
+  const sb = createServiceClient()
+  const { error } = await sb
+    .from('fs_api_keys')
+    .update({ webhook_secret: fullSecret, webhook_secret_prefix: prefix })
+    .eq('id', keyId)
+    .eq('user_id', userId)
+    .is('revoked_at', null)
+  if (error) throw new Error(`rotateWebhookSecret: ${error.message}`)
+  return { webhook_secret: fullSecret, webhook_secret_prefix: prefix }
 }
 
 export async function revokeKey(userId: string, keyId: string): Promise<void> {

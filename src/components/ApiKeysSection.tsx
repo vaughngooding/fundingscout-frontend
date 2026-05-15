@@ -24,6 +24,12 @@ interface KeyRow {
   created_at: string
   last_used_at: string | null
   revoked_at: string | null
+  webhook_secret_prefix: string | null
+}
+
+interface CreatedKeyPayload {
+  full_key: string
+  webhook_secret: string
 }
 
 interface Props {
@@ -41,9 +47,12 @@ export default function ApiKeysSection({ isPro }: Props) {
   // Modal state
   const [creating, setCreating] = useState(false)
   const [newKeyName, setNewKeyName] = useState('')
-  const [createdKey, setCreatedKey] = useState<string | null>(null)
+  const [createdKey, setCreatedKey] = useState<CreatedKeyPayload | null>(null)
   const [createInFlight, setCreateInFlight] = useState(false)
-  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle')
+  const [copyStatus, setCopyStatus] = useState<string>('idle')  // 'idle' | `copied:<id>`
+
+  // Rotate-secret modal state
+  const [rotatedSecret, setRotatedSecret] = useState<{ keyName: string; webhook_secret: string } | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -86,13 +95,39 @@ export default function ApiKeysSection({ isPro }: Props) {
         setError(body.message || `Failed to create key (HTTP ${res.status})`)
         return
       }
-      setCreatedKey(body.key.full_key)
+      setCreatedKey({
+        full_key: body.key.full_key,
+        webhook_secret: body.key.webhook_secret,
+      })
       setNewKeyName('')
       await load()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Network error')
     } finally {
       setCreateInFlight(false)
+    }
+  }
+
+  async function handleRotateSecret(key: KeyRow) {
+    if (!confirm(
+      `Rotate the webhook signing secret for "${key.name}"?\n\n` +
+      `The old secret stops working immediately. ` +
+      `Any webhook receiver verifying signatures will reject our payloads ` +
+      `until you update its stored secret with the new value.`
+    )) return
+    try {
+      const res = await fetch(`/api/v1/keys/${key.id}/rotate-secret`, {
+        method: 'POST',
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(body.message || `Failed to rotate (HTTP ${res.status})`)
+        return
+      }
+      setRotatedSecret({ keyName: key.name, webhook_secret: body.webhook_secret })
+      await load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Network error')
     }
   }
 
@@ -115,10 +150,10 @@ export default function ApiKeysSection({ isPro }: Props) {
     }
   }
 
-  async function copyToClipboard(text: string) {
+  async function copyToClipboard(text: string, id: string = 'default') {
     try {
       await navigator.clipboard.writeText(text)
-      setCopyStatus('copied')
+      setCopyStatus(`copied:${id}`)
       setTimeout(() => setCopyStatus('idle'), 1500)
     } catch {
       // Some browsers block writeText outside a secure context — fall back to
@@ -197,19 +232,34 @@ export default function ApiKeysSection({ isPro }: Props) {
                   )}
                 </div>
                 <div className="text-xs text-slate-500 mt-0.5 font-mono">{k.prefix}…</div>
+                {k.webhook_secret_prefix && (
+                  <div className="text-xs text-slate-500 mt-0.5 font-mono">
+                    Webhook secret: {k.webhook_secret_prefix}…
+                  </div>
+                )}
                 <div className="text-[11px] text-slate-500 mt-0.5">
                   Created {new Date(k.created_at).toLocaleDateString()}
                   {k.last_used_at && ` · Last used ${new Date(k.last_used_at).toLocaleDateString()}`}
                 </div>
               </div>
               {!k.revoked_at && (
-                <button
-                  type="button"
-                  onClick={() => handleRevoke(k.id)}
-                  className="ml-4 flex-shrink-0 text-sm text-slate-400 hover:text-red-300 transition-colors"
-                >
-                  Revoke
-                </button>
+                <div className="ml-4 flex-shrink-0 flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleRotateSecret(k)}
+                    className="text-sm text-slate-400 hover:text-emerald-300 transition-colors"
+                    title="Generate a new webhook signing secret. The old one stops working immediately."
+                  >
+                    {k.webhook_secret_prefix ? 'Rotate secret' : 'Generate secret'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRevoke(k.id)}
+                    className="text-sm text-slate-400 hover:text-red-300 transition-colors"
+                  >
+                    Revoke
+                  </button>
+                </div>
               )}
             </li>
           ))}
@@ -219,6 +269,35 @@ export default function ApiKeysSection({ isPro }: Props) {
       <p className="mt-4 text-xs text-slate-500">
         See <a href="/docs/mcp" className="text-emerald-400 hover:underline">/docs/mcp</a> for setup instructions and quota rules.
       </p>
+
+      {/* Rotate-secret result modal */}
+      {rotatedSecret && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 max-w-md w-full shadow-2xl">
+            <h3 className="text-lg font-semibold text-white mb-1">New webhook secret for &quot;{rotatedSecret.keyName}&quot;</h3>
+            <p className="text-sm text-amber-300 mb-4">
+              Copy this now — it won&apos;t be shown again. The old secret has stopped working.
+            </p>
+            <div className="rounded-lg border border-slate-700 bg-slate-950 p-3 font-mono text-xs text-sky-300 break-all select-all">
+              {rotatedSecret.webhook_secret}
+            </div>
+            <button
+              type="button"
+              onClick={() => copyToClipboard(rotatedSecret.webhook_secret, 'rotate')}
+              className="mt-3 w-full px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
+            >
+              {copyStatus === 'copied:rotate' ? '✓ Copied' : 'Copy secret'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setRotatedSecret(null)}
+              className="mt-3 w-full px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-colors"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Create-key modal */}
       {creating && (
@@ -265,17 +344,40 @@ export default function ApiKeysSection({ isPro }: Props) {
               <>
                 <h3 className="text-lg font-semibold text-white mb-1">Key created</h3>
                 <p className="text-sm text-amber-300 mb-4">
-                  Copy this now — it won&apos;t be shown again.
+                  Copy both values now — neither will be shown again.
+                </p>
+
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                  API key
                 </p>
                 <div className="rounded-lg border border-slate-700 bg-slate-950 p-3 font-mono text-xs text-emerald-300 break-all select-all">
-                  {createdKey}
+                  {createdKey.full_key}
                 </div>
                 <button
                   type="button"
-                  onClick={() => copyToClipboard(createdKey)}
-                  className="mt-3 w-full px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
+                  onClick={() => copyToClipboard(createdKey.full_key, 'apikey')}
+                  className="mt-2 w-full px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
                 >
-                  {copyStatus === 'copied' ? '✓ Copied' : 'Copy key'}
+                  {copyStatus === 'copied:apikey' ? '✓ Copied' : 'Copy API key'}
+                </button>
+
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mt-5 mb-2">
+                  Webhook signing secret
+                </p>
+                <p className="text-[11px] text-slate-500 mb-2">
+                  Used to verify FundingScout webhook calls via the{' '}
+                  <span className="font-mono">X-FundingScout-Signature</span> header. Store this in your
+                  webhook receiver&apos;s environment alongside the API key.
+                </p>
+                <div className="rounded-lg border border-slate-700 bg-slate-950 p-3 font-mono text-xs text-sky-300 break-all select-all">
+                  {createdKey.webhook_secret}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard(createdKey.webhook_secret, 'whsec')}
+                  className="mt-2 w-full px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
+                >
+                  {copyStatus === 'copied:whsec' ? '✓ Copied' : 'Copy webhook secret'}
                 </button>
 
                 <div className="mt-5">
@@ -283,14 +385,14 @@ export default function ApiKeysSection({ isPro }: Props) {
                     Connect to Claude Code
                   </p>
                   <div className="rounded-lg border border-slate-700 bg-slate-950 p-3 font-mono text-[11px] text-slate-300 break-all select-all">
-                    {MCP_INSTALL_CMD(createdKey)}
+                    {MCP_INSTALL_CMD(createdKey.full_key)}
                   </div>
                   <button
                     type="button"
-                    onClick={() => copyToClipboard(MCP_INSTALL_CMD(createdKey))}
+                    onClick={() => copyToClipboard(MCP_INSTALL_CMD(createdKey.full_key), 'cmd')}
                     className="mt-2 w-full px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
                   >
-                    Copy install command
+                    {copyStatus === 'copied:cmd' ? '✓ Copied' : 'Copy install command'}
                   </button>
                 </div>
 
