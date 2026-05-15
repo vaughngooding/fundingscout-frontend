@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import {
+  resolvePlan,
+  priceIdFor,
+  intendedTierFor,
+} from '@/lib/api/checkout-plan-helpers'
 
 /**
  * Create a Stripe Checkout session for one of the supported plans.
@@ -21,46 +26,6 @@ import { createClient } from '@/lib/supabase/server'
  * The session metadata records `intended_plan` (`basic` or `pro`) so the
  * webhook can disambiguate even before price IDs are inspected.
  */
-
-type CanonicalPlan = 'trial' | 'basic' | 'basic-annual' | 'pro' | 'pro-annual'
-
-const PLAN_ALIASES: Record<string, CanonicalPlan> = {
-  trial: 'trial',
-  basic: 'basic',
-  'basic-annual': 'basic-annual',
-  'basic_annual': 'basic-annual',
-  pro: 'pro',
-  'pro-annual': 'pro-annual',
-  'pro_annual': 'pro-annual',
-  // legacy aliases that the old onboarding flow used:
-  monthly: 'pro',
-  annual: 'pro-annual',
-}
-
-function resolvePlan(input: string): CanonicalPlan | null {
-  return PLAN_ALIASES[input.toLowerCase()] ?? null
-}
-
-function priceIdFor(plan: CanonicalPlan): string | undefined {
-  switch (plan) {
-    // Trial subscribes to Basic Monthly under the hood — the $2.99 charge is
-    // a one-time invoice item, the 7-day trial defers the recurring charge.
-    case 'trial':
-    case 'basic':
-      return process.env.STRIPE_BASIC_MONTHLY_PRICE_ID
-    case 'basic-annual':
-      return process.env.STRIPE_BASIC_ANNUAL_PRICE_ID
-    case 'pro':
-      return process.env.STRIPE_PRO_PRICE_ID
-    case 'pro-annual':
-      return process.env.STRIPE_PRO_ANNUAL_PRICE_ID
-  }
-}
-
-/** Used by the webhook to record which tier the user signed up for. */
-function intendedTierFor(plan: CanonicalPlan): 'basic' | 'pro' {
-  return plan === 'pro' || plan === 'pro-annual' ? 'pro' : 'basic'
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -198,6 +163,3 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Exported for tests — keeps the Stripe-form-encoded helpers verifiable
-// without spinning up the route handler.
-export const __testHelpers = { resolvePlan, priceIdFor, intendedTierFor }

@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
-import { __testHelpers } from '../route'
-
-const { resolvePlan, priceIdFor, intendedTierFor } = __testHelpers
+import {
+  resolvePlan,
+  priceIdFor,
+  intendedTierFor,
+} from '@/lib/api/checkout-plan-helpers'
 
 // ---- Mocks for the POST handler tests ----
 
