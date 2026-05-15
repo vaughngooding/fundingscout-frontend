@@ -61,7 +61,7 @@ type BillingCycle = 'monthly' | 'annual'
 function parseUrlPlan(planParam: string | null): { tier: PlanTier; billing: BillingCycle } {
   switch (planParam) {
     case 'trial':
-      return { tier: 'trial', billing: 'monthly' } // billing N/A for trial
+      return { tier: 'trial', billing: 'annual' } // billing N/A for trial — annual default takes effect when user switches to Basic/Pro
     case 'basic':
       return { tier: 'basic', billing: 'monthly' }
     case 'basic-annual':
@@ -75,7 +75,7 @@ function parseUrlPlan(planParam: string | null): { tier: PlanTier; billing: Bill
     case 'annual': // legacy alias
       return { tier: 'pro', billing: 'annual' }
     default:
-      return { tier: 'trial', billing: 'monthly' } // safest low-friction default
+      return { tier: 'trial', billing: 'annual' } // safest low-friction default — annual is the recommended billing cadence
   }
 }
 
@@ -549,6 +549,39 @@ function OnboardingPageInner() {
               </div>
             )}
 
+            {/* Annual / Monthly billing toggle — sits above the cards so the
+                user sees the choice before pricing displays. Default is
+                'annual' so the first impression is the discounted price. The
+                toggle has no effect on the Trial card (fixed $2.99 one-time
+                charge), but is shown regardless so users learn about the
+                cadence choice up front. */}
+            <div className="mb-6 flex justify-center">
+              <div className="inline-flex rounded-full bg-slate-900/70 p-0.5 ring-1 ring-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setBillingCycle('annual')}
+                  className={`rounded-full px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-all ${
+                    billingCycle === 'annual'
+                      ? 'bg-emerald-600 text-white shadow'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Annual
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBillingCycle('monthly')}
+                  className={`rounded-full px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-all ${
+                    billingCycle === 'monthly'
+                      ? 'bg-emerald-600 text-white shadow'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Monthly
+                </button>
+              </div>
+            </div>
+
             <div className="grid gap-3">
               {/* Trial card — recommended */}
               <button
@@ -664,33 +697,6 @@ function OnboardingPageInner() {
                 </ul>
               </button>
 
-              {/* Annual / Monthly toggle — applies to Basic + Pro */}
-              {chosenTier !== 'trial' && (
-                <div className="mt-2 inline-flex self-center rounded-full bg-slate-900/70 p-0.5 ring-1 ring-slate-700">
-                  <button
-                    type="button"
-                    onClick={() => setBillingCycle('annual')}
-                    className={`rounded-full px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-all ${
-                      billingCycle === 'annual'
-                        ? 'bg-emerald-600 text-white shadow'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    Annual
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setBillingCycle('monthly')}
-                    className={`rounded-full px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-all ${
-                      billingCycle === 'monthly'
-                        ? 'bg-emerald-600 text-white shadow'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    Monthly
-                  </button>
-                </div>
-              )}
             </div>
 
             <p className="text-xs text-slate-500 mt-4 text-center">

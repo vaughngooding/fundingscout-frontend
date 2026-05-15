@@ -1302,7 +1302,15 @@ Deno.serve(async (req: Request) => {
       }
 
       // ----- SMS -----
-      if (userPrefs.phone_number && userPrefs.phone_verified) {
+      // Defense in depth: the outer query at L~783 already filters profile.plan='pro',
+      // but we re-check here so a regression in the outer filter can never cause SMS
+      // dispatch to non-Pro users (who would still have phone_verified=true from when
+      // they were Pro). Mirrors the Telegram guard pattern at L~931.
+      if (
+        userPrefs.phone_number &&
+        userPrefs.phone_verified &&
+        alert.profile?.plan === 'pro'
+      ) {
         try {
           const result = await sendSms(userPrefs.phone_number, round)
           if (result.ok) {
