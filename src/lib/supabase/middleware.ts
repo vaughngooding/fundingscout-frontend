@@ -51,7 +51,13 @@ export async function updateSession(request: NextRequest) {
     path.startsWith('/signup') ||
     path.startsWith('/auth') ||
     path.startsWith('/sms') ||
-    path.startsWith('/privacy')
+    path.startsWith('/privacy') ||
+    // Bearer-token endpoints — auth runs inside the route handler, not via
+    // session cookie. Without this skip, middleware 307s them to /login and
+    // MCP clients / API consumers fail with confusing errors.
+    path === '/mcp' ||
+    path.startsWith('/api/mcp') ||
+    path.startsWith('/api/v1')
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone()
