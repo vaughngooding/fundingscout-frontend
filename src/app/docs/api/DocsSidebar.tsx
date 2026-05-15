@@ -29,6 +29,12 @@ const SECTIONS = [
       { href: '/docs/api/errors', label: 'Errors' },
     ],
   },
+  {
+    heading: 'Wholesale partners',
+    items: [
+      { href: '/docs/api/partner-quickstart', label: 'Partner quickstart' },
+    ],
+  },
 ] as const
 
 export default function DocsSidebar() {
