@@ -46,6 +46,13 @@ export default function McpDocsPage() {
           (or any MCP-compatible client) and let Claude pull funding rounds and CEO contact data
           during outbound automation.
         </p>
+        <p className="mt-4 rounded-xl border border-slate-800 bg-slate-950/50 px-4 py-3 text-sm text-slate-400">
+          Building a server-to-server REST integration instead?{' '}
+          <Link href="/docs/api" className="text-emerald-400 underline hover:text-emerald-300">
+            See the REST API docs →
+          </Link>{' '}
+          (accounts/contacts sync, webhook delivery, match notifications).
+        </p>
 
         {/* ===== Quick start ===== */}
         <section className="mt-12">

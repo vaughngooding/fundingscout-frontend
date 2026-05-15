@@ -267,7 +267,8 @@ export default function ApiKeysSection({ isPro }: Props) {
       )}
 
       <p className="mt-4 text-xs text-slate-500">
-        See <a href="/docs/mcp" className="text-emerald-400 hover:underline">/docs/mcp</a> for setup instructions and quota rules.
+        See <a href="/docs/api" className="text-emerald-400 hover:underline">/docs/api</a> for the full REST API reference (accounts, contacts, webhooks, matches), or{' '}
+        <a href="/docs/mcp" className="text-emerald-400 hover:underline">/docs/mcp</a> for Claude Code MCP setup.
       </p>
 
       {/* Rotate-secret result modal */}

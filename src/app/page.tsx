@@ -46,6 +46,12 @@ export default async function Home() {
             ) : (
               <>
                 <Link
+                  href="/docs/api"
+                  className="rounded-full px-4 py-2 text-sm font-semibold text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+                >
+                  Docs
+                </Link>
+                <Link
                   href="/login"
                   className="rounded-full px-4 py-2 text-sm font-semibold text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
                 >

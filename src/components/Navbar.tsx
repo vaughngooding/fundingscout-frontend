@@ -77,6 +77,7 @@ export default function Navbar() {
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/bookmarks', label: 'Bookmarks' },
     { href: '/settings', label: 'Settings' },
+    { href: '/docs/api', label: 'Docs' },
     { href: '/contact', label: 'Contact' },
     ...(isAdmin ? [{ href: '/admin', label: 'Admin' }] : []),
   ]
