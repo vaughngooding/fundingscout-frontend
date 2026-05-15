@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  FundingScout favicon.
+  Next.js 16 App Router auto-discovers `src/app/icon.svg` and serves it as the
+  browser favicon. No metadata wiring needed.
+
+  Design: emerald "F" mark on slate-900 rounded square, with a small emerald
+  pulse-dot at the top-right corner to evoke real-time alerts / signal.
+  Works at 16×16 because every shape is solid-fill with no thin strokes.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Rounded square background -->
+  <rect x="0" y="0" width="32" height="32" rx="7" fill="#0f172a"/>
+
+  <!-- Bold "F" — built from three rectangles so it stays crisp at every size,
+       rather than relying on a font being loaded -->
+  <rect x="8"  y="7"  width="14" height="3.5" fill="#34d399"/>      <!-- top bar  -->
+  <rect x="8"  y="7"  width="3.5" height="18"  fill="#34d399"/>     <!-- stem     -->
+  <rect x="8"  y="14" width="10" height="3"   fill="#34d399"/>      <!-- mid bar  -->
+
+  <!-- Pulse dot, top-right corner. Same emerald, smaller scale. -->
+  <circle cx="25" cy="9" r="2.5" fill="#34d399"/>
+</svg>
