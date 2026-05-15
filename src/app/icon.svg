@@ -1,23 +1,45 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  FundingScout favicon.
-  Next.js 16 App Router auto-discovers `src/app/icon.svg` and serves it as the
-  browser favicon. No metadata wiring needed.
+  FundingScout favicon — v2 design.
+  Concept: "orbital scout" — a white F at the center of two concentric
+  emerald rings, with a small green satellite. Evokes radar / scouting /
+  signal detection. Replaces the v1 plain-F design.
 
-  Design: emerald "F" mark on slate-900 rounded square, with a small emerald
-  pulse-dot at the top-right corner to evoke real-time alerts / signal.
-  Works at 16×16 because every shape is solid-fill with no thin strokes.
+  Next.js 16 auto-discovers src/app/icon.svg as the browser favicon.
+  Designed for visual integrity at 16x16 (browser tab) — rings stay legible
+  because each is a solid stroke ≥ 0.6 viewBox units thick.
 -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <!-- Rounded square background -->
-  <rect x="0" y="0" width="32" height="32" rx="7" fill="#0f172a"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Dark backdrop (matches the marketing landing's slate-950). -->
+  <rect width="64" height="64" rx="12" fill="#020617"/>
 
-  <!-- Bold "F" — built from three rectangles so it stays crisp at every size,
-       rather than relying on a font being loaded -->
-  <rect x="8"  y="7"  width="14" height="3.5" fill="#34d399"/>      <!-- top bar  -->
-  <rect x="8"  y="7"  width="3.5" height="18"  fill="#34d399"/>     <!-- stem     -->
-  <rect x="8"  y="14" width="10" height="3"   fill="#34d399"/>      <!-- mid bar  -->
+  <!-- Outer ring: bright emerald. -->
+  <circle cx="32" cy="32" r="22" stroke="#34d399" stroke-width="2.2" opacity="0.95"/>
 
-  <!-- Pulse dot, top-right corner. Same emerald, smaller scale. -->
-  <circle cx="25" cy="9" r="2.5" fill="#34d399"/>
+  <!-- Inner ring: slightly thinner + offset to evoke orbital motion, with
+       a fade gradient so the ring is brighter at the top-left and dims
+       toward the bottom-right, matching the source image. -->
+  <defs>
+    <linearGradient id="innerRingGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"  stop-color="#34d399" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#34d399" stop-opacity="0.25"/>
+    </linearGradient>
+  </defs>
+  <circle cx="32" cy="32" r="17" stroke="url(#innerRingGrad)" stroke-width="1.6"/>
+
+  <!-- The orbital sphere at the bottom-right of the inner ring. Positioned
+       roughly at the (45°-ish, bottom-right) tangent point. -->
+  <circle cx="46" cy="44" r="3.2" fill="#34d399"/>
+
+  <!-- Letter "F" — white, centered, with chunky rounded terminals.
+       Built from three rects + corner radius so it stays crisp at 16x16
+       without needing a font to load. -->
+  <g fill="#ffffff">
+    <!-- Stem -->
+    <rect x="22"   y="18"  width="5.5" height="28" rx="1.5"/>
+    <!-- Top bar -->
+    <rect x="22"   y="18"  width="20"  height="5.5" rx="1.5"/>
+    <!-- Mid bar (shorter than top) -->
+    <rect x="22"   y="29"  width="14"  height="5"   rx="1.4"/>
+  </g>
 </svg>
