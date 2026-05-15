@@ -54,6 +54,10 @@ export default function ApiKeysSection({ isPro }: Props) {
   // Rotate-secret modal state
   const [rotatedSecret, setRotatedSecret] = useState<{ keyName: string; webhook_secret: string } | null>(null)
 
+  // "Add to Claude Code" focused install flow
+  const [connectingClaudeCode, setConnectingClaudeCode] = useState(false)
+  const [claudeCodeInstallCmd, setClaudeCodeInstallCmd] = useState<string | null>(null)
+
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -105,6 +109,35 @@ export default function ApiKeysSection({ isPro }: Props) {
       setError(e instanceof Error ? e.message : 'Network error')
     } finally {
       setCreateInFlight(false)
+    }
+  }
+
+  /** One-click "Add to Claude Code" — creates a fresh key with a sensible
+   *  auto-name and surfaces the full install command in a focused modal,
+   *  so the user copies one thing and pastes it once. */
+  async function handleConnectClaudeCode() {
+    setConnectingClaudeCode(true)
+    setError(null)
+    try {
+      const dateLabel = new Date().toLocaleDateString(undefined, {
+        month: 'short', day: 'numeric', year: 'numeric',
+      })
+      const res = await fetch('/api/v1/keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: `Claude Code · ${dateLabel}` }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(body.message || `Failed to create key (HTTP ${res.status})`)
+        setConnectingClaudeCode(false)
+        return
+      }
+      setClaudeCodeInstallCmd(MCP_INSTALL_CMD(body.key.full_key))
+      await load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Network error')
+      setConnectingClaudeCode(false)
     }
   }
 
@@ -208,11 +241,38 @@ export default function ApiKeysSection({ isPro }: Props) {
         </div>
       )}
 
+      {/* One-click Claude Code connect — the happy-path CTA. Generates a key
+          + shows the install command in a focused modal so the user copies
+          one thing and pastes it once. */}
+      <div className="mb-5 rounded-xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/[0.08] to-blue-500/[0.04] p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-base">⚡</span>
+              <p className="text-sm font-semibold text-white">Add FundingScout to Claude Code</p>
+            </div>
+            <p className="mt-1 text-xs text-slate-400">
+              One click — we generate a key and give you a single command to paste into Terminal.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleConnectClaudeCode}
+            disabled={connectingClaudeCode}
+            className="flex-shrink-0 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {connectingClaudeCode && !claudeCodeInstallCmd
+              ? 'Generating…'
+              : 'Add to Claude Code →'}
+          </button>
+        </div>
+      </div>
+
       {loading ? (
         <p className="text-sm text-slate-500">Loading…</p>
       ) : !keys || keys.length === 0 ? (
         <p className="text-sm text-slate-500">
-          No API keys yet. Click <strong className="text-slate-300">Create new key</strong> to get started.
+          No API keys yet. Click <strong className="text-emerald-300">Add to Claude Code</strong> above for the easy setup, or <strong className="text-slate-300">Create new key</strong> for a custom key (REST API, webhooks, etc.).
         </p>
       ) : (
         <ul className="divide-y divide-slate-800 -mx-2">
@@ -270,6 +330,65 @@ export default function ApiKeysSection({ isPro }: Props) {
         See <a href="/docs/api" className="text-emerald-400 hover:underline">/docs/api</a> for the full REST API reference (accounts, contacts, webhooks, matches), or{' '}
         <a href="/docs/mcp" className="text-emerald-400 hover:underline">/docs/mcp</a> for Claude Code MCP setup.
       </p>
+
+      {/* Claude Code install modal — focused flow: one command, one copy
+          button, three obvious next-steps. */}
+      {claudeCodeInstallCmd && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 max-w-lg w-full shadow-2xl">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-lg">✓</span>
+              <h3 className="text-lg font-semibold text-white">Ready to connect Claude Code</h3>
+            </div>
+            <p className="text-sm text-slate-400 mb-4">
+              Copy this command and paste it into your Terminal. Hit Enter, then restart Claude Code.
+            </p>
+
+            <div className="rounded-lg border border-slate-700 bg-slate-950 p-3 font-mono text-[11px] text-emerald-300 break-all select-all">
+              {claudeCodeInstallCmd}
+            </div>
+            <button
+              type="button"
+              onClick={() => copyToClipboard(claudeCodeInstallCmd, 'ccinstall')}
+              className="mt-3 w-full px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-colors"
+            >
+              {copyStatus === 'copied:ccinstall' ? '✓ Copied — now paste in Terminal' : '📋 Copy install command'}
+            </button>
+
+            <div className="mt-5 rounded-lg border border-slate-800 bg-slate-950/40 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                Next steps
+              </p>
+              <ol className="space-y-1.5 text-xs text-slate-300">
+                <li>
+                  <span className="text-emerald-400 font-bold">1.</span> Paste the command into your Terminal and hit Enter
+                </li>
+                <li>
+                  <span className="text-emerald-400 font-bold">2.</span> Restart Claude Code (or run <span className="font-mono text-slate-200">/mcp</span> inside it)
+                </li>
+                <li>
+                  <span className="text-emerald-400 font-bold">3.</span> Try: <span className="italic text-slate-200">&ldquo;Find 10 recent Series A AI funding rounds&rdquo;</span>
+                </li>
+              </ol>
+            </div>
+
+            <p className="mt-4 text-[11px] text-amber-300">
+              ⚠ Save this command somewhere safe — the API key inside won&apos;t be shown again. If you lose it, revoke the key and click &quot;Add to Claude Code&quot; again.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => {
+                setClaudeCodeInstallCmd(null)
+                setConnectingClaudeCode(false)
+              }}
+              className="mt-4 w-full px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Rotate-secret result modal */}
       {rotatedSecret && (
