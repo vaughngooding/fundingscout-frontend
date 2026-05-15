@@ -714,6 +714,284 @@ async function sendSlackApp(
 // Main handler
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Public API match dispatch — see /api/v1/* routes in the Next.js app.
+//
+// Keep these helpers in sync with src/lib/api-domain.ts. The match logic
+// is duplicated rather than imported across the Next.js/Deno boundary
+// because edge functions can't import from the Next.js src tree.
+// ---------------------------------------------------------------------------
+
+const API_COMPANY_SUFFIX_RE =
+  /[,.]?\s*(Inc|LLC|L\.L\.C\.|Corp|Corporation|Ltd|Limited|Co|Company|Holdings|Group|LP|L\.P\.|PLC|SA|GmbH|AG|NV|BV)\.?\s*$/gi
+
+function apiNormalizeDomain(input: string | null | undefined): string | null {
+  if (!input) return null
+  let s = String(input).trim().toLowerCase()
+  if (!s) return null
+  s = s.replace(/^https?:\/\//, '')
+  s = s.split('/')[0].split('?')[0].split('#')[0]
+  s = s.replace(/^www\./, '').replace(/\.+$/, '')
+  if (!s.includes('.')) return null
+  if (/\s/.test(s) || s.includes('@')) return null
+  return s
+}
+
+function apiNormalizeName(input: string | null | undefined): string {
+  if (!input) return ''
+  let n = String(input).trim().toLowerCase()
+  for (let i = 0; i < 5; i++) {
+    const next = n.replace(API_COMPANY_SUFFIX_RE, '').trim().replace(/[,.\s]+$/, '')
+    if (next === n) break
+    n = next
+  }
+  n = n.replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim()
+  return n
+}
+
+const API_FREE_EMAIL_DOMAINS = new Set<string>([
+  'gmail.com', 'googlemail.com', 'yahoo.com', 'hotmail.com', 'outlook.com',
+  'live.com', 'aol.com', 'icloud.com', 'me.com', 'mac.com', 'protonmail.com',
+  'proton.me', 'pm.me', 'mail.com', 'gmx.com', 'gmx.us', 'zoho.com', 'fastmail.com',
+])
+
+interface MatchCandidate {
+  user_id: string
+  contact_id: string | null
+  account_id: string | null
+  match_type: 'account_domain' | 'email_domain' | 'account_name'
+}
+
+async function dispatchApiMatches(
+  supabase: ReturnType<typeof createClient>,
+): Promise<{ matched: number; delivered: number; failed: number; no_webhook: number }> {
+  const stats = { matched: 0, delivered: 0, failed: 0, no_webhook: 0 }
+
+  // Get funding_rounds from the last 24h. The unique constraint on
+  // crm_match_notifications(user_id, funding_round_id) makes re-scanning safe.
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  const { data: recentRounds, error: roundsErr } = await supabase
+    .from('funding_rounds')
+    .select(
+      'id, company_name, website, amount_usd, funding_type, article_url, article_title, published_date, ceo_name, ceo_email, ceo_linkedin_url, industry, location, location_country, lead_investor, investors, confidence_score',
+    )
+    .gte('created_at', since)
+    .order('created_at', { ascending: false })
+    .limit(500)
+
+  if (roundsErr) {
+    console.error('crm-match: failed to fetch recent rounds:', roundsErr)
+    return stats
+  }
+  if (!recentRounds || recentRounds.length === 0) return stats
+
+  // Cache webhook URLs per user so we don't refetch user_preferences over
+  // and over within a single dispatch run.
+  const webhookCache = new Map<string, string | null>()
+  async function getWebhook(userId: string): Promise<string | null> {
+    if (webhookCache.has(userId)) return webhookCache.get(userId) ?? null
+    const { data } = await supabase
+      .from('user_preferences')
+      .select('crm_webhook_url')
+      .eq('user_id', userId)
+      .maybeSingle()
+    const url = (data?.crm_webhook_url as string | null) || null
+    webhookCache.set(userId, url)
+    return url
+  }
+
+  for (const round of recentRounds) {
+    const roundDomain = apiNormalizeDomain(round.website as string | null)
+    const roundName = apiNormalizeName(round.company_name as string | null)
+    if (!roundDomain && !roundName) continue
+
+    // Collect (user_id → best match) entries. Precedence:
+    //   account_domain > email_domain > account_name
+    const byUser = new Map<string, MatchCandidate>()
+    const setIfBetter = (c: MatchCandidate) => {
+      const existing = byUser.get(c.user_id)
+      if (!existing) return byUser.set(c.user_id, c)
+      const order: Record<string, number> = {
+        account_domain: 0, email_domain: 1, account_name: 2,
+      }
+      if (order[c.match_type] < order[existing.match_type]) byUser.set(c.user_id, c)
+    }
+
+    // Path 1: account_domain
+    if (roundDomain) {
+      const { data: byAcctDomain } = await supabase
+        .from('crm_accounts')
+        .select('id, user_id')
+        .eq('normalized_domain', roundDomain)
+      for (const r of byAcctDomain || []) {
+        setIfBetter({
+          user_id: r.user_id as string,
+          account_id: r.id as string,
+          contact_id: null,
+          match_type: 'account_domain',
+        })
+      }
+    }
+
+    // Path 2: contact email_domain (skip free-mail domains)
+    if (roundDomain && !API_FREE_EMAIL_DOMAINS.has(roundDomain)) {
+      const { data: byEmailDomain } = await supabase
+        .from('crm_contacts')
+        .select('id, user_id')
+        .eq('email_domain', roundDomain)
+      for (const r of byEmailDomain || []) {
+        setIfBetter({
+          user_id: r.user_id as string,
+          account_id: null,
+          contact_id: r.id as string,
+          match_type: 'email_domain',
+        })
+      }
+    }
+
+    // Path 3: account_name (exact normalized match)
+    if (roundName) {
+      const { data: byAcctName } = await supabase
+        .from('crm_accounts')
+        .select('id, user_id')
+        .eq('normalized_name', roundName)
+      for (const r of byAcctName || []) {
+        setIfBetter({
+          user_id: r.user_id as string,
+          account_id: r.id as string,
+          contact_id: null,
+          match_type: 'account_name',
+        })
+      }
+    }
+
+    if (byUser.size === 0) continue
+
+    for (const m of byUser.values()) {
+      const { data: inserted, error: insertErr } = await supabase
+        .from('crm_match_notifications')
+        .insert({
+          user_id: m.user_id,
+          contact_id: m.contact_id,
+          account_id: m.account_id,
+          funding_round_id: round.id as string,
+          match_type: m.match_type,
+          webhook_status: 'pending',
+        })
+        .select('id')
+        .single()
+
+      if (insertErr) {
+        // 23505 = unique violation = already processed in prior tick → skip silently.
+        if (insertErr.code !== '23505') {
+          console.error('crm-match: insert failed:', insertErr)
+        }
+        continue
+      }
+      if (!inserted) continue
+
+      stats.matched++
+      const webhookUrl = await getWebhook(m.user_id)
+
+      if (!webhookUrl) {
+        await supabase
+          .from('crm_match_notifications')
+          .update({ webhook_status: 'no_webhook' })
+          .eq('id', inserted.id)
+        stats.no_webhook++
+        continue
+      }
+
+      const payload = {
+        event: 'funding_match',
+        match_id: inserted.id,
+        match_type: m.match_type,
+        matched: {
+          account_external_id: null as string | null,
+          contact_external_id: null as string | null,
+        },
+        funding_round: {
+          id: round.id,
+          company_name: round.company_name,
+          amount_usd: round.amount_usd,
+          funding_type: round.funding_type,
+          website: round.website,
+          article_url: round.article_url,
+          article_title: round.article_title,
+          published_date: round.published_date,
+          ceo_name: round.ceo_name,
+          ceo_email: round.ceo_email,
+          ceo_linkedin_url: round.ceo_linkedin_url,
+          industry: round.industry,
+          location: round.location,
+          location_country: round.location_country,
+          lead_investor: round.lead_investor,
+          investors: round.investors,
+          confidence_score: round.confidence_score,
+        },
+        timestamp: new Date().toISOString(),
+      }
+
+      if (m.account_id) {
+        const { data: a } = await supabase
+          .from('crm_accounts')
+          .select('external_id')
+          .eq('id', m.account_id)
+          .single()
+        if (a) payload.matched.account_external_id = a.external_id as string
+      }
+      if (m.contact_id) {
+        const { data: c } = await supabase
+          .from('crm_contacts')
+          .select('external_id')
+          .eq('id', m.contact_id)
+          .single()
+        if (c) payload.matched.contact_external_id = c.external_id as string
+      }
+
+      let webhookStatus: 'delivered' | 'failed' = 'failed'
+      let responseCode: number | null = null
+      let responseBody: string | null = null
+      try {
+        const controller = new AbortController()
+        const timer = setTimeout(() => controller.abort(), 5000)
+        const res = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': 'FundingScout-Webhook/1.0',
+          },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        })
+        clearTimeout(timer)
+        responseCode = res.status
+        const text = await res.text().catch(() => '')
+        responseBody = text.slice(0, 500)
+        webhookStatus = res.status >= 200 && res.status < 300 ? 'delivered' : 'failed'
+      } catch (e) {
+        responseBody = e instanceof Error ? e.message.slice(0, 500) : String(e).slice(0, 500)
+        webhookStatus = 'failed'
+      }
+
+      await supabase
+        .from('crm_match_notifications')
+        .update({
+          webhook_status: webhookStatus,
+          webhook_response_code: responseCode,
+          webhook_response_body: responseBody,
+          delivered_at: webhookStatus === 'delivered' ? new Date().toISOString() : null,
+        })
+        .eq('id', inserted.id)
+
+      if (webhookStatus === 'delivered') stats.delivered++
+      else stats.failed++
+    }
+  }
+
+  return stats
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method !== 'POST' && req.method !== 'GET') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
@@ -1024,6 +1302,26 @@ Deno.serve(async (req: Request) => {
     }
 
     // -----------------------------------------------------------------------
+    // 4b. Public API match dispatch — fire webhooks to external customers
+    //
+    // For each new funding_round (last 24h), match it against client_accounts
+    // (domain + name) and client_contacts (email domain). One notification per
+    // (client_id, funding_round_id) — the unique constraint dedupes on insert.
+    // Customers with a registered webhook_url get an HTTP POST; pull-only
+    // customers see the match via GET /api/v1/matches.
+    // -----------------------------------------------------------------------
+    let apiMatchStats = { matched: 0, delivered: 0, failed: 0, no_webhook: 0 }
+    try {
+      apiMatchStats = await dispatchApiMatches(supabase)
+      console.log(
+        `API match dispatch: ${apiMatchStats.matched} matches, ${apiMatchStats.delivered} delivered, ${apiMatchStats.failed} failed, ${apiMatchStats.no_webhook} no_webhook`,
+      )
+    } catch (apiErr) {
+      // Never let API-match failures kill the in-app alerts path.
+      console.error('API match dispatch error:', apiErr)
+    }
+
+    // -----------------------------------------------------------------------
     // 5. Mark delivered alerts as "sent"
     // -----------------------------------------------------------------------
 
@@ -1056,6 +1354,7 @@ Deno.serve(async (req: Request) => {
       ...stats,
       total,
       alerts_delivered: deliveredAlertIds.length,
+      api_matches: apiMatchStats,
       errors: errors.length > 0 ? errors : undefined,
     }
 
