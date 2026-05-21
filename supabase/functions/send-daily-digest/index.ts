@@ -286,7 +286,15 @@ Deno.serve(async (req: Request) => {
     let emailsSent = 0
     const errors: string[] = []
 
-    for (const user of eligibleUsers) {
+    // Process all eligible users in parallel. Each user's work (fetch alerts
+    // → build HTML → POST to Resend → UPDATE status) is independent — no
+    // shared state across iterations beyond the emailsSent counter and the
+    // errors array, both of which are safe under JS single-threaded async
+    // (each .push/++ is atomic between awaits). At 27 users serially we
+    // saw ~73s total; in parallel this drops to roughly max(per-user time)
+    // which is ~2-3s, leaving massive headroom under the 150s function
+    // budget and the script's 300s curl timeout.
+    await Promise.all(eligibleUsers.map(async (user) => {
       try {
         const plan = user.profiles.plan
         const legacyFree = user.profiles.legacy_free === true
@@ -296,7 +304,7 @@ Deno.serve(async (req: Request) => {
         // Pro keeps the 50-alert cap. Basic and legacy_free both get the
         // historical 10-alert cap (matches the old "free user" behaviour).
         if (!shouldSendDigest(plan, legacyFree)) {
-          continue
+          return
         }
         const alertLimit = digestAlertLimit(plan)
         const cadence: 'daily' | 'weekly' =
@@ -335,11 +343,11 @@ Deno.serve(async (req: Request) => {
 
         if (alertError) {
           errors.push(`User ${user.user_id}: failed to fetch alerts — ${alertError.message}`)
-          continue
+          return
         }
 
         if (!pendingAlerts || pendingAlerts.length === 0) {
-          continue
+          return
         }
 
         const alerts = pendingAlerts as unknown as UserAlert[]
@@ -368,7 +376,7 @@ Deno.serve(async (req: Request) => {
         if (!resendResponse.ok) {
           const resendError = await resendResponse.text()
           errors.push(`User ${user.user_id}: Resend API error — ${resendError}`)
-          continue
+          return
         }
 
         // Mark alerts as sent (daily only — for weekly we just show a
@@ -395,7 +403,7 @@ Deno.serve(async (req: Request) => {
         const message = userError instanceof Error ? userError.message : String(userError)
         errors.push(`User ${user.user_id}: unexpected error — ${message}`)
       }
-    }
+    }))
 
     // ---------------------------------------------------------------
     // 4. Return summary
