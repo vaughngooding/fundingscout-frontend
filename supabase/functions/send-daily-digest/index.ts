@@ -286,36 +286,63 @@ Deno.serve(async (req: Request) => {
     let emailsSent = 0
     const errors: string[] = []
 
-    // Process eligible users in batches of 4 with a 1.1s delay between
-    // batches. Resend caps free/standard accounts at 5 requests/second;
-    // firing all users in one Promise.all hits 429 rate-limit errors for
-    // anyone past slot #5. Batching to 4 leaves a tiny buffer for the
-    // priority/SMS path that also calls Resend. At 27 users this is
-    // ~7 batches × 1.1s = ~7-8 seconds total (vs 73s serial), still
-    // massive headroom under the 300s curl timeout.
-    const RESEND_BATCH_SIZE = 4
-    const RESEND_BATCH_DELAY_MS = 1100
+    // ---------------------------------------------------------------
+    // Strategy: Resend Batch API.
+    //
+    // POST /emails/batch accepts up to 100 emails in a single request.
+    // No per-second rate-limit concern (it's one HTTP call). Scales
+    // cleanly: 27 users → 1 batch, 100 → 1, 250 → 3, 1000 → 10.
+    //
+    // Two-phase implementation:
+    //   Phase 1 (per-user prep, parallel) — for each eligible user, fetch
+    //     their pending alerts and build the email payload + a list of
+    //     alert IDs that should be marked sent after a successful send.
+    //     This is just DB queries + in-memory HTML; runs concurrently
+    //     with no rate limit concern.
+    //   Phase 2 (batch send, sequential chunks of 100) — POST the
+    //     prepared payloads to Resend in chunks of 100, with a small
+    //     delay between chunks. On success, mark all matching alerts
+    //     as sent in one bulk UPDATE.
+    //
+    // Partial-failure handling: Resend's batch response is `{data: [...]}`
+    // with one entry per input email in original order. If the response
+    // length matches the request length, we assume all succeeded. If
+    // the whole batch errors (4xx/5xx), we mark all those users as
+    // errored. We don't try to parse individual-email errors because
+    // the response shape isn't documented for partial failures.
+    // ---------------------------------------------------------------
 
-    async function processUser(user: UserPreference): Promise<void> {
+    const RESEND_BATCH_MAX = 100
+    const RESEND_BATCH_DELAY_MS = 250
+
+    interface PreparedEmail {
+      userId: string
+      email: string
+      alertIds: string[]
+      cadence: 'daily' | 'weekly'
+      payload: {
+        from: string
+        to: string[]
+        subject: string
+        html: string
+      }
+    }
+
+    async function prepareEmailForUser(user: UserPreference): Promise<PreparedEmail | null> {
       try {
         const plan = user.profiles.plan
         const legacyFree = user.profiles.legacy_free === true
 
-        // Paywalled users (plan='free' AND legacy_free=false) lost access
-        // when their subscription cancelled — never send them a digest.
-        // Pro keeps the 50-alert cap. Basic and legacy_free both get the
-        // historical 10-alert cap (matches the old "free user" behaviour).
+        // Paywalled users (plan='free' AND legacy_free=false) cancelled
+        // their subscription — never send them a digest. Pro keeps the
+        // 50-alert cap; Basic and legacy_free both get 10.
         if (!shouldSendDigest(plan, legacyFree)) {
-          return
+          return null
         }
         const alertLimit = digestAlertLimit(plan)
         const cadence: 'daily' | 'weekly' =
           user.digest_frequency === 'weekly' ? 'weekly' : 'daily'
 
-        // Weekly digest: include all alerts (sent or pending) from the
-        // last 7 days, so Pro users who already got real-time alerts also
-        // get a weekly recap. Daily digest: only pending alerts (users on
-        // real-time channels have already seen everything marked 'sent').
         let alertQuery = supabase
           .from('user_alerts')
           .select(`
@@ -345,74 +372,113 @@ Deno.serve(async (req: Request) => {
 
         if (alertError) {
           errors.push(`User ${user.user_id}: failed to fetch alerts — ${alertError.message}`)
-          return
+          return null
         }
 
         if (!pendingAlerts || pendingAlerts.length === 0) {
-          return
+          return null
         }
 
         const alerts = pendingAlerts as unknown as UserAlert[]
-
-        // Build the email HTML
         const html = buildEmailHtml(user.profiles.full_name, alerts, appBaseUrl, cadence)
         const alertCount = alerts.length
         const periodPrefix = cadence === 'weekly' ? 'Weekly' : 'Daily'
         const subject = `Your ${periodPrefix} Funding Digest — ${alertCount} alert${alertCount !== 1 ? 's' : ''}`
 
-        // Send via Resend
-        const resendResponse = await fetch('https://api.resend.com/emails', {
+        return {
+          userId: user.user_id,
+          email: user.profiles.email,
+          alertIds: alerts.map((a) => a.id),
+          cadence,
+          payload: {
+            from: 'FundingScout <alerts@fundingscout.io>',
+            to: [user.profiles.email],
+            subject,
+            html,
+          },
+        }
+      } catch (userError) {
+        const message = userError instanceof Error ? userError.message : String(userError)
+        errors.push(`User ${user.user_id}: prepare-email error — ${message}`)
+        return null
+      }
+    }
+
+    // Phase 1: prepare all email payloads in parallel (DB + in-memory only,
+    // no Resend calls). Filter out users with no pending alerts.
+    const prepared = (
+      await Promise.all(eligibleUsers.map(prepareEmailForUser))
+    ).filter((p): p is PreparedEmail => p !== null)
+
+    // Phase 2: send via /emails/batch in chunks of 100.
+    for (let i = 0; i < prepared.length; i += RESEND_BATCH_MAX) {
+      const chunk = prepared.slice(i, i + RESEND_BATCH_MAX)
+      try {
+        const batchResponse = await fetch('https://api.resend.com/emails/batch', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${resendApiKey}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            from: 'FundingScout <alerts@fundingscout.io>',
-            to: [user.profiles.email],
-            subject,
-            html,
-          }),
+          body: JSON.stringify(chunk.map((p) => p.payload)),
         })
 
-        if (!resendResponse.ok) {
-          const resendError = await resendResponse.text()
-          errors.push(`User ${user.user_id}: Resend API error — ${resendError}`)
-          return
+        if (!batchResponse.ok) {
+          const errText = await batchResponse.text()
+          for (const p of chunk) {
+            errors.push(`User ${p.userId}: batch send failed (HTTP ${batchResponse.status}) — ${errText.slice(0, 200)}`)
+          }
+          continue
         }
 
-        // Mark alerts as sent (daily only — for weekly we just show a
-        // recap and don't flip status, since 'sent' already means
-        // real-time-delivered).
-        if (cadence === 'daily') {
-          const alertIds = alerts.map((a) => a.id)
+        const body = (await batchResponse.json()) as { data?: Array<{ id?: string }> }
+        const sentCount = Array.isArray(body.data) ? body.data.length : 0
+
+        // Defensive: if Resend returns fewer entries than we sent, something
+        // partial happened. Mark the extras as errored.
+        if (sentCount < chunk.length) {
+          for (let j = sentCount; j < chunk.length; j++) {
+            errors.push(`User ${chunk[j].userId}: missing from Resend batch response`)
+          }
+        }
+
+        // Mark daily alerts as sent for users whose emails went through.
+        // Weekly cadence doesn't flip status (it's a recap of already-sent).
+        // Group all daily alert IDs into one bulk UPDATE for efficiency.
+        const dailyAlertIds: string[] = []
+        const successfulChunk = chunk.slice(0, sentCount)
+        for (const p of successfulChunk) {
+          if (p.cadence === 'daily') {
+            dailyAlertIds.push(...p.alertIds)
+          }
+        }
+
+        if (dailyAlertIds.length > 0) {
           const { error: updateError } = await supabase
             .from('user_alerts')
             .update({
               status: 'sent',
               email_sent_at: new Date().toISOString(),
             })
-            .in('id', alertIds)
+            .in('id', dailyAlertIds)
 
           if (updateError) {
-            errors.push(`User ${user.user_id}: failed to update alert status — ${updateError.message}`)
-            // Email was still sent, so we count it
+            errors.push(`Bulk alert-status update failed (${dailyAlertIds.length} rows) — ${updateError.message}`)
+            // Emails were still sent, so we count them
           }
         }
 
-        emailsSent++
-      } catch (userError) {
-        const message = userError instanceof Error ? userError.message : String(userError)
-        errors.push(`User ${user.user_id}: unexpected error — ${message}`)
+        emailsSent += sentCount
+      } catch (chunkError) {
+        const message = chunkError instanceof Error ? chunkError.message : String(chunkError)
+        for (const p of chunk) {
+          errors.push(`User ${p.userId}: batch fetch threw — ${message}`)
+        }
       }
-    }
 
-    // Chunk users into batches of RESEND_BATCH_SIZE and process each batch
-    // in parallel. Sleep between batches to stay under Resend's rate limit.
-    for (let i = 0; i < eligibleUsers.length; i += RESEND_BATCH_SIZE) {
-      const batch = eligibleUsers.slice(i, i + RESEND_BATCH_SIZE)
-      await Promise.all(batch.map(processUser))
-      if (i + RESEND_BATCH_SIZE < eligibleUsers.length) {
+      // Small breather between chunks. Not strictly required at <500 users
+      // (one or zero chunks), but cheap insurance once we cross that.
+      if (i + RESEND_BATCH_MAX < prepared.length) {
         await new Promise((resolve) => setTimeout(resolve, RESEND_BATCH_DELAY_MS))
       }
     }
