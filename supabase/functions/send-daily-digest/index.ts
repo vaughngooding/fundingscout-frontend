@@ -286,15 +286,17 @@ Deno.serve(async (req: Request) => {
     let emailsSent = 0
     const errors: string[] = []
 
-    // Process all eligible users in parallel. Each user's work (fetch alerts
-    // → build HTML → POST to Resend → UPDATE status) is independent — no
-    // shared state across iterations beyond the emailsSent counter and the
-    // errors array, both of which are safe under JS single-threaded async
-    // (each .push/++ is atomic between awaits). At 27 users serially we
-    // saw ~73s total; in parallel this drops to roughly max(per-user time)
-    // which is ~2-3s, leaving massive headroom under the 150s function
-    // budget and the script's 300s curl timeout.
-    await Promise.all(eligibleUsers.map(async (user) => {
+    // Process eligible users in batches of 4 with a 1.1s delay between
+    // batches. Resend caps free/standard accounts at 5 requests/second;
+    // firing all users in one Promise.all hits 429 rate-limit errors for
+    // anyone past slot #5. Batching to 4 leaves a tiny buffer for the
+    // priority/SMS path that also calls Resend. At 27 users this is
+    // ~7 batches × 1.1s = ~7-8 seconds total (vs 73s serial), still
+    // massive headroom under the 300s curl timeout.
+    const RESEND_BATCH_SIZE = 4
+    const RESEND_BATCH_DELAY_MS = 1100
+
+    async function processUser(user: UserPreference): Promise<void> {
       try {
         const plan = user.profiles.plan
         const legacyFree = user.profiles.legacy_free === true
@@ -403,7 +405,17 @@ Deno.serve(async (req: Request) => {
         const message = userError instanceof Error ? userError.message : String(userError)
         errors.push(`User ${user.user_id}: unexpected error — ${message}`)
       }
-    }))
+    }
+
+    // Chunk users into batches of RESEND_BATCH_SIZE and process each batch
+    // in parallel. Sleep between batches to stay under Resend's rate limit.
+    for (let i = 0; i < eligibleUsers.length; i += RESEND_BATCH_SIZE) {
+      const batch = eligibleUsers.slice(i, i + RESEND_BATCH_SIZE)
+      await Promise.all(batch.map(processUser))
+      if (i + RESEND_BATCH_SIZE < eligibleUsers.length) {
+        await new Promise((resolve) => setTimeout(resolve, RESEND_BATCH_DELAY_MS))
+      }
+    }
 
     // ---------------------------------------------------------------
     // 4. Return summary
