@@ -38,14 +38,40 @@ function roundToSyntheticAlert(round: FundingRound): UserAlert {
   }
 }
 
+// Parse a YYYY-MM-DD string as LOCAL midnight. `new Date('2026-10-01')`
+// would parse as UTC midnight, which shifts the boundary by the user's
+// timezone offset and drops rounds from the edges of the range.
+function parseLocalDate(iso: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
+  if (!m) return null
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+  return isNaN(d.getTime()) ? null : d
+}
+
 function isWithinDateRange(
   dateStr: string,
-  range: FilterState['dateRange']
+  range: FilterState['dateRange'],
+  dateFrom: string | null,
+  dateTo: string | null,
 ): boolean {
   if (range === 'all') return true
   const date = new Date(dateStr)
   const now = new Date()
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+  if (range === 'custom') {
+    // Inclusive on both ends: From at 00:00:00, To at 23:59:59.999 local.
+    // Either bound may be absent for an open-ended range.
+    const from = dateFrom ? parseLocalDate(dateFrom) : null
+    if (from && date < from) return false
+    const to = dateTo ? parseLocalDate(dateTo) : null
+    if (to) {
+      const endOfTo = new Date(to)
+      endOfTo.setDate(endOfTo.getDate() + 1)
+      if (date >= endOfTo) return false
+    }
+    return true
+  }
 
   switch (range) {
     case 'today':
@@ -90,6 +116,8 @@ export default function DashboardClient({
   )
   const [filters, setFilters] = useState<FilterState>({
     dateRange: 'all',
+    dateFrom: null,
+    dateTo: null,
     amountMin: 0,
     amountMax: 500_000_000,
     fundingTypes: [],
@@ -163,7 +191,14 @@ export default function DashboardClient({
       }
 
       // Date range
-      if (!isWithinDateRange(alert.created_at, filters.dateRange)) {
+      if (
+        !isWithinDateRange(
+          alert.created_at,
+          filters.dateRange,
+          filters.dateFrom,
+          filters.dateTo,
+        )
+      ) {
         return false
       }
 

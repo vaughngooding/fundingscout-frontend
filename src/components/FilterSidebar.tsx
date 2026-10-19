@@ -2,8 +2,15 @@
 
 import { useEffect, useRef, useState } from 'react'
 
+export type DateRangePreset = 'today' | 'week' | 'month' | 'quarter' | 'all'
+export type DateRange = DateRangePreset | 'custom'
+
 export interface FilterState {
-  dateRange: 'today' | 'week' | 'month' | 'quarter' | 'all'
+  dateRange: DateRange
+  // ISO calendar dates (YYYY-MM-DD) — only meaningful when dateRange === 'custom'.
+  // Either may be null for an open-ended range ("from X onward" / "up to Y").
+  dateFrom: string | null
+  dateTo: string | null
   amountMin: number
   amountMax: number
   fundingTypes: string[]
@@ -53,7 +60,16 @@ const DATE_OPTIONS = [
   { value: 'month', label: 'Last 30 days' },
   { value: 'quarter', label: 'Last 90 days' },
   { value: 'all', label: 'All Time' },
+  { value: 'custom', label: 'Custom' },
 ] as const
+
+// Today as YYYY-MM-DD in the user's local timezone, for the date inputs'
+// max attribute. Future dates never match a funding round, so cap them.
+function todayISO(): string {
+  const d = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
 
 function formatFundingType(type: string): string {
   return type.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
@@ -97,6 +113,8 @@ export default function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
   const [open, setOpen] = useState(false)
   const [filters, setFilters] = useState<FilterState>({
     dateRange: 'all',
+    dateFrom: null,
+    dateTo: null,
     amountMin: 0,
     amountMax: 500_000_000,
     fundingTypes: [],
@@ -123,6 +141,33 @@ export default function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
       ? current.filter((i) => i !== item)
       : [...current, item]
     updateFilters({ [key]: updated })
+  }
+
+  // Selecting a preset discards any custom dates so they can't leak into a
+  // later "Custom" selection. Selecting Custom keeps whatever dates exist.
+  function selectDateRange(value: DateRange) {
+    if (value === 'custom') {
+      updateFilters({ dateRange: 'custom' })
+    } else {
+      updateFilters({ dateRange: value, dateFrom: null, dateTo: null })
+    }
+  }
+
+  // Native date inputs emit '' when cleared and YYYY-MM-DD otherwise. If the
+  // user sets From after To (or vice versa) in a way that inverts the range,
+  // snap the other bound so the range is never empty.
+  function setDateFrom(value: string) {
+    const from = value || null
+    const to =
+      from && filters.dateTo && filters.dateTo < from ? from : filters.dateTo
+    updateFilters({ dateRange: 'custom', dateFrom: from, dateTo: to })
+  }
+
+  function setDateTo(value: string) {
+    const to = value || null
+    const from =
+      to && filters.dateFrom && filters.dateFrom > to ? to : filters.dateFrom
+    updateFilters({ dateRange: 'custom', dateFrom: from, dateTo: to })
   }
 
   // Auto-apply min as user types (debounced 350ms). Empty input → 0.
@@ -180,6 +225,8 @@ export default function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
   function clearAll() {
     const cleared: FilterState = {
       dateRange: 'all',
+      dateFrom: null,
+      dateTo: null,
       amountMin: 0,
       amountMax: 500_000_000,
       fundingTypes: [],
@@ -226,7 +273,7 @@ export default function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
           {DATE_OPTIONS.map((opt) => (
             <button
               key={opt.value}
-              onClick={() => updateFilters({ dateRange: opt.value })}
+              onClick={() => selectDateRange(opt.value)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                 filters.dateRange === opt.value
                   ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
@@ -237,6 +284,43 @@ export default function FilterSidebar({ onFilterChange }: FilterSidebarProps) {
             </button>
           ))}
         </div>
+
+        {filters.dateRange === 'custom' && (
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <div>
+              <label htmlFor="date-from" className="text-xs text-slate-500 mb-1 block">
+                From
+              </label>
+              <input
+                id="date-from"
+                type="date"
+                value={filters.dateFrom ?? ''}
+                max={filters.dateTo ?? todayISO()}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors [color-scheme:dark]"
+              />
+            </div>
+            <div>
+              <label htmlFor="date-to" className="text-xs text-slate-500 mb-1 block">
+                To
+              </label>
+              <input
+                id="date-to"
+                type="date"
+                value={filters.dateTo ?? ''}
+                min={filters.dateFrom ?? undefined}
+                max={todayISO()}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors [color-scheme:dark]"
+              />
+            </div>
+            {!filters.dateFrom && !filters.dateTo && (
+              <p className="col-span-2 text-[10px] text-slate-500">
+                Pick a start and/or end date. Leave one blank for an open-ended range.
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Amount Range — typeable inputs */}
