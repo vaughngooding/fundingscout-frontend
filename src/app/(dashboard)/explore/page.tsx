@@ -1,8 +1,26 @@
 import { createClient } from '@/lib/supabase/server'
 import type { FundingRound, ExploreStats } from '@/lib/types'
+import type { DateRange } from '@/components/FilterSidebar'
 import ExploreClient from './ExploreClient'
 
 const PAGE_SIZE = 25
+
+const DATE_RANGE_VALUES: readonly DateRange[] = [
+  'today',
+  'week',
+  'month',
+  'quarter',
+  'all',
+  'custom',
+]
+
+// Accept only strict YYYY-MM-DD from the URL. Anything else (malformed,
+// injection attempts, full ISO timestamps) is treated as absent.
+function parseIsoDate(value: string | undefined): string | null {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null
+  const d = new Date(`${value}T00:00:00Z`)
+  return isNaN(d.getTime()) ? null : value
+}
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -29,7 +47,16 @@ export default async function ExplorePage({
       : []
   const amountMin = parseInt(params.amountMin || '0', 10)
   const amountMax = parseInt(params.amountMax || '500000000', 10)
-  const dateRange = (params.dateRange || 'all') as 'today' | 'week' | 'month' | 'quarter' | 'all'
+  const rawDateRange = params.dateRange || 'all'
+  const dateRange: DateRange = DATE_RANGE_VALUES.includes(rawDateRange as DateRange)
+    ? (rawDateRange as DateRange)
+    : 'all'
+  let dateFrom = dateRange === 'custom' ? parseIsoDate(params.dateFrom) : null
+  let dateTo = dateRange === 'custom' ? parseIsoDate(params.dateTo) : null
+  // An inverted range (from > to) would match nothing; swap rather than 500.
+  if (dateFrom && dateTo && dateFrom > dateTo) {
+    ;[dateFrom, dateTo] = [dateTo, dateFrom]
+  }
 
   // Fetch stats via RPC
   const { data: statsData } = await supabase.rpc('get_explore_stats')
@@ -64,7 +91,19 @@ export default async function ExplorePage({
   }
 
   // Date range
-  if (dateRange !== 'all') {
+  if (dateRange === 'custom') {
+    // Inclusive bounds. `created_at` is timestamptz; bound the day in UTC so
+    // the query is deterministic regardless of the server's TZ. To is
+    // exclusive-next-day rather than 23:59:59.999 to avoid sub-ms gaps.
+    if (dateFrom) {
+      query = query.gte('created_at', `${dateFrom}T00:00:00.000Z`)
+    }
+    if (dateTo) {
+      const next = new Date(`${dateTo}T00:00:00.000Z`)
+      next.setUTCDate(next.getUTCDate() + 1)
+      query = query.lt('created_at', next.toISOString())
+    }
+  } else if (dateRange !== 'all') {
     const now = new Date()
     let cutoff: Date
     switch (dateRange) {
@@ -126,6 +165,8 @@ export default async function ExplorePage({
       initialSort={sort}
       initialFilters={{
         dateRange,
+        dateFrom,
+        dateTo,
         amountMin,
         amountMax,
         fundingTypes,

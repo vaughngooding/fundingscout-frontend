@@ -87,8 +87,13 @@ export default function ExploreClient({
   }
 
   function handleFilterChange(filters: FilterState) {
+    const isCustom = filters.dateRange === 'custom'
     navigate({
       dateRange: filters.dateRange === 'all' ? undefined : filters.dateRange,
+      // Only persist custom bounds when Custom is the active mode — a preset
+      // must never carry stale dates in the URL.
+      dateFrom: isCustom && filters.dateFrom ? filters.dateFrom : undefined,
+      dateTo: isCustom && filters.dateTo ? filters.dateTo : undefined,
       amountMin: filters.amountMin > 0 ? String(filters.amountMin) : undefined,
       amountMax: filters.amountMax < 500_000_000 ? String(filters.amountMax) : undefined,
       types: filters.fundingTypes.length > 0 ? filters.fundingTypes.join(',') : undefined,
