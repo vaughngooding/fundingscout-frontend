@@ -8,6 +8,13 @@ import {
   type Plan,
 } from './plan-resolver.ts'
 import { createTrialSubscriptionFromPayment } from './trial-subscription.ts'
+import {
+  mapStripeSubscription,
+  describePaymentError,
+  idOf,
+  unixToIso,
+  type SubscriptionRow,
+} from './subscription-record.ts'
 
 const STRIPE_WEBHOOK_SECRET = Deno.env.get('STRIPE_WEBHOOK_SECRET')!
 const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY')!
@@ -193,6 +200,10 @@ async function handleCheckoutCompleted(session: Record<string, unknown>) {
       },
     )
     console.log(`trial: created subscription ${subId} for session ${session.id}`)
+    // Record it now rather than waiting for customer.subscription.created
+    // (which the Stripe endpoint may not be subscribed to) or the hourly sync.
+    const created = await fetchStripeSubscription(subId)
+    if (created) await recordSubscription(created)
   }
 
   const customerEmail =
@@ -300,10 +311,167 @@ async function handleCheckoutCompleted(session: Record<string, unknown>) {
       stripeCustomerId,
       customerEmail,
     )
+    // Same reasoning as the trial branch: don't depend on subscription.*
+    // events being enabled to get the row (and the 🎉 alert) in real time.
+    const created = await fetchStripeSubscription(session.subscription as string)
+    if (created) await recordSubscription(created)
   }
 }
 
+// ---------- Subscription record keeping (2026-11-12) ----------
+//
+// profiles.plan is a one-word entitlement flag. public.subscriptions is the
+// real record: status, interval, amount, trial + period dates, cancellation.
+// DB triggers on that table emit billing_events (→ Slack) and reconcile
+// profiles.plan, so the handlers below only need to keep the row current.
+// billing-sync (hourly) re-derives the same rows from Stripe, so a missed
+// event here self-heals within the hour.
+
+async function resolveUserIdForSubscription(sub: Record<string, unknown>): Promise<string | null> {
+  const customerId = idOf(sub.customer)
+  if (customerId) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('stripe_customer_id', customerId)
+      .limit(1)
+      .maybeSingle()
+    if (data?.id) return data.id as string
+  }
+  const meta = sub.metadata as Record<string, unknown> | null
+  if (typeof meta?.user_id === 'string' && meta.user_id) return meta.user_id
+  return null
+}
+
+/** Upsert the subscriptions row for a Stripe subscription object. Fail-soft. */
+async function recordSubscription(
+  sub: Record<string, unknown>,
+  overrides: Partial<SubscriptionRow> & {
+    last_payment_failed_at?: string
+    last_payment_error?: string | null
+  } = {},
+): Promise<void> {
+  try {
+    const userId = await resolveUserIdForSubscription(sub)
+    const row = { ...mapStripeSubscription(sub, PRICES, userId), ...overrides }
+    const { error } = await supabase.from('subscriptions').upsert(row, { onConflict: 'id' })
+    if (error) console.error(`subscriptions upsert failed for ${row.id}`, error)
+  } catch (e) {
+    console.error('recordSubscription: unexpected error (webhook continues)', e)
+  }
+}
+
+async function fetchStripeSubscription(subId: string): Promise<Record<string, unknown> | null> {
+  try {
+    const res = await fetch(`https://api.stripe.com/v1/subscriptions/${subId}`, {
+      headers: { Authorization: `Bearer ${STRIPE_SECRET_KEY}` },
+    })
+    if (!res.ok) {
+      console.warn(`fetchStripeSubscription ${subId}: ${res.status}`)
+      return null
+    }
+    return (await res.json()) as Record<string, unknown>
+  } catch (e) {
+    console.warn(`fetchStripeSubscription ${subId}: ${e}`)
+    return null
+  }
+}
+
+async function handleInvoicePaymentFailed(invoice: Record<string, unknown>) {
+  const subId = idOf(invoice.subscription)
+  if (!subId) {
+    console.log('invoice.payment_failed: no subscription on invoice (one-off payment), skipping')
+    return
+  }
+
+  // Decline reason lives on the PaymentIntent, not the invoice.
+  let reason: string | null = null
+  const piId = idOf(invoice.payment_intent)
+  if (piId) {
+    try {
+      const res = await fetch(`https://api.stripe.com/v1/payment_intents/${piId}`, {
+        headers: { Authorization: `Bearer ${STRIPE_SECRET_KEY}` },
+      })
+      if (res.ok) reason = describePaymentError((await res.json()) as Record<string, unknown>)
+    } catch (e) {
+      console.warn('invoice.payment_failed: payment_intent fetch failed', e)
+    }
+  }
+  const retryAt = unixToIso(invoice.next_payment_attempt)
+  const attempt = typeof invoice.attempt_count === 'number' ? invoice.attempt_count : null
+  const detail = [
+    reason ?? 'card declined (reason not reported)',
+    attempt ? `attempt ${attempt}` : null,
+    retryAt ? `Stripe retries ${retryAt.slice(0, 10)}` : 'no further retries scheduled',
+  ]
+    .filter(Boolean)
+    .join(' · ')
+
+  const failedAt = new Date().toISOString()
+  const sub = await fetchStripeSubscription(subId)
+  if (sub) {
+    // Force the transition if Stripe hasn't flipped status yet (event
+    // ordering isn't guaranteed) so the trigger emits exactly one
+    // payment_failed event, carrying the reason.
+    const status = String(sub.status)
+    await recordSubscription(sub, {
+      status: status === 'active' || status === 'trialing' ? 'past_due' : status,
+      last_payment_failed_at: failedAt,
+      last_payment_error: detail,
+    })
+  } else {
+    const { error } = await supabase
+      .from('subscriptions')
+      .update({ status: 'past_due', last_payment_failed_at: failedAt, last_payment_error: detail })
+      .eq('id', subId)
+      .in('status', ['active', 'trialing'])
+    if (error) console.error('invoice.payment_failed: fallback update failed', error)
+  }
+  console.log(`invoice.payment_failed: ${subId} — ${detail}`)
+}
+
+async function handleInvoicePaid(invoice: Record<string, unknown>) {
+  const subId = idOf(invoice.subscription)
+  if (!subId) return
+
+  // Refresh the row so current_period_end reflects the renewal; the
+  // trialing→active transition (trial converted) is detected by the trigger.
+  const sub = await fetchStripeSubscription(subId)
+  if (sub) await recordSubscription(sub)
+
+  const { data: subRow } = await supabase
+    .from('subscriptions')
+    .select('user_id, plan, billing_interval')
+    .eq('id', subId)
+    .maybeSingle()
+
+  const { error } = await supabase.from('billing_events').upsert(
+    {
+      user_id: subRow?.user_id ?? null,
+      subscription_id: sub ? subId : null,
+      stripe_customer_id: idOf(invoice.customer),
+      event_type: 'payment_succeeded',
+      plan: subRow?.plan ?? null,
+      billing_interval: subRow?.billing_interval ?? null,
+      amount_cents: typeof invoice.amount_paid === 'number' ? invoice.amount_paid : null,
+      currency: typeof invoice.currency === 'string' ? invoice.currency : null,
+      detail: typeof invoice.billing_reason === 'string' ? invoice.billing_reason : null,
+      dedupe_key: `inv:${invoice.id}`,
+    },
+    { onConflict: 'dedupe_key', ignoreDuplicates: true },
+  )
+  if (error) console.error('invoice.paid: billing_events insert failed', error)
+}
+
 async function handleSubscriptionUpdated(subscription: Record<string, unknown>) {
+  // Legacy direct profile write first; recordSubscription() runs last so the
+  // trigger's reconcile (which weighs ALL of the user's subscriptions, not
+  // just this one) has the final say.
+  await updateProfilePlanFromSubscription(subscription)
+  await recordSubscription(subscription)
+}
+
+async function updateProfilePlanFromSubscription(subscription: Record<string, unknown>) {
   const stripeCustomerId = subscription.customer as string
   const status = subscription.status as string
 
@@ -357,6 +525,12 @@ async function handleSubscriptionDeleted(subscription: Record<string, unknown>) 
   } else {
     console.log(`customer.subscription.deleted: dropped customer ${stripeCustomerId} to plan=free`)
   }
+
+  // Runs last: the deleted object carries status='canceled' +
+  // cancellation_details, and the trigger's reconcile restores the correct
+  // plan if the user still holds another live subscription (e.g. the
+  // dup-sub guard just cancelled their old plan after an upgrade).
+  await recordSubscription(subscription)
 }
 
 async function handleTrialWillEnd(subscription: Record<string, unknown>) {
@@ -428,6 +602,12 @@ Deno.serve(async (request: Request) => {
       break
     case 'customer.subscription.trial_will_end':
       await handleTrialWillEnd(event.data.object)
+      break
+    case 'invoice.payment_failed':
+      await handleInvoicePaymentFailed(event.data.object)
+      break
+    case 'invoice.paid':
+      await handleInvoicePaid(event.data.object)
       break
     default:
       console.log(`Unhandled event type: ${event.type}`)
