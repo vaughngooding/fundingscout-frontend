@@ -377,6 +377,11 @@ verify_jwt = false
 [functions.slack-interactions]
 verify_jwt = false
 
+# Auth is the X-Billing-Sync-Token header (vault secret), called from pg_cron
+# which cannot mint a Supabase JWT.
+[functions.billing-sync]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327
